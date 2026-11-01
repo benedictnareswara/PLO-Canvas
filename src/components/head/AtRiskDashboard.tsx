@@ -18,7 +18,7 @@ import type { StudentsWithRows } from "@/lib/obe/queries";
 export function AtRiskDashboard({ data }: { data: StudentsWithRows }) {
   const [period, setPeriod] = useState<PeriodFilter>("all");
   const [threshold, setThreshold] = useState(data.threshold);
-  const cohorts = useMemo(() => summarizeCohorts(data.students, data.rows, data.plos, threshold, period), [data, threshold, period]);
+  const cohorts = useMemo(() => summarizeCohorts(data.students, data.sums, data.plos, threshold, period), [data, threshold, period]);
   const [drill, setDrill] = useState<{ year: number; plo: number } | null>(null);
 
   const drillCohort = drill ? cohorts.find((c) => c.year === drill.year) : null;
@@ -173,7 +173,7 @@ export function AtRiskDashboard({ data }: { data: StudentsWithRows }) {
         <StudentAttainmentTable
           key={`${threshold}`}
           students={data.students}
-          rows={data.rows}
+          sums={data.sums}
           plos={data.plos}
           threshold={threshold}
           onlyAtRisk

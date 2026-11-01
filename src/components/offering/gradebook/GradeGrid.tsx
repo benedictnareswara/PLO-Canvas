@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useId, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertCircle, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/components/ui";
@@ -10,6 +10,7 @@ import type { OfferingAssessmentView } from "@/lib/obe/queries";
 import type { PloInfo, StudentSummary } from "@/lib/obe/types";
 import { MAX_SCORE_FACTOR, type ScoreError } from "@/lib/gradebook/parse-score";
 import type { GradebookState } from "./useGradebookState";
+import { CellHistory } from "./CellHistory";
 
 interface Editing {
   key: string;
@@ -28,12 +29,14 @@ const PAGE = 10;
  * Moving between cells is deliberately not animated.
  */
 export function GradeGrid({
+  offeringId,
   students,
   assessments,
   plos,
   state,
   canEdit,
 }: {
+  offeringId: string;
   students: StudentSummary[];
   assessments: OfferingAssessmentView[];
   plos: PloInfo[];
@@ -47,6 +50,8 @@ export function GradeGrid({
   const [editing, setEditing] = useState<Editing | null>(null);
   const [focusWithin, setFocusWithin] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  const [historyFor, setHistoryFor] = useState<{ row: number; col: number } | null>(null);
+  const closeHistory = useCallback(() => setHistoryFor(null), []);
 
   const rows = students.length;
   const cols = assessments.length;
@@ -130,6 +135,11 @@ export function GradeGrid({
           state.setCell(activeKey, "");
         }
         return;
+    }
+    if (e.altKey && !mod && e.code === "KeyH") {
+      handled();
+      setHistoryFor({ row, col });
+      return;
     }
     if (mod && e.key.toLowerCase() === "z" && canEdit) {
       handled();
@@ -229,6 +239,14 @@ export function GradeGrid({
         onDoubleClick={(e) => {
           if ((e.target as Element).closest("[data-row]")) startEdit("edit");
         }}
+        onContextMenu={(e) => {
+          const cell = (e.target as Element).closest<HTMLElement>("[data-row]");
+          if (!cell || cell.querySelector("input")) return;
+          e.preventDefault();
+          const at = { row: Number(cell.dataset.row), col: Number(cell.dataset.col) };
+          setActive(at);
+          setHistoryFor(at);
+        }}
         className="w-full border-separate border-spacing-0 text-sm"
       >
         <thead>
@@ -326,6 +344,16 @@ export function GradeGrid({
       <div role="status" aria-live="polite" className="sr-only">
         {announcement}
       </div>
+      {historyFor && students[historyFor.row] && assessments[historyFor.col] && (
+        <CellHistory
+          offeringId={offeringId}
+          studentId={students[historyFor.row].id}
+          assessmentId={assessments[historyFor.col].id}
+          label={`${students[historyFor.row].name} · ${assessments[historyFor.col].title}`}
+          anchorId={cellDomId(historyFor.row, historyFor.col)}
+          onClose={closeHistory}
+        />
+      )}
     </div>
   );
 }

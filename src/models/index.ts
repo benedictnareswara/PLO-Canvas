@@ -90,6 +90,8 @@ const userSchema = new Schema<UserDoc>(
 );
 userSchema.index({ advisor: 1 });
 userSchema.index({ cohortYear: 1 });
+// Department/cohort listings: { roles: "student", department } sorted by cohort then name.
+userSchema.index({ roles: 1, department: 1, cohortYear: 1, name: 1 });
 
 /* -------------------------------- Teaching ------------------------------- */
 
@@ -142,6 +144,8 @@ const assessmentSchema = new Schema<AssessmentDoc>(
   },
   { timestamps: true },
 );
+// Every class page loads its assessments in creation order.
+assessmentSchema.index({ offering: 1, createdAt: 1 });
 assessmentSchema.index(
   { offering: 1, canvasId: 1 },
   { unique: true, partialFilterExpression: { canvasId: { $type: "string" } } },
@@ -175,8 +179,42 @@ const attainmentSchema = new Schema<AttainmentDoc>(
   },
   { timestamps: true },
 );
-attainmentSchema.index({ student: 1 });
+// Serves per-student reads and the per-semester $group in getAttainmentSums (and plain { student }).
+attainmentSchema.index({ student: 1, studentSemester: 1, ploNumber: 1 });
 attainmentSchema.index({ offering: 1 });
+
+/* ------------------------------- Audit trail ------------------------------ */
+
+export const AUDIT_ACTIONS = [
+  "grade.set",
+  "grade.clear",
+  "assessment.create",
+  "assessment.update",
+  "assessment.delete",
+  "threshold.update",
+  "canvas.import",
+] as const;
+export type AuditAction = (typeof AUDIT_ACTIONS)[number];
+
+// Append-only record of changes to a class. Written in the same transaction as the change.
+const auditEventSchema = new Schema<AuditEventDoc>(
+  {
+    offering: { type: ObjectId, ref: "CourseOffering", required: true },
+    actor: { type: ObjectId, ref: "User", required: true },
+    actorName: { type: String, required: true }, // denormalized: history lists need no join
+    action: { type: String, enum: AUDIT_ACTIONS, required: true },
+    source: { type: String, enum: ["manual", "canvas"], default: "manual" },
+    batch: { type: String, required: true }, // groups one save / one import
+    student: { type: ObjectId, ref: "User" },
+    assessment: { type: ObjectId, ref: "Assessment" },
+    assessmentTitle: { type: String }, // survives deletion of the assessment
+    before: { type: Schema.Types.Mixed },
+    after: { type: Schema.Types.Mixed },
+  },
+  { timestamps: { createdAt: true, updatedAt: false } },
+);
+auditEventSchema.index({ offering: 1, createdAt: -1, _id: -1 });
+auditEventSchema.index({ offering: 1, student: 1, assessment: 1, createdAt: -1 });
 
 type Id = Types.ObjectId;
 interface Timestamps {
@@ -270,6 +308,20 @@ export interface AttainmentDoc extends Timestamps {
   term: Term;
   studentSemester: number;
 }
+export interface AuditEventDoc {
+  offering: Id;
+  actor: Id;
+  actorName: string;
+  action: AuditAction;
+  source: "manual" | "canvas";
+  batch: string;
+  student?: Id | null;
+  assessment?: Id | null;
+  assessmentTitle?: string | null;
+  before?: unknown;
+  after?: unknown;
+  createdAt: Date;
+}
 
 export const Faculty = getModel<FacultyDoc>("Faculty", facultySchema);
 export const Department = getModel<DepartmentDoc>("Department", departmentSchema);
@@ -282,5 +334,6 @@ export const Enrollment = getModel<EnrollmentDoc>("Enrollment", enrollmentSchema
 export const Assessment = getModel<AssessmentDoc>("Assessment", assessmentSchema);
 export const Grade = getModel<GradeDoc>("Grade", gradeSchema);
 export const CourseAttainment = getModel<AttainmentDoc>("CourseAttainment", attainmentSchema);
+export const AuditEvent = getModel<AuditEventDoc>("AuditEvent", auditEventSchema);
 
 export { mongoose, Types };

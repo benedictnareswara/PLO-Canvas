@@ -217,7 +217,8 @@
       "radar": "Class radar",
       "gradebook": "Gradebook",
       "assessments": "Assessments",
-      "settings": "Settings"
+      "settings": "Settings",
+      "history": "History"
     },
     "radar": {
       "emptyTitle": "No PLO attainment yet",
@@ -312,7 +313,8 @@
     "courseGradeIs": "Course grade {letter}",
     "previousStudent": "Previous student",
     "nextStudent": "Next student",
-    "studentPosition": "Student {index} of {total}"
+    "studentPosition": "Student {index} of {total}",
+    "historyHint": "<kbd>{history}</kbd> or right-click a cell shows its history"
   },
   "weights": {
     "coursePlo": "course PLO",
@@ -455,5 +457,46 @@
       "blank": "Blank or excused cells skipped",
       "enrolled": "{count, plural, one {# student enrolled} other {# students enrolled}}"
     }
+  },
+  "history": {
+    "filterKind": "Type of change",
+    "filterStudent": "Student",
+    "filterAssessment": "Assessment",
+    "kinds": {
+      "all": "All changes",
+      "grades": "Grades",
+      "assessments": "Assessments",
+      "target": "Target",
+      "imports": "Canvas imports"
+    },
+    "allStudents": "All students",
+    "allAssessments": "All assessments",
+    "clearFilters": "Clear filters",
+    "loadMore": "Show older changes",
+    "loadFailed": "The history couldn't be loaded. Try again in a moment.",
+    "loading": "Loading history…",
+    "emptyTitle": "No changes recorded yet",
+    "emptyBody": "Grade, assessment and target changes in this class are recorded here, with who made them and when.",
+    "emptyFilteredTitle": "No matching changes",
+    "emptyFilteredBody": "Nothing in the history matches these filters.",
+    "summary": {
+      "grades": "{actor} saved {count, plural, one {# grade} other {# grades}}",
+      "import": "{actor} imported a Canvas gradebook: {count, plural, =0 {no grades changed} one {# grade changed} other {# grades changed}}",
+      "assessmentCreate": "{actor} added the assessment “{title}”",
+      "assessmentUpdate": "{actor} edited the assessment “{title}”",
+      "assessmentDelete": "{actor} deleted the assessment “{title}”",
+      "threshold": "{actor} changed the target from {before}% to {after}%"
+    },
+    "to": "changed to",
+    "cleared": "cleared",
+    "fields": {
+      "title": "Title",
+      "maxPoints": "Max points",
+      "gradeWeight": "Grade weight",
+      "ploWeights": "PLO weights"
+    },
+    "deletedDetail": "It had {grades, plural, =0 {no grades} one {# grade} other {# grades}}, max points {max}, grade weight {weight}%.",
+    "cellTitle": "History of {cell}",
+    "cellEmpty": "No changes recorded for this cell."
   }
 }

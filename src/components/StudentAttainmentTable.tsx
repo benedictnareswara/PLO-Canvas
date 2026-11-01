@@ -6,19 +6,19 @@ import { PloCell } from "@/components/AtRiskBadge";
 import { Badge, Select, Table, Td, Th } from "@/components/ui";
 import { atRiskPlos, cumulativeForStudent, toPloValues } from "@/lib/obe/aggregate";
 import { PERIOD_FILTERS, type PeriodFilter } from "@/lib/obe/semesters";
-import type { AttainmentRow, PloInfo, StudentSummary } from "@/lib/obe/types";
+import type { AttainmentSum, PloInfo, StudentSummary } from "@/lib/obe/types";
 
 /** Students × PLO matrix of cumulative attainment, with at-risk highlighting and profile links. */
 export function StudentAttainmentTable({
   students,
-  rows,
+  sums,
   plos,
   threshold,
   showPeriodFilter = true,
   onlyAtRisk = false,
 }: {
   students: StudentSummary[];
-  rows: AttainmentRow[];
+  sums: AttainmentSum[];
   plos: PloInfo[];
   threshold: number;
   showPeriodFilter?: boolean;
@@ -28,10 +28,10 @@ export function StudentAttainmentTable({
   const computed = useMemo(
     () =>
       students.map((s) => {
-        const values = toPloValues(cumulativeForStudent(rows, s.id, period), plos);
+        const values = toPloValues(cumulativeForStudent(sums, s.id, period), plos);
         return { ...s, values, risky: atRiskPlos(values, threshold) };
       }),
-    [students, rows, plos, period, threshold],
+    [students, sums, plos, period, threshold],
   );
   const shown = onlyAtRisk ? computed.filter((s) => s.risky.length) : computed;
 

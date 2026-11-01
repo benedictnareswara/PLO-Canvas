@@ -24,7 +24,7 @@ export default async function AdviseesPage() {
             title="Cumulative PLO attainment"
             description={`SKS-weighted across all assessed courses. Cells below ${data.threshold}% are flagged At-Risk.`}
           />
-          <StudentAttainmentTable students={data.students} rows={data.rows} plos={data.plos} threshold={data.threshold} />
+          <StudentAttainmentTable students={data.students} sums={data.sums} plos={data.plos} threshold={data.threshold} />
         </Card>
       )}
     </>

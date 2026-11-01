@@ -25,6 +25,7 @@ export function GradebookTab({ detail, canEdit }: { detail: OfferingDetail; canE
   const saveKey = useHotkeyLabel("mod+s");
   const pasteKey = useHotkeyLabel("mod+v");
   const undoKey = useHotkeyLabel("mod+z");
+  const historyKey = useHotkeyLabel("alt+h");
   const [query, setQuery] = useUrlState("gq", "");
   const [missingOnly, setMissingOnly] = useUrlState("missing", false, { parse: (r) => r === "1", serialize: (v) => (v ? "1" : "") });
 
@@ -188,17 +189,21 @@ export function GradebookTab({ detail, canEdit }: { detail: OfferingDetail; canE
               />
             </div>
           </div>
-          {empty || <GradeGrid students={students} assessments={detail.assessments} plos={detail.plos} state={state} canEdit={canEdit} />}
-          {canEdit && (
-            <p className="border-t border-border px-5 py-2 text-xs text-muted">
-              {t.rich("keyboardHint", {
-                kbd: (chunks) => <Kbd>{chunks}</Kbd>,
-                save: saveKey,
-                paste: pasteKey,
-                undo: undoKey,
-              })}
-            </p>
-          )}
+          {empty || <GradeGrid offeringId={detail.id} students={students} assessments={detail.assessments} plos={detail.plos} state={state} canEdit={canEdit} />}
+          <p className="border-t border-border px-5 py-2 text-xs text-muted">
+            {canEdit && (
+              <>
+                {t.rich("keyboardHint", {
+                  kbd: (chunks) => <Kbd>{chunks}</Kbd>,
+                  save: saveKey,
+                  paste: pasteKey,
+                  undo: undoKey,
+                })}{" "}
+                ·{" "}
+              </>
+            )}
+            {t.rich("historyHint", { kbd: (chunks) => <Kbd>{chunks}</Kbd>, history: historyKey })}
+          </p>
           {saveBar}
         </Card>
       )}

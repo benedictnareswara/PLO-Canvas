@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import {
   Assessment,
   Course,
@@ -13,7 +14,7 @@ import {
 } from "@/models";
 import { DEFAULT_THRESHOLD, courseGrade, cumulativePloAttainment, letterGrade, scorePercentage } from "./engine";
 import { offeringPeriodLabel, studentSemester } from "./semesters";
-import type { AttainmentRow, PloInfo, PloValues, StudentSummary } from "./types";
+import type { AttainmentRow, AttainmentSum, PloInfo, PloValues, StudentSummary } from "./types";
 
 const oid = (id: string) => new Types.ObjectId(id);
 
@@ -52,6 +53,31 @@ export async function getAttainmentRows(studentIds: Types.ObjectId[]): Promise<A
     sks: r.sks,
     studentSemester: r.studentSemester,
   }));
+}
+
+/**
+ * Per-student, per-semester, per-PLO sums (see AttainmentSum), aggregated in MongoDB so a
+ * department page ships a few numbers per student instead of every course-level row. Uses the
+ * { student, studentSemester, ploNumber } index.
+ */
+export async function getAttainmentSums(studentIds: Types.ObjectId[]): Promise<AttainmentSum[]> {
+  if (!studentIds.length) return [];
+  const groups = await CourseAttainment.aggregate<{
+    _id: { student: Types.ObjectId; studentSemester: number; ploNumber: number };
+    sum: number;
+    sks: number;
+  }>([
+    // Same exclusions as cumulativePloAttainment: positive SKS and a real number (NaN equals NaN in MongoDB).
+    { $match: { student: { $in: studentIds }, sks: { $gt: 0 }, value: { $type: "number", $ne: NaN } } },
+    {
+      $group: {
+        _id: { student: "$student", studentSemester: "$studentSemester", ploNumber: "$ploNumber" },
+        sum: { $sum: { $multiply: ["$value", "$sks"] } },
+        sks: { $sum: "$sks" },
+      },
+    },
+  ]);
+  return groups.map((g) => ({ student: String(g._id.student), studentSemester: g._id.studentSemester, ploNumber: g._id.ploNumber, sum: g.sum, sks: g.sks }));
 }
 
 export function cumulativeFromRows(rows: AttainmentRow[]): Map<number, number> {
@@ -210,24 +236,31 @@ export interface OfferingDetail {
   courseGrades: Record<string, { pct: number | null; letter: string }>;
 }
 
-export async function getOfferingDetail(offeringId: string): Promise<OfferingDetail | null> {
+/**
+ * Everything a class page needs. Wrapped in React `cache` so generateMetadata and the page share
+ * one load per request. After the offering itself, the course and every per-offering collection
+ * load in parallel, each projected to the fields used here.
+ */
+export const getOfferingDetail = cache(async (offeringId: string): Promise<OfferingDetail | null> => {
   const offering = await CourseOffering.findById(offeringId).lean();
   if (!offering) return null;
-  const course = await Course.findById(offering.course).lean();
-  if (!course) return null;
-  const plos = await getPlos(course.curriculum);
-  const ploNumberById = new Map(plos.map((p) => [p.id, p.number]));
-
-  const [lecturers, assessments, enrollments, grades, attainment] = await Promise.all([
+  const [course, lecturers, assessments, enrollments, grades, attainment] = await Promise.all([
+    Course.findById(offering.course).select("curriculum code title sks plos").lean(),
     User.find({ _id: { $in: offering.lecturers } }).select("name").lean(),
-    Assessment.find({ offering: offering._id }).sort({ createdAt: 1 }).lean(),
-    Enrollment.find({ offering: offering._id }).lean(),
-    Grade.find({ offering: offering._id }).lean(),
-    CourseAttainment.find({ offering: offering._id }).lean(),
+    Assessment.find({ offering: offering._id }).sort({ createdAt: 1 }).select("title maxPoints gradeWeight canvasId source ploWeights").lean(),
+    Enrollment.find({ offering: offering._id }).select("student").lean(),
+    Grade.find({ offering: offering._id }).select("student assessment score").lean(),
+    CourseAttainment.find({ offering: offering._id }).select("student ploNumber value").lean(),
   ]);
-  const students = await User.find({ _id: { $in: enrollments.map((e) => e.student) } })
-    .sort({ name: 1 })
-    .lean();
+  if (!course) return null;
+  const [plos, students] = await Promise.all([
+    getPlos(course.curriculum),
+    User.find({ _id: { $in: enrollments.map((e) => e.student) } })
+      .select("name email studentId cohortYear")
+      .sort({ name: 1 })
+      .lean(),
+  ]);
+  const ploNumberById = new Map(plos.map((p) => [p.id, p.number]));
 
   const gradeMatrix: Record<string, Record<string, number>> = {};
   for (const g of grades) {
@@ -283,7 +316,7 @@ export async function getOfferingDetail(offeringId: string): Promise<OfferingDet
     attainment: attainmentByStudent,
     courseGrades,
   };
-}
+});
 
 /** Class mean PLO attainment per offering, computed from the materialized rows. */
 async function classMeans(offeringIds: Types.ObjectId[]): Promise<Map<string, Map<number, number>>> {
@@ -383,7 +416,7 @@ export async function listOfferings(filter: { lecturer?: string; departmentId?: 
 
 export interface StudentsWithRows {
   students: StudentSummary[];
-  rows: AttainmentRow[];
+  sums: AttainmentSum[];
   plos: PloInfo[];
   threshold: number;
 }
@@ -397,7 +430,7 @@ export async function getStudentsWithRows(filter: { advisor?: string; department
   const plos = curriculum ? await getPlos(curriculum._id) : [];
   return {
     students: students.map(toStudentSummary),
-    rows: await getAttainmentRows(students.map((s) => s._id)),
+    sums: await getAttainmentSums(students.map((s) => s._id)),
     plos,
     threshold: curriculum?.defaultThreshold ?? DEFAULT_THRESHOLD,
   };

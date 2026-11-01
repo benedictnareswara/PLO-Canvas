@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { PloRadar } from "@/components/charts/PloRadar";
 import { AtRiskBadge, PloCell, formatPct } from "@/components/AtRiskBadge";
 import { Badge, Card, CardBody, CardHeader, Select, Stat, Table, Td, Th, cn } from "@/components/ui";
-import { atRiskPlos, cumulativeForStudent, toPloValues } from "@/lib/obe/aggregate";
+import { atRiskPlos, cumulativeForStudent, rowsToSums, toPloValues } from "@/lib/obe/aggregate";
 import { PERIOD_FILTERS, inPeriod, type PeriodFilter } from "@/lib/obe/semesters";
 import type { StudentCourseView, StudentProfileData } from "@/lib/obe/queries";
 
@@ -21,7 +21,7 @@ export function StudentProfile({ data }: { data: StudentProfileData }) {
   });
 
   const values = useMemo(
-    () => toPloValues(cumulativeForStudent(rows, student.id, period), plos),
+    () => toPloValues(cumulativeForStudent(rowsToSums(rows), student.id, period), plos),
     [rows, student.id, period, plos],
   );
   const risky = atRiskPlos(values, threshold);

@@ -12,6 +12,7 @@ import { exportAttainmentCsv, exportGradesCsv, exportWorkbook } from "./export";
 import { useExportLabels } from "./useExportLabels";
 import { AssessmentsTab } from "./tabs/AssessmentsTab";
 import { GradebookTab } from "./tabs/GradebookTab";
+import { HistoryTab } from "./tabs/HistoryTab";
 import { RadarTab } from "./tabs/RadarTab";
 import { SettingsTab } from "./tabs/SettingsTab";
 
@@ -33,6 +34,7 @@ export function OfferingWorkspace({ detail, canEdit }: { detail: OfferingDetail;
           ),
           content: <AssessmentsTab detail={detail} canEdit={canEdit} />,
         },
+        { key: "history", label: t("history"), content: <HistoryTab detail={detail} /> },
         ...(canEdit ? [{ key: "settings", label: t("settings"), content: <SettingsTab detail={detail} /> }] : []),
       ]}
     />

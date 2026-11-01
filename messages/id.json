@@ -217,7 +217,8 @@
       "radar": "Radar kelas",
       "gradebook": "Buku nilai",
       "assessments": "Penilaian",
-      "settings": "Pengaturan"
+      "settings": "Pengaturan",
+      "history": "Riwayat"
     },
     "radar": {
       "emptyTitle": "Belum ada capaian CPL",
@@ -312,7 +313,8 @@
     "courseGradeIs": "Nilai mata kuliah {letter}",
     "previousStudent": "Mahasiswa sebelumnya",
     "nextStudent": "Mahasiswa berikutnya",
-    "studentPosition": "Mahasiswa {index} dari {total}"
+    "studentPosition": "Mahasiswa {index} dari {total}",
+    "historyHint": "<kbd>{history}</kbd> atau klik kanan sel untuk melihat riwayatnya"
   },
   "weights": {
     "coursePlo": "CPL mata kuliah",
@@ -455,5 +457,46 @@
       "blank": "Sel kosong atau dispensasi dilewati",
       "enrolled": "{count} mahasiswa didaftarkan"
     }
+  },
+  "history": {
+    "filterKind": "Jenis perubahan",
+    "filterStudent": "Mahasiswa",
+    "filterAssessment": "Penilaian",
+    "kinds": {
+      "all": "Semua perubahan",
+      "grades": "Nilai",
+      "assessments": "Penilaian",
+      "target": "Target",
+      "imports": "Impor Canvas"
+    },
+    "allStudents": "Semua mahasiswa",
+    "allAssessments": "Semua penilaian",
+    "clearFilters": "Hapus filter",
+    "loadMore": "Tampilkan perubahan lebih lama",
+    "loadFailed": "Riwayat tidak dapat dimuat. Coba lagi sebentar lagi.",
+    "loading": "Memuat riwayat…",
+    "emptyTitle": "Belum ada perubahan tercatat",
+    "emptyBody": "Perubahan nilai, penilaian, dan target di kelas ini dicatat di sini, beserta siapa yang mengubah dan kapan.",
+    "emptyFilteredTitle": "Tidak ada perubahan yang cocok",
+    "emptyFilteredBody": "Tidak ada riwayat yang cocok dengan filter ini.",
+    "summary": {
+      "grades": "{actor} menyimpan {count} nilai",
+      "import": "{actor} mengimpor gradebook Canvas: {count, plural, =0 {tidak ada nilai yang berubah} other {# nilai berubah}}",
+      "assessmentCreate": "{actor} menambahkan penilaian “{title}”",
+      "assessmentUpdate": "{actor} mengedit penilaian “{title}”",
+      "assessmentDelete": "{actor} menghapus penilaian “{title}”",
+      "threshold": "{actor} mengubah target dari {before}% menjadi {after}%"
+    },
+    "to": "diubah menjadi",
+    "cleared": "dikosongkan",
+    "fields": {
+      "title": "Judul",
+      "maxPoints": "Nilai maks",
+      "gradeWeight": "Bobot nilai",
+      "ploWeights": "Bobot CPL"
+    },
+    "deletedDetail": "Penilaian ini memiliki {grades} nilai, nilai maks {max}, bobot nilai {weight}%.",
+    "cellTitle": "Riwayat {cell}",
+    "cellEmpty": "Belum ada perubahan tercatat untuk sel ini."
   }
 }

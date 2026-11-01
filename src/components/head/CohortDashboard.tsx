@@ -12,7 +12,7 @@ import type { StudentsWithRows } from "@/lib/obe/queries";
 export function CohortDashboard({ data }: { data: StudentsWithRows }) {
   const [period, setPeriod] = useState<PeriodFilter>("all");
   const cohorts = useMemo(
-    () => summarizeCohorts(data.students, data.rows, data.plos, data.threshold, period),
+    () => summarizeCohorts(data.students, data.sums, data.plos, data.threshold, period),
     [data, period],
   );
   const [selected, setSelected] = useState<number[]>(() => cohorts.slice(-3).map((c) => c.year));

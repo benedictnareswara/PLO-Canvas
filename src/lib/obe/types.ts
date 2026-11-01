@@ -22,6 +22,19 @@ export interface AttainmentRow {
   studentSemester: number;
 }
 
+/**
+ * Pre-aggregated attainment for one student, semester and PLO: Σ(value × SKS) and Σ SKS over the
+ * course-level rows. Cumulative attainment over any set of semesters is Σsum / Σsks, exactly the
+ * SKS-weighted mean of the underlying rows, so pages can ship these instead of every row.
+ */
+export interface AttainmentSum {
+  student: string;
+  studentSemester: number;
+  ploNumber: number;
+  sum: number;
+  sks: number;
+}
+
 export interface StudentSummary {
   id: string;
   name: string;
