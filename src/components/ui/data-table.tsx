@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { useMemo, useSyncExternalStore, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { useTranslations } from "next-intl";
 import {
-  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
@@ -81,7 +80,19 @@ export interface DataTableProps<T> {
   /** Switch to stacked cards when the table's container is narrower than 40rem. */
   stackOnNarrow?: boolean;
   showDensity?: boolean;
+  /** Row checkboxes for bulk actions (needs getRowId). `name` labels each row's checkbox. */
+  selection?: { selected: Set<string>; onChange: Dispatch<SetStateAction<Set<string>>>; name: (row: T) => string };
   className?: string;
+}
+
+/**
+ * Renders a header/cell definition. TanStack's flexRender mounts function definitions as React
+ * components, so inline definitions (new identities every render) remount every cell on each
+ * render, which drops focus from checkboxes and buttons. Calling them as plain functions keeps
+ * the DOM stable. Definitions here never use hooks.
+ */
+function render<C>(def: unknown, ctx: C): ReactNode {
+  return typeof def === "function" ? (def as (c: C) => ReactNode)(ctx) : (def as ReactNode);
 }
 
 function encodeSort(s: SortingState) {
@@ -119,6 +130,7 @@ export function DataTable<T>({
   maxHeight,
   stackOnNarrow = true,
   showDensity = false,
+  selection,
   className,
 }: DataTableProps<T>) {
   const t = useTranslations("table");
@@ -132,10 +144,65 @@ export function DataTable<T>({
   const sorting = useMemo(() => decodeSort(sortParam), [sortParam]);
   const pageIndex = Math.max(0, page - 1);
 
+  const allColumns = useMemo<ColumnDef<T, unknown>[]>(() => {
+    if (!selection) return columns;
+    const select: ColumnDef<T, unknown> = {
+      id: "__select",
+      enableSorting: false,
+      enableGlobalFilter: false,
+      meta: { className: "w-10" },
+      header: ({ table: tbl }) => {
+        const ids = tbl.getFilteredRowModel().rows.map((r) => r.id);
+        const picked = ids.filter((id) => selection.selected.has(id)).length;
+        return (
+          <input
+            type="checkbox"
+            className="size-4 accent-brand"
+            aria-label={t("selectAll")}
+            checked={ids.length > 0 && picked === ids.length}
+            ref={(el) => {
+              if (el) el.indeterminate = picked > 0 && picked < ids.length;
+            }}
+            onChange={(e) => {
+              const on = e.target.checked;
+              selection.onChange((prev) => {
+                const next = new Set(prev);
+                for (const id of ids) {
+                  if (on) next.add(id);
+                  else next.delete(id);
+                }
+                return next;
+              });
+            }}
+          />
+        );
+      },
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          className="size-4 accent-brand"
+          aria-label={t("selectRow", { name: selection.name(row.original) })}
+          checked={selection.selected.has(row.id)}
+          onChange={(e) => {
+            const on = e.target.checked;
+            // Functional update: quick successive clicks must not overwrite each other.
+            selection.onChange((prev) => {
+              const next = new Set(prev);
+              if (on) next.add(row.id);
+              else next.delete(row.id);
+              return next;
+            });
+          }}
+        />
+      ),
+    };
+    return [select, ...columns];
+  }, [columns, selection, t]);
+
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack returns a stable instance with fresh state each render
   const table = useReactTable({
     data,
-    columns,
+    columns: allColumns,
     getRowId,
     state: { sorting, globalFilter: query, ...(pageSize ? { pagination: { pageIndex, pageSize } } : {}) },
     onSortingChange: (updater) => {
@@ -266,7 +333,7 @@ export function DataTable<T>({
                     const meta = header.column.columnDef.meta;
                     const sorted = header.column.getIsSorted();
                     const canSort = header.column.getCanSort();
-                    const content = header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext());
+                    const content = header.isPlaceholder ? null : render(header.column.columnDef.header, header.getContext());
                     const Icon = sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
                     return (
                       <th
@@ -328,7 +395,7 @@ export function DataTable<T>({
                           meta?.className,
                         )}
                       >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {render(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     );
                   })}

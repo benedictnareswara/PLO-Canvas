@@ -12,6 +12,8 @@ export interface ConfirmOptions {
   cancelLabel?: ReactNode;
   /** "danger" for irreversible actions: red confirm button. */
   tone?: "danger" | "default";
+  /** Explanation only (e.g. why something can't be deleted): a single acknowledge button. */
+  infoOnly?: boolean;
 }
 
 type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
@@ -54,12 +56,14 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         title={options?.title}
         footer={
           <>
-            <Button variant="secondary" data-autofocus onClick={() => finish(false)}>
-              {options?.cancelLabel ?? t("cancel")}
+            <Button variant={options?.infoOnly ? "primary" : "secondary"} data-autofocus onClick={() => finish(false)}>
+              {options?.cancelLabel ?? (options?.infoOnly ? t("ok") : t("cancel"))}
             </Button>
-            <Button variant={options?.tone === "danger" ? "danger" : "primary"} onClick={() => finish(true)}>
-              {options?.confirmLabel ?? t("delete")}
-            </Button>
+            {!options?.infoOnly && (
+              <Button variant={options?.tone === "danger" ? "danger" : "primary"} onClick={() => finish(true)}>
+                {options?.confirmLabel ?? t("delete")}
+              </Button>
+            )}
           </>
         }
       >

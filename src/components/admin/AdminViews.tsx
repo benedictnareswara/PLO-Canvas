@@ -2,9 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { UserCheck, Users } from "lucide-react";
-import { Badge, Button, Field, Input, Select } from "@/components/ui";
+import { Badge, Button, Field, Input, Select, ToggleChip } from "@/components/ui";
 import { Dialog, Notice, apiFetch } from "@/components/ui/client";
+import { useUrlState } from "@/lib/hooks/useUrlState";
 import { offeringPeriodLabel } from "@/lib/obe/semesters";
 import type { CourseRow, CurriculumRow, DepartmentRow, FacultyRow, OfferingRow, PloRow, UserRow } from "@/lib/admin/data";
 import { ResourceSection, type FieldDef } from "./ResourceSection";
@@ -25,79 +28,86 @@ export function CurriculumAdmin({
   curricula: CurriculumRow[];
   plos: PloRow[];
 }) {
-  const [curriculumId, setCurriculumId] = useState(curricula[0]?._id ?? "");
+  const t = useTranslations("admin.curriculum");
+  const [curriculumId, setCurriculumId] = useUrlState("curriculum", curricula[0]?._id ?? "");
   const facultyName = nameMap(faculties, (f) => f.code);
   const deptName = nameMap(departments, (d) => d.code);
   const shownPlos = plos.filter((p) => p.curriculum === curriculumId);
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <ResourceSection
           resource="faculties"
-          title="Faculties"
-          addLabel="Add faculty"
+          title={t("faculties")}
+          addLabel={t("addFaculty")}
+          itemName={(r) => r.code}
           rows={faculties}
+          pageSize={10}
           columns={[
-            { header: "Code", cell: (r) => <span className="font-medium">{r.code}</span> },
-            { header: "Name", cell: (r) => r.name },
+            { id: "code", header: t("code"), value: (r) => r.code, primary: true, cell: (r) => <span className="font-medium">{r.code}</span> },
+            { id: "name", header: t("name"), value: (r) => r.name, cell: (r) => r.name },
           ]}
           fields={[
-            { name: "code", label: "Code", required: true },
-            { name: "name", label: "Name", required: true },
+            { name: "code", label: t("code"), required: true },
+            { name: "name", label: t("name"), required: true },
           ]}
         />
         <ResourceSection
           resource="departments"
-          title="Departments"
-          addLabel="Add department"
+          title={t("departments")}
+          addLabel={t("addDepartment")}
+          itemName={(r) => r.code}
           rows={departments}
+          pageSize={10}
           columns={[
-            { header: "Code", cell: (r) => <span className="font-medium">{r.code}</span> },
-            { header: "Name", cell: (r) => r.name },
-            { header: "Faculty", cell: (r) => facultyName.get(r.faculty) },
+            { id: "code", header: t("code"), value: (r) => r.code, primary: true, cell: (r) => <span className="font-medium">{r.code}</span> },
+            { id: "name", header: t("name"), value: (r) => r.name, cell: (r) => r.name },
+            { id: "faculty", header: t("faculty"), value: (r) => facultyName.get(r.faculty) ?? "", cell: (r) => facultyName.get(r.faculty) },
           ]}
           fields={[
-            { name: "code", label: "Code", required: true },
-            { name: "name", label: "Name", required: true },
-            { name: "faculty", label: "Faculty", type: "select", required: true, options: opt(faculties, (f) => `${f.code} · ${f.name}`), wide: true },
+            { name: "code", label: t("code"), required: true },
+            { name: "name", label: t("name"), required: true },
+            { name: "faculty", label: t("faculty"), type: "select", required: true, options: opt(faculties, (f) => `${f.code} · ${f.name}`), wide: true },
           ]}
         />
       </div>
 
       <ResourceSection
         resource="curricula"
-        title="Curricula"
-        addLabel="Add curriculum"
+        title={t("curricula")}
+        addLabel={t("addCurriculum")}
+        itemName={(r) => r.name}
         rows={curricula}
         defaults={{ defaultThreshold: 70, isActive: true }}
         columns={[
-          { header: "Name", cell: (r) => <span className="font-medium">{r.name}</span> },
-          { header: "Department", cell: (r) => deptName.get(r.department) },
-          { header: "Year", cell: (r) => r.year },
-          { header: "Total SKS", cell: (r) => r.totalSks, className: "text-right" },
-          { header: "Target", cell: (r) => `${r.defaultThreshold}%`, className: "text-right" },
-          { header: "Status", cell: (r) => (r.isActive ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>) },
+          { id: "name", header: t("name"), value: (r) => r.name, primary: true, cell: (r) => <span className="font-medium">{r.name}</span> },
+          { id: "department", header: t("department"), value: (r) => deptName.get(r.department) ?? "", cell: (r) => deptName.get(r.department) },
+          { id: "year", header: t("year"), value: (r) => r.year, numeric: true, cell: (r) => r.year },
+          { id: "sks", header: t("totalSks"), value: (r) => r.totalSks, numeric: true, cell: (r) => r.totalSks },
+          { id: "target", header: t("target"), value: (r) => r.defaultThreshold, numeric: true, cell: (r) => `${r.defaultThreshold}%` },
+          { id: "status", header: t("status"), value: (r) => (r.isActive ? 1 : 0), cell: (r) => (r.isActive ? <Badge tone="ok">{t("active")}</Badge> : <Badge>{t("inactive")}</Badge>) },
         ]}
         fields={[
-          { name: "name", label: "Name", required: true, wide: true },
-          { name: "department", label: "Department", type: "select", required: true, options: opt(departments, (d) => `${d.code} · ${d.name}`) },
-          { name: "year", label: "Year", type: "number", required: true },
-          { name: "totalSks", label: "Total SKS", type: "number", required: true },
-          { name: "defaultThreshold", label: "Default PLO target (%)", type: "number", required: true },
-          { name: "isActive", label: "Active", type: "checkbox" },
+          { name: "name", label: t("name"), required: true, wide: true },
+          { name: "department", label: t("department"), type: "select", required: true, options: opt(departments, (d) => `${d.code} · ${d.name}`) },
+          { name: "year", label: t("year"), type: "number", required: true },
+          { name: "totalSks", label: t("totalSks"), type: "number", required: true },
+          { name: "defaultThreshold", label: t("defaultTarget"), type: "number", required: true },
+          { name: "isActive", label: t("active"), type: "checkbox" },
         ]}
       />
 
       <ResourceSection
         resource="plos"
-        title="Program Learning Outcomes"
-        description="PLO codes are generated from their number (PLO 1 … PLO n)."
-        addLabel="Add PLO"
+        title={t("plos")}
+        description={t("plosDescription")}
+        addLabel={t("addPlo")}
+        itemName={(r) => r.code}
         rows={shownPlos}
         defaults={{ curriculum: curriculumId, number: shownPlos.length + 1 }}
         extraActions={
-          <Select value={curriculumId} onChange={(e) => setCurriculumId(e.target.value)} aria-label="Curriculum">
+          <Select value={curriculumId} onChange={(e) => setCurriculumId(e.target.value)} aria-label={t("curriculum")}>
             {curricula.map((c) => (
               <option key={c._id} value={c._id}>
                 {c.name}
@@ -106,15 +116,15 @@ export function CurriculumAdmin({
           </Select>
         }
         columns={[
-          { header: "Code", cell: (r) => <span className="whitespace-nowrap font-medium">{r.code}</span> },
-          { header: "Short label", cell: (r) => r.shortLabel },
-          { header: "Description", cell: (r) => <span className="text-muted">{r.description}</span> },
+          { id: "number", header: t("code"), value: (r) => r.number, primary: true, cell: (r) => <span className="font-medium whitespace-nowrap">{r.code}</span> },
+          { id: "short", header: t("shortLabel"), value: (r) => r.shortLabel, cell: (r) => r.shortLabel },
+          { id: "description", header: t("description"), value: (r) => r.description, cell: (r) => <span className="text-muted">{r.description}</span> },
         ]}
         fields={[
-          { name: "curriculum", label: "Curriculum", type: "select", required: true, options: opt(curricula, (c) => c.name) },
-          { name: "number", label: "Number", type: "number", required: true },
-          { name: "shortLabel", label: "Short label", required: true, wide: true },
-          { name: "description", label: "Description", type: "textarea", required: true },
+          { name: "curriculum", label: t("curriculum"), type: "select", required: true, options: opt(curricula, (c) => c.name) },
+          { name: "number", label: t("number"), type: "number", required: true },
+          { name: "shortLabel", label: t("shortLabel"), required: true, wide: true },
+          { name: "description", label: t("description"), type: "textarea", required: true },
         ]}
       />
     </div>
@@ -124,45 +134,59 @@ export function CurriculumAdmin({
 /* -------------------------------- Courses -------------------------------- */
 
 export function CoursesAdmin({ courses, curricula, plos }: { courses: CourseRow[]; curricula: CurriculumRow[]; plos: PloRow[] }) {
+  const t = useTranslations("admin.courses");
+  const [unmappedOnly, setUnmappedOnly] = useUrlState("unmapped", false, { parse: (r) => r === "1", serialize: (v) => (v ? "1" : "") });
   const ploCode = nameMap(plos, (p) => p.code);
+  const ploNumber = new Map(plos.map((p) => [p._id, p.number]));
   const curriculumName = nameMap(curricula, (c) => c.name);
+  const rows = unmappedOnly ? courses.filter((c) => c.plos.length === 0) : courses;
   return (
     <ResourceSection
       resource="courses"
-      title="Courses"
-      description="Changing SKS or PLO mapping recalculates attainment for every offering of the course."
-      addLabel="Add course"
-      rows={courses}
+      title={t("title")}
+      description={t("description")}
+      addLabel={t("add")}
+      itemName={(r) => r.code}
+      rows={rows}
       defaults={{ curriculum: curricula[0]?._id, plos: [], sks: 3, semester: 1 }}
+      toolbar={
+        <ToggleChip checked={unmappedOnly} onChange={setUnmappedOnly}>
+          {t("unmappedOnly", { count: courses.filter((c) => c.plos.length === 0).length })}
+        </ToggleChip>
+      }
       columns={[
-        { header: "Code", cell: (r) => <span className="font-medium">{r.code}</span> },
-        { header: "Title", cell: (r) => r.title },
-        { header: "SKS", cell: (r) => r.sks, className: "text-right" },
-        { header: "Sem", cell: (r) => r.semester, className: "text-right" },
+        { id: "code", header: t("code"), value: (r) => r.code, primary: true, cell: (r) => <span className="font-medium">{r.code}</span> },
+        { id: "title", header: t("courseTitle"), value: (r) => r.title, cell: (r) => r.title },
+        { id: "sks", header: "SKS", value: (r) => r.sks, numeric: true, cell: (r) => r.sks },
+        { id: "semester", header: t("semester"), value: (r) => r.semester, numeric: true, cell: (r) => r.semester },
         {
-          header: "Mapped PLOs",
-          cell: (r) => (
-            <div className="flex flex-wrap gap-1">
-              {r.plos
-                .map((p) => ploCode.get(p) ?? "?")
-                .sort((a, b) => Number(a.slice(4)) - Number(b.slice(4)))
-                .map((c) => (
-                  <Badge key={c} tone="info">
-                    {c}
-                  </Badge>
-                ))}
-            </div>
-          ),
+          id: "plos",
+          header: t("mapped"),
+          value: (r) => r.plos.map((p) => ploCode.get(p) ?? "?").join(", "),
+          cell: (r) =>
+            r.plos.length ? (
+              <div className="flex flex-wrap gap-1">
+                {[...r.plos]
+                  .sort((a, b) => (ploNumber.get(a) ?? 0) - (ploNumber.get(b) ?? 0))
+                  .map((p) => (
+                    <Badge key={p} tone="info">
+                      {ploCode.get(p) ?? "?"}
+                    </Badge>
+                  ))}
+              </div>
+            ) : (
+              <Badge tone="warn">{t("notMapped")}</Badge>
+            ),
         },
-        { header: "Curriculum", cell: (r) => <span className="text-xs text-muted">{curriculumName.get(r.curriculum)}</span> },
+        { id: "curriculum", header: t("curriculum"), value: (r) => curriculumName.get(r.curriculum) ?? "", cell: (r) => <span className="text-xs text-muted">{curriculumName.get(r.curriculum)}</span> },
       ]}
       fields={[
-        { name: "code", label: "Course code", required: true, placeholder: "COMP1401" },
-        { name: "curriculum", label: "Curriculum", type: "select", required: true, options: opt(curricula, (c) => c.name) },
-        { name: "title", label: "Title", required: true, wide: true },
-        { name: "sks", label: "SKS (credits)", type: "number", required: true },
-        { name: "semester", label: "Recommended semester", type: "number", required: true },
-        { name: "plos", label: "Mapped PLOs", type: "multiselect", options: plos.map((p) => ({ value: p._id, label: `${p.code} · ${p.shortLabel}` })) },
+        { name: "code", label: t("code"), required: true, placeholder: "COMP1401" },
+        { name: "curriculum", label: t("curriculum"), type: "select", required: true, options: opt(curricula, (c) => c.name) },
+        { name: "title", label: t("courseTitle"), required: true, wide: true },
+        { name: "sks", label: t("sks"), type: "number", required: true },
+        { name: "semester", label: t("recommendedSemester"), type: "number", required: true },
+        { name: "plos", label: t("mapped"), type: "multiselect", options: [...plos].sort((a, b) => a.number - b.number).map((p) => ({ value: p._id, label: `${p.code} · ${p.shortLabel}` })) },
       ]}
     />
   );
@@ -181,41 +205,56 @@ export function OfferingsAdmin({
   courses: CourseRow[];
   users: UserRow[];
 }) {
+  const t = useTranslations("admin.offerings");
   const [rosterFor, setRosterFor] = useState<OfferingRow | null>(null);
+  const [unassignedOnly, setUnassignedOnly] = useUrlState("unassigned", false, { parse: (r) => r === "1", serialize: (v) => (v ? "1" : "") });
   const courseLabel = nameMap(courses, (c) => `${c.code} · ${c.title}`);
+  const courseCode = nameMap(courses, (c) => c.code);
   const lecturers = users.filter((u) => u.roles.includes("lecturer") || u.roles.includes("faculty_head"));
   const lecturerName = nameMap(lecturers, (u) => u.name);
   const students = users.filter((u) => u.roles.includes("student"));
+  const rows = unassignedOnly ? offerings.filter((o) => o.lecturers.length === 0) : offerings;
 
   return (
     <>
       <ResourceSection
         resource="offerings"
-        title="Course offerings"
-        description="A course taught in a given academic year and term, with assigned lecturers and a passing threshold."
-        addLabel="Add offering"
-        rows={offerings}
+        title={t("title")}
+        description={t("description")}
+        addLabel={t("add")}
+        itemName={(r) => `${courseCode.get(r.course) ?? ""} ${offeringPeriodLabel(r.academicYear, r.term)} ${r.section}`}
+        rows={rows}
         defaults={{ academicYear: new Date().getFullYear(), term: "odd", section: "A", threshold: 70, lecturers: [] }}
+        toolbar={
+          <ToggleChip checked={unassignedOnly} onChange={setUnassignedOnly}>
+            {t("unassignedOnly", { count: offerings.filter((o) => o.lecturers.length === 0).length })}
+          </ToggleChip>
+        }
         columns={[
-          { header: "Course", cell: (r) => <span className="font-medium">{courseLabel.get(r.course)}</span> },
-          { header: "Period", cell: (r) => <span className="whitespace-nowrap">{offeringPeriodLabel(r.academicYear, r.term)}</span> },
-          { header: "Sec", cell: (r) => r.section },
-          { header: "Lecturers", cell: (r) => r.lecturers.map((l) => lecturerName.get(l)).join(", ") || <Badge tone="risk">Unassigned</Badge> },
-          { header: "Students", cell: (r) => roster[r._id]?.length ?? 0, className: "text-right" },
-          { header: "Target", cell: (r) => `${r.threshold}%`, className: "text-right" },
+          { id: "course", header: t("course"), value: (r) => courseLabel.get(r.course) ?? "", primary: true, cell: (r) => <span className="font-medium">{courseLabel.get(r.course)}</span> },
+          { id: "period", header: t("period"), value: (r) => r.academicYear * 10 + (r.term === "even" ? 1 : 0), cell: (r) => <span className="whitespace-nowrap">{offeringPeriodLabel(r.academicYear, r.term)}</span> },
+          { id: "section", header: t("section"), value: (r) => r.section, cell: (r) => r.section },
+          {
+            id: "lecturers",
+            header: t("lecturers"),
+            value: (r) => r.lecturers.map((l) => lecturerName.get(l)).join(", "),
+            cell: (r) => r.lecturers.map((l) => lecturerName.get(l)).join(", ") || <Badge tone="risk">{t("unassigned")}</Badge>,
+          },
+          { id: "students", header: t("students"), value: (r) => roster[r._id]?.length ?? 0, numeric: true, cell: (r) => roster[r._id]?.length ?? 0 },
+          { id: "target", header: t("target"), value: (r) => r.threshold, numeric: true, cell: (r) => `${r.threshold}%` },
         ]}
         rowActions={(r) => (
-          <Button size="sm" variant="ghost" onClick={() => setRosterFor(r)} aria-label="Edit roster">
-            <Users className="size-3.5" /> Roster
+          <Button size="sm" variant="ghost" onClick={() => setRosterFor(r)} aria-label={t("rosterFor", { name: courseCode.get(r.course) ?? "" })}>
+            <Users aria-hidden /> {t("roster")}
           </Button>
         )}
         fields={[
-          { name: "course", label: "Course", type: "select", required: true, options: opt(courses, (c) => `${c.code} · ${c.title}`), wide: true },
-          { name: "academicYear", label: "Academic year (start)", type: "number", required: true, placeholder: "2026 for 2026/2027" },
-          { name: "term", label: "Term", type: "select", required: true, options: [{ value: "odd", label: "Odd (Ganjil)" }, { value: "even", label: "Even (Genap)" }] },
-          { name: "section", label: "Section", required: true },
-          { name: "threshold", label: "Passing threshold (%)", type: "number", required: true },
-          { name: "lecturers", label: "Lecturers", type: "multiselect", options: opt(lecturers, (u) => u.name) },
+          { name: "course", label: t("course"), type: "select", required: true, options: opt(courses, (c) => `${c.code} · ${c.title}`), wide: true },
+          { name: "academicYear", label: t("academicYear"), type: "number", required: true, hint: t("academicYearHint") },
+          { name: "term", label: t("term"), type: "select", required: true, options: [{ value: "odd", label: t("odd") }, { value: "even", label: t("even") }] },
+          { name: "section", label: t("section"), required: true },
+          { name: "threshold", label: t("threshold"), type: "number", required: true },
+          { name: "lecturers", label: t("lecturers"), type: "multiselect", options: opt(lecturers, (u) => u.name) },
         ]}
       />
       {rosterFor && (
@@ -244,21 +283,30 @@ function RosterDialog({
   enrolled: string[];
   onClose: () => void;
 }) {
+  const t = useTranslations("admin.roster");
   const router = useRouter();
   const [selected, setSelected] = useState(new Set(enrolled));
   const [cohort, setCohort] = useState("all");
+  const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const cohorts = [...new Set(students.map((s) => s.cohortYear).filter(Boolean))].sort();
-  const shown = students.filter((s) => cohort === "all" || String(s.cohortYear) === cohort);
+  const q = query.trim().toLowerCase();
+  const shown = students.filter((s) => (cohort === "all" || String(s.cohortYear) === cohort) && (!q || `${s.name} ${s.studentId ?? ""}`.toLowerCase().includes(q)));
   const removed = enrolled.filter((id) => !selected.has(id)).length;
+  const added = [...selected].filter((id) => !enrolled.includes(id)).length;
+  const dirty = removed > 0 || added > 0;
 
   async function save() {
+    setSaving(true);
     try {
       await apiFetch(`/api/admin/enrollments/${offering._id}`, { method: "PUT", body: { students: [...selected] } });
+      toast.success(t("saved", { count: selected.size }));
       router.refresh();
       onClose();
     } catch (e) {
       setError((e as Error).message);
+      setSaving(false);
     }
   }
 
@@ -266,41 +314,47 @@ function RosterDialog({
     <Dialog
       open
       onClose={onClose}
+      dirty={dirty && !saving}
       size="lg"
-      title="Class roster"
+      variant="sheet"
+      title={t("title")}
       description={`${title} · ${offeringPeriodLabel(offering.academicYear, offering.term)}`}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Cancel
+            {t("cancel")}
           </Button>
-          <Button onClick={save}>Save roster ({selected.size})</Button>
+          <Button onClick={save} loading={saving} disabled={!dirty}>
+            {t("save", { count: selected.size })}
+          </Button>
         </>
       }
     >
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={cohort} onChange={(e) => setCohort(e.target.value)} aria-label="Cohort filter">
-            <option value="all">All cohorts</option>
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} aria-label={t("search")} className="w-56" type="search" />
+          <Select value={cohort} onChange={(e) => setCohort(e.target.value)} aria-label={t("cohort")}>
+            <option value="all">{t("allCohorts")}</option>
             {cohorts.map((c) => (
               <option key={c} value={String(c)}>
-                Class of {c}
+                {t("classOf", { year: c! })}
               </option>
             ))}
           </Select>
           <Button variant="secondary" size="sm" onClick={() => setSelected(new Set([...selected, ...shown.map((s) => s._id)]))}>
-            Select shown
+            {t("selectShown")}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setSelected(new Set([...selected].filter((id) => !shown.some((s) => s._id === id))))}>
-            Clear shown
+            {t("clearShown")}
           </Button>
         </div>
-        <div className="grid max-h-80 gap-1 overflow-y-auto rounded-md border border-border p-2 sm:grid-cols-2">
+        <fieldset className="grid max-h-80 gap-1 overflow-y-auto rounded-lg border border-border p-2 sm:grid-cols-2">
+          <legend className="sr-only">{t("students")}</legend>
           {shown.map((s) => (
-            <label key={s._id} className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-background">
+            <label key={s._id} className="flex items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-surface-2 pointer-coarse:py-2">
               <input
                 type="checkbox"
-                className="accent-brand"
+                className="size-4 accent-brand"
                 checked={selected.has(s._id)}
                 onChange={(e) => {
                   const next = new Set(selected);
@@ -310,12 +364,19 @@ function RosterDialog({
                 }}
               />
               <span>
-                {s.name} <span className="text-xs text-muted">{s.studentId} · {s.cohortYear}</span>
+                {s.name}{" "}
+                <span className="text-xs text-muted tabular">
+                  {s.studentId} · {s.cohortYear}
+                </span>
               </span>
             </label>
           ))}
-        </div>
-        {removed > 0 && <Notice tone="info">{removed} student(s) will be removed from this class along with their grades.</Notice>}
+          {shown.length === 0 && <p className="p-2 text-sm text-muted">{t("noMatch")}</p>}
+        </fieldset>
+        <p className="text-xs text-muted" aria-live="polite">
+          {t("changes", { added, removed })}
+        </p>
+        {removed > 0 && <Notice tone="warn">{t("removeWarning", { count: removed })}</Notice>}
         {error && <Notice tone="error">{error}</Notice>}
       </div>
     </Dialog>
@@ -324,62 +385,71 @@ function RosterDialog({
 
 /* --------------------------------- Users --------------------------------- */
 
-const ROLE_OPTIONS = [
-  { value: "superadmin", label: "Superadmin" },
-  { value: "faculty_head", label: "Faculty Head" },
-  { value: "lecturer", label: "Lecturer" },
-  { value: "student", label: "Student" },
-];
+const ROLES = ["superadmin", "faculty_head", "lecturer", "student"] as const;
 const ROLE_TONE: Record<string, "brand" | "info" | "neutral" | "ok"> = { superadmin: "brand", faculty_head: "info", lecturer: "ok", student: "neutral" };
 
 export function UsersAdmin({ users, departments, curricula }: { users: UserRow[]; departments: DepartmentRow[]; curricula: CurriculumRow[] }) {
-  const [role, setRole] = useState("all");
-  const [query, setQuery] = useState("");
+  const t = useTranslations("admin.users");
+  const tr = useTranslations("roles");
+  const [role, setRole] = useUrlState("role", "all");
+  const [advisorFilter, setAdvisorFilter] = useUrlState("advisor", "all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
   const lecturers = users.filter((u) => u.roles.includes("lecturer") || u.roles.includes("faculty_head"));
   const userName = nameMap(users, (u) => u.name);
   const isStudent = (v: Record<string, unknown>) => ((v.roles as string[]) ?? []).includes("student");
   const isStaff = (v: Record<string, unknown>) => ((v.roles as string[]) ?? []).some((r) => r !== "student");
+  const roleOptions = ROLES.map((r) => ({ value: r, label: tr(r) }));
 
   const shown = useMemo(
     () =>
       users.filter(
         (u) =>
           (role === "all" || u.roles.includes(role)) &&
-          (!query || `${u.name} ${u.email} ${u.studentId ?? ""}`.toLowerCase().includes(query.toLowerCase())),
+          (advisorFilter === "all" || (advisorFilter === "none" && u.roles.includes("student") && !u.advisor)),
       ),
-    [users, role, query],
+    [users, role, advisorFilter],
   );
+  const selectedStudents = users.filter((u) => selected.has(u._id) && u.roles.includes("student"));
 
   return (
     <>
       <ResourceSection
         resource="users"
-        title="Users"
-        description="Assign roles, departments and the Academic Advisor (Dosen Wali) for each student."
-        addLabel="Add user"
+        title={t("title")}
+        description={t("description")}
+        addLabel={t("add")}
+        itemName={(u) => u.name}
         rows={shown}
+        selection={{ selected, onChange: setSelected }}
         defaults={{ roles: ["student"], isActive: true, department: departments[0]?._id, curriculum: curricula[0]?._id }}
         toForm={(u) => ({ ...u, password: "" })}
-        extraActions={
+        toolbar={
           <>
-            <Input placeholder="Search name, email, NIM" value={query} onChange={(e) => setQuery(e.target.value)} className="w-52" />
-            <Select value={role} onChange={(e) => setRole(e.target.value)} aria-label="Role filter">
-              <option value="all">All roles</option>
-              {ROLE_OPTIONS.map((r) => (
+            <Select value={role} onChange={(e) => setRole(e.target.value)} aria-label={t("roleFilter")}>
+              <option value="all">{t("allRoles")}</option>
+              {roleOptions.map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}
                 </option>
               ))}
             </Select>
-            <Button variant="secondary" onClick={() => setBulkOpen(true)}>
-              <UserCheck className="size-4" /> Assign advisor
-            </Button>
+            <ToggleChip checked={advisorFilter === "none"} onChange={(on) => setAdvisorFilter(on ? "none" : "all")}>
+              {t("noAdvisorOnly", { count: users.filter((u) => u.roles.includes("student") && !u.advisor).length })}
+            </ToggleChip>
+            {selected.size > 0 && (
+              <Button size="sm" variant="secondary" onClick={() => setBulkOpen(true)} disabled={!selectedStudents.length}>
+                <UserCheck aria-hidden /> {t("assignAdvisor", { count: selectedStudents.length })}
+              </Button>
+            )}
           </>
         }
         columns={[
           {
-            header: "Name",
+            id: "name",
+            header: t("name"),
+            value: (u) => `${u.name} ${u.email}`,
+            primary: true,
             cell: (u) => (
               <>
                 <div className="font-medium">{u.name}</div>
@@ -388,79 +458,101 @@ export function UsersAdmin({ users, departments, curricula }: { users: UserRow[]
             ),
           },
           {
-            header: "Roles",
+            id: "roles",
+            header: t("roles"),
+            value: (u) => u.roles.map((r) => tr(r)).join(", "),
             cell: (u) => (
               <div className="flex flex-wrap gap-1">
                 {u.roles.map((r) => (
                   <Badge key={r} tone={ROLE_TONE[r]}>
-                    {ROLE_OPTIONS.find((o) => o.value === r)?.label}
+                    {tr(r)}
                   </Badge>
                 ))}
-                {!u.isActive && <Badge tone="risk">Inactive</Badge>}
+                {!u.isActive && <Badge tone="risk">{t("inactive")}</Badge>}
               </div>
             ),
           },
-          { header: "NIM / Staff ID", cell: (u) => u.studentId ?? u.staffId ?? "—" },
-          { header: "Cohort", cell: (u) => u.cohortYear ?? "—" },
-          { header: "Advisor (Dosen Wali)", cell: (u) => (u.roles.includes("student") ? (u.advisor ? userName.get(u.advisor) : <Badge tone="risk">None</Badge>) : "—") },
+          { id: "ids", header: t("ids"), value: (u) => u.studentId ?? u.staffId ?? "", cell: (u) => u.studentId ?? u.staffId ?? "—" },
+          { id: "cohort", header: t("cohort"), value: (u) => u.cohortYear ?? null, numeric: true, cell: (u) => u.cohortYear ?? "—" },
+          {
+            id: "advisor",
+            header: t("advisor"),
+            value: (u) => (u.advisor ? (userName.get(u.advisor) ?? "") : ""),
+            cell: (u) => (u.roles.includes("student") ? u.advisor ? userName.get(u.advisor) : <Badge tone="risk">{t("none")}</Badge> : "—"),
+          },
         ]}
         fields={[
-          { name: "name", label: "Full name", required: true },
-          { name: "email", label: "Email", type: "email", required: true },
-          { name: "roles", label: "Roles", type: "multiselect", options: ROLE_OPTIONS },
-          { name: "password", label: "Password (min 8 chars; leave blank to keep)", type: "password", required: true },
-          { name: "department", label: "Department", type: "select", options: opt(departments, (d) => `${d.code} · ${d.name}`) },
-          { name: "isActive", label: "Account active", type: "checkbox" },
-          { name: "staffId", label: "Staff ID", when: isStaff },
-          { name: "studentId", label: "Student ID (NIM)", when: isStudent },
-          { name: "cohortYear", label: "Cohort (intake year)", type: "number", when: isStudent },
-          { name: "curriculum", label: "Curriculum", type: "select", options: opt(curricula, (c) => c.name), when: isStudent },
-          { name: "advisor", label: "Academic advisor (Dosen Wali)", type: "select", options: opt(lecturers, (u) => u.name), when: isStudent },
+          { name: "name", label: t("fullName"), required: true },
+          { name: "email", label: t("email"), type: "email", required: true },
+          { name: "roles", label: t("roles"), type: "multiselect", required: true, options: roleOptions },
+          { name: "password", label: t("password"), type: "password", required: true, hint: t("passwordHint") },
+          { name: "department", label: t("department"), type: "select", options: opt(departments, (d) => `${d.code} · ${d.name}`) },
+          { name: "isActive", label: t("accountActive"), type: "checkbox" },
+          { name: "staffId", label: t("staffId"), when: isStaff },
+          { name: "studentId", label: t("studentId"), when: isStudent },
+          { name: "cohortYear", label: t("cohortYear"), type: "number", when: isStudent },
+          { name: "curriculum", label: t("curriculum"), type: "select", options: opt(curricula, (c) => c.name), when: isStudent },
+          { name: "advisor", label: t("advisor"), type: "select", options: opt(lecturers, (u) => u.name), when: isStudent },
         ] satisfies FieldDef[]}
       />
-      {bulkOpen && <BulkAdvisorDialog students={users.filter((u) => u.roles.includes("student"))} lecturers={lecturers} onClose={() => setBulkOpen(false)} />}
+      {bulkOpen && (
+        <BulkAdvisorDialog
+          students={selectedStudents}
+          lecturers={lecturers}
+          onClose={(done) => {
+            setBulkOpen(false);
+            if (done) setSelected(new Set());
+          }}
+        />
+      )}
     </>
   );
 }
 
-function BulkAdvisorDialog({ students, lecturers, onClose }: { students: UserRow[]; lecturers: UserRow[]; onClose: () => void }) {
+function BulkAdvisorDialog({ students, lecturers, onClose }: { students: UserRow[]; lecturers: UserRow[]; onClose: (done: boolean) => void }) {
+  const t = useTranslations("admin.users");
   const router = useRouter();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [advisor, setAdvisor] = useState(lecturers[0]?._id ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const advisorName = nameMap(lecturers, (u) => u.name);
 
   async function save() {
+    setSaving(true);
     try {
-      await apiFetch("/api/admin/advisors", { body: { students: [...selected], advisor: advisor || null } });
+      await apiFetch("/api/admin/advisors", { body: { students: students.map((s) => s._id), advisor: advisor || null } });
+      toast.success(advisor ? t("assigned", { count: students.length, name: advisorName.get(advisor) ?? "" }) : t("advisorRemoved", { count: students.length }));
       router.refresh();
-      onClose();
+      onClose(true);
     } catch (e) {
       setError((e as Error).message);
+      setSaving(false);
     }
   }
 
   return (
     <Dialog
       open
-      onClose={onClose}
-      size="lg"
-      title="Assign Academic Advisor (Dosen Wali)"
+      onClose={() => onClose(false)}
+      size="md"
+      variant="sheet"
+      title={t("bulkTitle")}
+      description={t("bulkDescription", { count: students.length })}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
+          <Button variant="secondary" onClick={() => onClose(false)}>
+            {t("cancel")}
           </Button>
-          <Button onClick={save} disabled={!selected.size}>
-            Assign to {selected.size} student(s)
+          <Button onClick={save} loading={saving}>
+            {t("assignTo", { count: students.length })}
           </Button>
         </>
       }
     >
       <div className="space-y-3">
-        <Field label="Advisor">
-          <Select className="w-full" value={advisor} onChange={(e) => setAdvisor(e.target.value)}>
-            <option value="">— Remove advisor —</option>
+        <Field label={t("advisor")} htmlFor="bulk-advisor">
+          <Select id="bulk-advisor" className="w-full" value={advisor} onChange={(e) => setAdvisor(e.target.value)}>
+            <option value="">{t("removeAdvisor")}</option>
             {lecturers.map((l) => (
               <option key={l._id} value={l._id}>
                 {l.name}
@@ -468,26 +560,14 @@ function BulkAdvisorDialog({ students, lecturers, onClose }: { students: UserRow
             ))}
           </Select>
         </Field>
-        <div className="grid max-h-80 gap-1 overflow-y-auto rounded-md border border-border p-2 sm:grid-cols-2">
+        <ul className="max-h-60 divide-y divide-border overflow-y-auto rounded-lg border border-border text-sm">
           {students.map((s) => (
-            <label key={s._id} className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-background">
-              <input
-                type="checkbox"
-                className="accent-brand"
-                checked={selected.has(s._id)}
-                onChange={(e) => {
-                  const next = new Set(selected);
-                  if (e.target.checked) next.add(s._id);
-                  else next.delete(s._id);
-                  setSelected(next);
-                }}
-              />
-              <span>
-                {s.name} <span className="text-xs text-muted">· now: {s.advisor ? advisorName.get(s.advisor) : "none"}</span>
-              </span>
-            </label>
+            <li key={s._id} className="flex justify-between gap-3 px-3 py-2">
+              <span>{s.name}</span>
+              <span className="text-xs text-muted">{t("currently", { name: s.advisor ? (advisorName.get(s.advisor) ?? "—") : t("none") })}</span>
+            </li>
           ))}
-        </div>
+        </ul>
         {error && <Notice tone="error">{error}</Notice>}
       </div>
     </Dialog>
