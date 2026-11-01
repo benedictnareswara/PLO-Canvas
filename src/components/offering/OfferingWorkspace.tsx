@@ -264,7 +264,7 @@ function GradebookTab({ detail, canEdit }: { detail: OfferingDetail; canEdit: bo
                         onChange={(e) => setValues((v) => ({ ...v, [k]: e.target.value }))}
                         className={cn(
                           "ml-auto h-8 w-24 text-right tabular",
-                          isDirty && "border-amber-400 bg-amber-50",
+                          isDirty && "border-warn bg-warn-soft",
                           invalid.includes(k) && "border-risk bg-risk-soft",
                         )}
                       />

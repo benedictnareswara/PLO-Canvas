@@ -1,4 +1,5 @@
 import mongoose, { Schema, model, models, type Model, Types } from "mongoose";
+import { LOCALES, type Locale } from "@/i18n/config";
 
 const { ObjectId } = Schema.Types;
 
@@ -82,6 +83,8 @@ const userSchema = new Schema<UserDoc>(
     // Staff-only fields
     staffId: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
+    // UI language. Unset until the user picks one; sign-in then adopts the browser's cookie.
+    locale: { type: String, enum: LOCALES },
   },
   { timestamps: true },
 );
@@ -226,6 +229,7 @@ export interface UserDoc extends Timestamps {
   advisor?: Id | null;
   staffId?: string | null;
   isActive: boolean;
+  locale?: Locale | null;
 }
 export interface OfferingDoc extends Timestamps {
   course: Id;

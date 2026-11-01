@@ -183,7 +183,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
             <span
               className={cn(
                 "flex size-6 items-center justify-center rounded-full text-xs font-semibold",
-                i < step ? "bg-ok text-white" : i === step ? "bg-brand text-white" : "bg-background text-muted",
+                i < step ? "bg-ok text-solid-fg" : i === step ? "bg-brand text-brand-fg" : "bg-background text-muted",
               )}
             >
               {i < step ? <Check className="size-3.5" /> : i + 1}

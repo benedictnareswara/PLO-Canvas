@@ -18,11 +18,11 @@ import { AtRiskBadge, formatPct } from "@/components/AtRiskBadge";
 import { Table, Td, Th } from "@/components/ui";
 
 /**
- * Validated categorical slots (blue, orange, aqua) — the first three pass all-pairs
+ * Validated categorical slots (blue, orange, aqua), tuned per colour scheme in globals.css — the first three pass all-pairs
  * CVD separation; a radar overlay is capped at three series.
  */
-export const SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a"];
-const TARGET_COLOR = "#52514e";
+export const SERIES_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"];
+const TARGET_COLOR = "var(--chart-target)";
 
 export interface RadarSeries {
   key: string;
@@ -110,13 +110,13 @@ export function PloRadar({
       <div style={{ height }} className="w-full">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={data} outerRadius="72%" margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
-            <PolarGrid gridType="polygon" stroke="#d9dce1" />
-            <PolarAngleAxis dataKey="axis" tick={{ fill: "#3b4250", fontSize: 12, fontWeight: 600 }} />
+            <PolarGrid gridType="polygon" stroke="var(--chart-grid)" />
+            <PolarAngleAxis dataKey="axis" tick={{ fill: "var(--chart-axis)", fontSize: 12, fontWeight: 600 }} />
             <PolarRadiusAxis
               domain={[0, 100]}
               tickCount={6}
               angle={72}
-              tick={{ fill: "#7b8391", fontSize: 10 }}
+              tick={{ fill: "var(--chart-tick)", fontSize: 10 }}
               axisLine={false}
               tickFormatter={(v: number) => `${v}%`}
             />
@@ -129,7 +129,7 @@ export function PloRadar({
                 strokeWidth={2}
                 fill={SERIES_COLORS[i]}
                 fillOpacity={shown.length > 1 ? 0.12 : 0.22}
-                dot={{ r: 3.5, fill: SERIES_COLORS[i], stroke: "#fff", strokeWidth: 1.5 }}
+                dot={{ r: 3.5, fill: SERIES_COLORS[i], stroke: "var(--surface)", strokeWidth: 1.5 }}
                 isAnimationActive={false}
               />
             ))}
@@ -144,7 +144,7 @@ export function PloRadar({
               isAnimationActive={false}
             />
             <Tooltip content={<RadarTooltip series={shown} threshold={threshold} />} />
-            <Legend wrapperStyle={{ fontSize: 12, color: "#3b4250" }} iconType="plainline" />
+            <Legend wrapperStyle={{ fontSize: 12, color: "var(--chart-axis)" }} iconType="plainline" />
           </RadarChart>
         </ResponsiveContainer>
       </div>

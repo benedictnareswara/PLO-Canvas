@@ -1,45 +1,47 @@
+import { getTranslations } from "next-intl/server";
 import { requirePageUser, hasRole } from "@/lib/auth/rbac";
 import { User } from "@/models";
 import { AppShell, type NavSection } from "@/components/AppShell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requirePageUser();
+  const t = await getTranslations("nav");
   const sections: NavSection[] = [];
 
   if (hasRole(user, "superadmin")) {
     sections.push({
-      title: "Administration",
+      title: t("administration"),
       items: [
-        { href: "/admin", label: "Overview", icon: "layout" },
-        { href: "/admin/curriculum", label: "Curriculum & PLOs", icon: "book" },
-        { href: "/admin/courses", label: "Courses", icon: "library" },
-        { href: "/admin/offerings", label: "Course Offerings", icon: "calendar" },
-        { href: "/admin/users", label: "Users & Advisors", icon: "users" },
+        { href: "/admin", label: t("overview"), icon: "layout" },
+        { href: "/admin/curriculum", label: t("curriculum"), icon: "book" },
+        { href: "/admin/courses", label: t("courses"), icon: "library" },
+        { href: "/admin/offerings", label: t("offerings"), icon: "calendar" },
+        { href: "/admin/users", label: t("users"), icon: "users" },
       ],
     });
   }
   if (hasRole(user, "faculty_head")) {
     sections.push({
-      title: "Department Analytics",
+      title: t("analytics"),
       items: [
-        { href: "/head", label: "Cohort Overview", icon: "radar" },
-        { href: "/head/at-risk", label: "At-Risk Detection", icon: "alert" },
-        { href: "/head/courses", label: "Course Attainment", icon: "grid" },
+        { href: "/head", label: t("cohortOverview"), icon: "radar" },
+        { href: "/head/at-risk", label: t("atRisk"), icon: "alert" },
+        { href: "/head/courses", label: t("courseAttainment"), icon: "grid" },
       ],
     });
   }
   if (hasRole(user, "lecturer", "faculty_head")) {
     const advisees = await User.countDocuments({ advisor: user.id, roles: "student" });
     sections.push({
-      title: "Teaching",
+      title: t("teaching"),
       items: [
-        { href: "/lecturer", label: "My Classes", icon: "library" },
-        ...(advisees > 0 ? [{ href: "/lecturer/advisees", label: `My Advisees (${advisees})`, icon: "users" as const }] : []),
+        { href: "/lecturer", label: t("myClasses"), icon: "library" },
+        ...(advisees > 0 ? [{ href: "/lecturer/advisees", label: t("myAdvisees"), icon: "users" as const, count: advisees }] : []),
       ],
     });
   }
   if (hasRole(user, "student")) {
-    sections.push({ title: "Student", items: [{ href: "/student", label: "My Dashboard", icon: "radar" }] });
+    sections.push({ title: t("student"), items: [{ href: "/student", label: t("myDashboard"), icon: "radar" }] });
   }
 
   return (
