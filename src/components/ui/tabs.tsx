@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useUrlState } from "@/lib/hooks/useUrlState";
 import { cn } from "./index";
 
 export interface TabItem {
@@ -11,18 +12,16 @@ export interface TabItem {
 
 /**
  * WAI-ARIA tabs with automatic activation: one tab stop, arrows/Home/End move and select.
- * The active tab is mirrored to `?tab=` with history.replaceState, which Next keeps in sync with
- * useSearchParams without a server round trip. The underline slides between tabs (off under
- * reduced motion).
+ * The active tab lives in `?tab=` (history.replaceState, no server round trip), so links such as
+ * `?tab=assessments` switch tabs and a reload keeps the tab. The underline slides between tabs
+ * (off under reduced motion).
  */
 export function Tabs({
   tabs,
-  initial,
   label,
   sticky = false,
 }: {
   tabs: TabItem[];
-  initial?: string;
   label?: string;
   /** Keep the tab bar visible under the app's top bar while scrolling. */
   sticky?: boolean;
@@ -30,8 +29,12 @@ export function Tabs({
   const id = useId();
   const listRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLSpanElement>(null);
-  const [active, setActive] = useState(initial && tabs.some((t) => t.key === initial) ? initial : tabs[0]?.key);
+  const [active, setActive] = useUrlState("tab", tabs[0]?.key ?? "");
   const current = tabs.some((t) => t.key === active) ? active : tabs[0]?.key;
+  // Panels mount on first visit and then stay mounted (hidden), so charts never render at 0×0 in a
+  // hidden panel and edits in one tab survive switching to another.
+  const [visited, setVisited] = useState<Set<string>>(() => new Set(current ? [current] : []));
+  if (current && !visited.has(current)) setVisited(new Set(visited).add(current));
 
   // Position the underline directly on the DOM (no re-render), and re-measure when labels resize.
   useLayoutEffect(() => {
@@ -58,9 +61,6 @@ export function Tabs({
 
   function select(key: string, focus = false) {
     setActive(key);
-    const url = new URL(window.location.href);
-    url.searchParams.set("tab", key);
-    window.history.replaceState(null, "", url);
     if (focus) document.getElementById(`${id}-tab-${key}`)?.focus();
   }
 
@@ -124,7 +124,7 @@ export function Tabs({
           hidden={t.key !== current}
           className="outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded-lg"
         >
-          {t.content}
+          {visited.has(t.key) && t.content}
         </div>
       ))}
     </div>

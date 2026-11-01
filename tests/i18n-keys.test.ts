@@ -42,10 +42,12 @@ describe("i18n messages", () => {
     expect(empty).toEqual([]);
   });
 
-  it("use the same placeholders in both languages", () => {
-    const mismatched = [...enMap]
-      .filter(([k, v]) => idMap.has(k) && placeholders(v).join() !== placeholders(idMap.get(k)!).join())
+  // A translation may leave out an argument (Indonesian has no plural forms, so it often drops
+  // `count`), but it must never use one the code doesn't pass: that would throw at runtime.
+  it("use only placeholders that the English message provides", () => {
+    const unknown = [...idMap]
+      .filter(([k, v]) => enMap.has(k) && placeholders(v).some((p) => !placeholders(enMap.get(k)!).includes(p)))
       .map(([k]) => k);
-    expect(mismatched).toEqual([]);
+    expect(unknown).toEqual([]);
   });
 });

@@ -471,6 +471,24 @@ dialog.ui-dialog {
   }
 }
 
+/* Indeterminate progress (work with no measurable progress, e.g. one write request). */
+@keyframes ui-indeterminate {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 300% 0;
+  }
+}
+.ui-indeterminate {
+  animation: ui-indeterminate 1.2s var(--ease-std) infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    width: 100%;
+    opacity: 0.6;
+  }
+}
+
 /* Scrollable regions (tables) show a soft edge fade when more content exists. */
 .ui-scroll-x {
   overflow-x: auto;

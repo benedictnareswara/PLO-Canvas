@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 export function isApplePlatform(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -35,6 +35,20 @@ export function formatHotkey(combo: string, apple = isApplePlatform()): string {
   const k = key.length === 1 ? key.toUpperCase() : key[0].toUpperCase() + key.slice(1);
   if (apple) return `${mod ? "⌘" : ""}${alt ? "⌥" : ""}${shift ? "⇧" : ""}${k}`;
   return [mod && "Ctrl", alt && "Alt", shift && "Shift", k].filter(Boolean).join("+");
+}
+
+const noSubscribe = () => () => {};
+
+/**
+ * `formatHotkey` for rendering. The server can't know the platform, so hydration uses the
+ * non-Apple label and the client switches to ⌘ right after, without a hydration mismatch.
+ */
+export function useHotkeyLabel(combo: string): string {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => formatHotkey(combo),
+    () => formatHotkey(combo, false),
+  );
 }
 
 function isTyping(target: EventTarget | null): boolean {

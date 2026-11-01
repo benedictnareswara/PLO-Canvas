@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, FileUp } from "lucide-react";
-import { Badge, Button, Input, Stat, Table, Td, Th, cn } from "@/components/ui";
+import { useTranslations } from "next-intl";
+import { ArrowRight, Check, ChevronDown, FileUp } from "lucide-react";
+import { Badge, Button, Input, NumberInput, SummaryStrip, Table, Td, Th, ToggleChip, cn } from "@/components/ui";
 import { Dialog, Notice, apiFetch } from "@/components/ui/client";
 import { parseCanvasGradebook, type ParsedCanvasGradebook } from "@/lib/canvas/parse";
+import { parseScore } from "@/lib/gradebook/parse-score";
 import type { OfferingDetail } from "@/lib/obe/queries";
 import type { PloInfo } from "@/lib/obe/types";
-import type { WeightValue } from "./PloWeightEditor";
+import { splitEvenly, type WeightValue } from "./PloWeightEditor";
 
 interface MappingRow {
   key: string;
@@ -30,9 +32,10 @@ interface Report {
   transactional?: boolean;
 }
 
-const STEPS = ["Upload", "Map to PLOs", "Review", "Done"];
+type RowError = "maxPoints" | "noPlo" | "weightZero" | "weightTotal";
 
 export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; onClose: () => void; detail: OfferingDetail }) {
+  const t = useTranslations("importer");
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -40,8 +43,10 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
   const [rows, setRows] = useState<MappingRow[]>([]);
   const [report, setReport] = useState<Report | null>(null);
   const [enrollUnenrolled, setEnrollUnenrolled] = useState(false);
+  const [attentionOnly, setAttentionOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"check" | "write" | null>(null);
+  const steps = [t("steps.upload"), t("steps.map"), t("steps.review"), t("steps.done")];
 
   function reset() {
     setStep(0);
@@ -50,6 +55,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
     setRows([]);
     setReport(null);
     setEnrollUnenrolled(false);
+    setAttentionOnly(false);
     setError(null);
   }
 
@@ -61,10 +67,10 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
 
   async function onFile(file: File) {
     setError(null);
-    if (!/\.csv$/i.test(file.name)) return setError("Please choose a .csv file exported from the Canvas Gradebook.");
+    if (!/\.csv$/i.test(file.name)) return setError(t("errors.notCsv"));
     try {
       const result = parseCanvasGradebook(await file.text());
-      if (!result.assignments.length) throw new Error("No assignment columns were found in this file.");
+      if (!result.assignments.length) throw new Error(t("errors.noColumns"));
       const existing = new Map(detail.assessments.filter((a) => a.canvasId).map((a) => [a.canvasId!, a]));
       setFileName(file.name);
       setParsed(result);
@@ -90,15 +96,17 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
   }
 
   const included = rows.filter((r) => r.include);
-  const rowErrors = (r: MappingRow): string | null => {
-    if (!(Number(r.maxPoints) > 0)) return "Max points required";
-    if (!r.weights.length) return "Map at least one PLO";
-    if (r.weights.some((w) => !(w.weight > 0))) return "Weights must be > 0";
-    const total = r.weights.reduce((s, w) => s + w.weight, 0);
-    if (Math.abs(total - 100) > 0.01) return `Weights total ${Math.round(total * 100) / 100}% (needs 100%)`;
+  const rowError = (r: MappingRow): RowError | null => {
+    const max = parseScore(r.maxPoints);
+    if (max === null || !(max > 0)) return "maxPoints";
+    if (!r.weights.length) return "noPlo";
+    if (r.weights.some((w) => !(w.weight > 0))) return "weightZero";
+    if (Math.abs(r.weights.reduce((s, w) => s + w.weight, 0) - 100) > 0.01) return "weightTotal";
     return null;
   };
-  const mappingValid = included.length > 0 && included.every((r) => !rowErrors(r));
+  const needingAttention = included.filter((r) => rowError(r));
+  const mappingValid = included.length > 0 && needingAttention.length === 0;
+  const visibleRows = attentionOnly ? rows.filter((r) => r.include && rowError(r)) : rows;
 
   function payload(dryRun: boolean) {
     return {
@@ -108,8 +116,8 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
         key: r.key,
         title: r.title.trim(),
         canvasId: r.canvasId,
-        maxPoints: Number(r.maxPoints),
-        gradeWeight: Number(r.gradeWeight || 0),
+        maxPoints: parseScore(r.maxPoints),
+        gradeWeight: parseScore(r.gradeWeight || "0") ?? 0,
         ploWeights: r.weights,
       })),
       students: parsed!.students.map((s) => ({
@@ -123,7 +131,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
   }
 
   async function submit(dryRun: boolean) {
-    setBusy(true);
+    setBusy(dryRun ? "check" : "write");
     setError(null);
     try {
       const res = await apiFetch<Report>(`/api/offerings/${detail.id}/import`, { body: payload(dryRun) });
@@ -132,64 +140,85 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
   const update = (key: string, patch: Partial<MappingRow>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   const importable = report ? report.summary.matched + (enrollUnenrolled ? report.summary.unenrolled : 0) : 0;
+  const created = report?.assessments.filter((a) => a.action === "create").length ?? 0;
+  const updated = report?.assessments.filter((a) => a.action === "update").length ?? 0;
+  const cellsToWrite = importable * included.length;
 
   return (
     <Dialog
       open={open}
       onClose={close}
+      dirty={step > 0 && step < 3 && busy === null}
       size="xl"
-      title="Import Canvas gradebook"
+      variant="sheet"
+      title={t("title")}
       description={`${detail.code} · ${detail.title} · ${detail.period}`}
       footer={
         <>
           {step === 0 && (
             <Button onClick={() => setStep(1)} disabled={!parsed}>
-              Continue to mapping
+              {t("continue")} <ArrowRight aria-hidden />
             </Button>
           )}
           {step === 1 && (
             <>
               <Button variant="secondary" onClick={() => setStep(0)}>
-                Back
+                {t("back")}
               </Button>
-              <Button onClick={() => submit(true)} disabled={!mappingValid || busy}>
-                {busy ? "Checking…" : "Review import"}
+              <Button onClick={() => submit(true)} disabled={!mappingValid} loading={busy === "check"}>
+                {t("review")}
               </Button>
             </>
           )}
           {step === 2 && (
             <>
-              <Button variant="secondary" onClick={() => setStep(1)}>
-                Back
+              <Button variant="secondary" onClick={() => setStep(1)} disabled={busy !== null}>
+                {t("back")}
               </Button>
-              <Button onClick={() => submit(false)} disabled={busy || importable === 0}>
-                {busy ? "Importing…" : `Confirm import for ${importable} student${importable === 1 ? "" : "s"}`}
+              <Button onClick={() => submit(false)} disabled={importable === 0} loading={busy === "write"}>
+                {t("confirm", { count: importable })}
               </Button>
             </>
           )}
-          {step === 3 && <Button onClick={close}>Close</Button>}
+          {step === 3 && (
+            <>
+              <Button variant="secondary" onClick={close}>
+                {t("close")}
+              </Button>
+              <Button
+                onClick={() => {
+                  close();
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("tab", "gradebook");
+                  router.replace(`${url.pathname}${url.search}`, { scroll: false });
+                }}
+              >
+                {t("viewGradebook")}
+              </Button>
+            </>
+          )}
         </>
       }
     >
-      <ol className="mb-5 flex flex-wrap items-center gap-2 text-sm">
-        {STEPS.map((s, i) => (
-          <li key={s} className="flex items-center gap-2">
+      <ol aria-label={t("progress")} className="mb-5 flex flex-wrap items-center gap-2 text-sm">
+        {steps.map((s, i) => (
+          <li key={s} aria-current={i === step ? "step" : undefined} className="flex items-center gap-2">
             <span
               className={cn(
                 "flex size-6 items-center justify-center rounded-full text-xs font-semibold",
-                i < step ? "bg-ok text-solid-fg" : i === step ? "bg-brand text-brand-fg" : "bg-background text-muted",
+                i < step ? "bg-ok text-solid-fg" : i === step ? "bg-brand text-brand-fg" : "bg-surface-2 text-muted",
               )}
             >
-              {i < step ? <Check className="size-3.5" /> : i + 1}
+              {i < step ? <Check className="size-3.5" aria-label={t("stepDone")} /> : i + 1}
             </span>
             <span className={i === step ? "font-medium" : "text-muted"}>{s}</span>
-            {i < STEPS.length - 1 && <span className="mx-1 h-px w-6 bg-border" />}
+            {i < steps.length - 1 && <span aria-hidden className="mx-1 h-px w-6 bg-border" />}
           </li>
         ))}
       </ol>
@@ -204,52 +233,59 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
 
       {step === 1 && (
         <div className="space-y-3">
-          <p className="text-sm text-muted">
-            Choose which Canvas columns to import and map each to one or more PLOs. Weights split the assessment across PLOs and must total
-            100% (e.g. 60% PLO 4 / 40% PLO 7). Course PLOs from the curriculum: <strong>PLO {detail.coursePloNumbers.join(", ")}</strong>.
-          </p>
-          <Table>
+          <p className="text-sm text-muted">{t("mapIntro", { plos: detail.coursePloNumbers.join(", ") })}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <ToggleChip checked={attentionOnly} onChange={setAttentionOnly} disabled={!needingAttention.length && !attentionOnly}>
+              {t("needsAttention", { count: needingAttention.length })}
+            </ToggleChip>
+            <span className="text-xs text-muted">{t("includedCount", { count: included.length, total: rows.length })}</span>
+          </div>
+          <Table label={t("steps.map")}>
             <thead>
               <tr>
-                <Th className="w-10">Import</Th>
-                <Th>Assignment</Th>
-                <Th className="text-right">Max pts</Th>
-                <Th className="text-right">Graded</Th>
-                <Th className="min-w-72">PLO mapping & weights</Th>
-                <Th className="text-right">Grade wt %</Th>
+                <Th className="w-10">{t("colImport")}</Th>
+                <Th>{t("colAssignment")}</Th>
+                <Th className="text-right">{t("colMax")}</Th>
+                <Th className="text-right">{t("colGraded")}</Th>
+                <Th className="min-w-72">{t("colMapping")}</Th>
+                <Th className="text-right">{t("colWeight")}</Th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
-                const err = r.include ? rowErrors(r) : null;
+              {visibleRows.map((r) => {
+                const err = r.include ? rowError(r) : null;
                 return (
-                  <tr key={r.key} className={cn(!r.include && "opacity-50")}>
+                  <tr key={r.key} className={cn(!r.include && "opacity-60")}>
                     <Td>
                       <input
                         type="checkbox"
                         className="size-4 accent-brand"
                         checked={r.include}
-                        aria-label={`Import ${r.title}`}
+                        aria-label={t("importNamed", { title: r.title })}
                         onChange={(e) => update(r.key, { include: e.target.checked })}
                       />
                     </Td>
                     <Td>
-                      <Input value={r.title} onChange={(e) => update(r.key, { title: e.target.value })} className="h-8 min-w-44" disabled={!r.include} />
-                      <div className="mt-1 flex gap-1 text-xs text-muted">
+                      <Input
+                        value={r.title}
+                        onChange={(e) => update(r.key, { title: e.target.value })}
+                        className="h-8 min-w-44"
+                        disabled={!r.include}
+                        aria-label={t("titleFor", { title: r.title })}
+                      />
+                      <div className="mt-1 flex items-center gap-1 text-xs text-muted">
                         Canvas ID {r.canvasId ?? "—"}
-                        {r.existing && <Badge tone="brand">updates existing</Badge>}
+                        {r.existing && <Badge tone="brand">{t("updatesExisting")}</Badge>}
                       </div>
                     </Td>
                     <Td className="text-right">
-                      <Input
-                        type="number"
-                        min={0}
-                        step="any"
+                      <NumberInput
                         value={r.maxPoints}
                         onChange={(e) => update(r.key, { maxPoints: e.target.value })}
-                        className="ml-auto h-8 w-20 text-right"
+                        className="ml-auto h-8 w-20"
                         disabled={!r.include}
-                        aria-label={`${r.title} max points`}
+                        invalid={err === "maxPoints"}
+                        aria-label={t("maxFor", { title: r.title })}
                       />
                     </Td>
                     <Td className="text-right tabular">
@@ -259,21 +295,21 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
                       {r.include && (
                         <>
                           <PloMultiSelect plos={detail.plos} value={r.weights} highlight={detail.coursePloNumbers} onChange={(weights) => update(r.key, { weights })} />
-                          {err && <div className="mt-1 text-xs font-medium text-risk">{err}</div>}
+                          {err && err !== "maxPoints" && (
+                            <div className="mt-1 text-xs font-medium text-risk">
+                              {t(`rowErrors.${err}`, { total: Math.round(r.weights.reduce((s, w) => s + w.weight, 0) * 100) / 100 })}
+                            </div>
+                          )}
                         </>
                       )}
                     </Td>
                     <Td className="text-right">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step="any"
+                      <NumberInput
                         value={r.gradeWeight}
                         onChange={(e) => update(r.key, { gradeWeight: e.target.value })}
-                        className="ml-auto h-8 w-20 text-right"
+                        className="ml-auto h-8 w-20"
                         disabled={!r.include}
-                        aria-label={`${r.title} grade weight`}
+                        aria-label={t("weightFor", { title: r.title })}
                       />
                     </Td>
                   </tr>
@@ -281,41 +317,45 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
               })}
             </tbody>
           </Table>
-          {parsed && parsed.skippedColumns.length > 0 && (
-            <p className="text-xs text-muted">Ignored computed columns: {parsed.skippedColumns.join(", ")}</p>
-          )}
+          {parsed && parsed.skippedColumns.length > 0 && <p className="text-xs text-muted">{t("skipped", { list: parsed.skippedColumns.join(", ") })}</p>}
         </div>
       )}
 
       {step === 2 && report && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="Matched & enrolled" value={report.summary.matched} tone="ok" />
-            <Stat label="Matched, not enrolled" value={report.summary.unenrolled} />
-            <Stat label="Unmatched rows" value={report.summary.unmatched} tone={report.summary.unmatched ? "risk" : undefined} />
-            <Stat
-              label="Assessments"
-              value={report.assessments.length}
-              hint={`${report.assessments.filter((a) => a.action === "create").length} new · ${report.assessments.filter((a) => a.action === "update").length} updated`}
-            />
-          </div>
+          <SummaryStrip
+            className="mb-0"
+            items={[
+              { label: t("summary.assessments"), value: `${detail.assessments.length} → ${detail.assessments.length + created}`, hint: t("summary.assessmentsHint", { created, updated }) },
+              { label: t("summary.matched"), value: report.summary.matched, tone: "ok" },
+              { label: t("summary.unenrolled"), value: report.summary.unenrolled, hint: enrollUnenrolled ? t("summary.willEnroll") : t("summary.willSkip") },
+              { label: t("summary.unmatched"), value: report.summary.unmatched, tone: report.summary.unmatched ? "risk" : undefined, hint: t("summary.willSkip") },
+            ]}
+          />
+          <p className="text-sm text-muted">{t("summary.cells", { count: cellsToWrite })}</p>
           {report.summary.unenrolled > 0 && (
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" className="size-4 accent-brand" checked={enrollUnenrolled} onChange={(e) => setEnrollUnenrolled(e.target.checked)} />
-              Enroll the {report.summary.unenrolled} matched student(s) who are not yet enrolled in this class
+              {t("enroll", { count: report.summary.unenrolled })}
             </label>
           )}
-          {report.summary.unmatched > 0 && (
-            <Notice tone="info">Unmatched rows will be skipped. Check that the student exists in the registry with the same email or student ID (NIM).</Notice>
+          {report.summary.unmatched > 0 && <Notice tone="info">{t("unmatchedHelp")}</Notice>}
+          {busy === "write" && (
+            <div role="status" className="space-y-1.5">
+              <p className="text-sm font-medium">{t("writing", { count: cellsToWrite })}</p>
+              <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" aria-hidden>
+                <div className="ui-indeterminate h-full w-1/3 rounded-full bg-brand" />
+              </div>
+            </div>
           )}
-          <Table>
+          <Table label={t("steps.review")} maxHeight="22rem">
             <thead>
               <tr>
-                <Th>Canvas student</Th>
-                <Th>SIS Login ID</Th>
-                <Th>SIS User ID</Th>
-                <Th>Registry match</Th>
-                <Th>Status</Th>
+                <Th className="sticky top-0">{t("colStudent")}</Th>
+                <Th className="sticky top-0">SIS Login ID</Th>
+                <Th className="sticky top-0">SIS User ID</Th>
+                <Th className="sticky top-0">{t("colMatch")}</Th>
+                <Th className="sticky top-0">{t("colStatus")}</Th>
               </tr>
             </thead>
             <tbody>
@@ -326,17 +366,17 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
                   <Td className="text-muted">{m.sisUserId || "—"}</Td>
                   <Td>
                     {m.userName ?? "—"}
-                    {m.matchedBy && <span className="ml-1 text-xs text-muted">(by {m.matchedBy === "email" ? "email" : "NIM"})</span>}
+                    {m.matchedBy && <span className="ml-1 text-xs text-muted">({m.matchedBy === "email" ? t("byEmail") : t("byNim")})</span>}
                   </Td>
                   <Td>
                     {!m.userId ? (
-                      <Badge tone="risk">Unmatched, skipped</Badge>
+                      <Badge tone="risk">{t("status.unmatched")}</Badge>
                     ) : m.enrolled ? (
-                      <Badge tone="ok">Will import</Badge>
+                      <Badge tone="ok">{t("status.import")}</Badge>
                     ) : enrollUnenrolled ? (
-                      <Badge tone="brand">Will enroll + import</Badge>
+                      <Badge tone="brand">{t("status.enroll")}</Badge>
                     ) : (
-                      <Badge>Not enrolled, skipped</Badge>
+                      <Badge>{t("status.skip")}</Badge>
                     )}
                   </Td>
                 </tr>
@@ -348,15 +388,20 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
 
       {step === 3 && report?.written && (
         <div className="space-y-4">
-          <Notice tone="ok">
-            Import complete{report.transactional ? " (single MongoDB transaction)" : ""}. PLO attainment for this class was recalculated.
-          </Notice>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="Assessments created" value={report.written.assessmentsCreated} />
-            <Stat label="Assessments updated" value={report.written.assessmentsUpdated} />
-            <Stat label="Grades written" value={report.written.gradesWritten} tone="ok" />
-            <Stat label="Blank / excused cells skipped" value={report.written.blankCells} hint={report.written.enrolled ? `${report.written.enrolled} student(s) enrolled` : undefined} />
-          </div>
+          <Notice tone="ok">{report.transactional ? t("doneTransactional") : t("done")}</Notice>
+          <SummaryStrip
+            className="mb-0"
+            items={[
+              { label: t("result.created"), value: report.written.assessmentsCreated },
+              { label: t("result.updated"), value: report.written.assessmentsUpdated },
+              { label: t("result.grades"), value: report.written.gradesWritten, tone: "ok" },
+              {
+                label: t("result.blank"),
+                value: report.written.blankCells,
+                hint: report.written.enrolled ? t("result.enrolled", { count: report.written.enrolled }) : undefined,
+              },
+            ]}
+          />
         </div>
       )}
     </Dialog>
@@ -364,10 +409,12 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
 }
 
 function UploadStep({ fileName, parsed, onFile }: { fileName: string | null; parsed: ParsedCanvasGradebook | null; onFile: (f: File) => void }) {
+  const t = useTranslations("importer");
   const inputRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
   return (
     <div className="space-y-4">
+      {/* Drop target with a button alternative, so dragging is never required (WCAG 2.5.7). */}
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -381,15 +428,15 @@ function UploadStep({ fileName, parsed, onFile }: { fileName: string | null; par
           if (f) onFile(f);
         }}
         className={cn(
-          "flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center",
-          drag ? "border-brand bg-brand-soft" : "border-border",
+          "flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors duration-(--dur-1)",
+          drag ? "border-brand bg-brand-soft" : "border-border-strong",
         )}
       >
-        <FileUp className="mb-2 size-8 text-muted" />
-        <p className="text-sm font-medium">Drop a Canvas gradebook export here</p>
-        <p className="mb-3 text-xs text-muted">Canvas → Grades → Export → Export Entire Gradebook (.csv)</p>
+        <FileUp className="mb-2 size-8 text-muted" aria-hidden />
+        <p className="text-sm font-medium">{t("dropTitle")}</p>
+        <p className="mb-3 text-xs text-muted">{t("dropHint")}</p>
         <Button variant="secondary" onClick={() => inputRef.current?.click()}>
-          Choose file
+          {t("chooseFile")}
         </Button>
         <input
           ref={inputRef}
@@ -405,9 +452,7 @@ function UploadStep({ fileName, parsed, onFile }: { fileName: string | null; par
       </div>
       {parsed && (
         <div className="space-y-2">
-          <Notice tone="ok">
-            <strong>{fileName}</strong>: {parsed.assignments.length} assignment column(s) and {parsed.students.length} student row(s) detected.
-          </Notice>
+          <Notice tone="ok">{t("detected", { file: fileName ?? "", columns: parsed.assignments.length, students: parsed.students.length })}</Notice>
           {parsed.warnings.map((w) => (
             <Notice key={w} tone="info">
               {w}
@@ -431,6 +476,8 @@ function PloMultiSelect({
   onChange: (v: WeightValue[]) => void;
   highlight: number[];
 }) {
+  const t = useTranslations("importer");
+  const tw = useTranslations("weights");
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<React.CSSProperties>({});
   const ref = useRef<HTMLDivElement>(null);
@@ -443,14 +490,23 @@ function PloMultiSelect({
     const onDoc = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
     // The panel is fixed-positioned (the table scrolls), so close it when anything scrolls.
     const onScroll = (e: Event) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey, true);
     window.addEventListener("scroll", onScroll, true);
     return () => {
       document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey, true);
       window.removeEventListener("scroll", onScroll, true);
     };
   }, [open]);
@@ -471,14 +527,8 @@ function PloMultiSelect({
   }
 
   function toggle(id: string) {
-    if (selected.has(id)) {
-      onChange(value.filter((v) => v.plo !== id));
-    } else {
-      // Re-split evenly so the common case needs no typing.
-      const next = [...value.map((v) => v.plo), id];
-      const even = Math.floor((100 / next.length) * 100) / 100;
-      onChange(next.map((plo, i) => ({ plo, weight: i === 0 ? Math.round((100 - even * (next.length - 1)) * 100) / 100 : even })));
-    }
+    // Re-split evenly on every change so the common case needs no typing.
+    onChange(splitEvenly(selected.has(id) ? value.filter((v) => v.plo !== id).map((v) => v.plo) : [...value.map((v) => v.plo), id]));
   }
 
   const sorted = [...value].sort((a, b) => (byId.get(a.plo)?.number ?? 0) - (byId.get(b.plo)?.number ?? 0));
@@ -490,54 +540,46 @@ function PloMultiSelect({
           ref={buttonRef}
           type="button"
           onClick={toggleOpen}
-          className="flex h-8 w-full items-center justify-between gap-2 rounded-md border border-border bg-surface px-2.5 text-left text-sm"
-          aria-haspopup="listbox"
+          className="flex h-8 w-full items-center justify-between gap-2 rounded-lg border border-border-input bg-surface px-2.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-brand"
           aria-expanded={open}
         >
-          <span className={cn("truncate", !value.length && "text-muted")}>
-            {value.length ? sorted.map((v) => byId.get(v.plo)?.code).join(", ") : "Select PLOs…"}
-          </span>
-          <ChevronDown className="size-4 shrink-0 text-muted" />
+          <span className={cn("truncate", !value.length && "text-muted")}>{value.length ? sorted.map((v) => byId.get(v.plo)?.code).join(", ") : t("selectPlos")}</span>
+          <ChevronDown className="size-4 shrink-0 text-muted" aria-hidden />
         </button>
         {open && (
-          <div
-            role="listbox"
-            aria-multiselectable
-            style={pos}
-            className="fixed z-50 max-h-72 overflow-y-auto rounded-md border border-border bg-surface p-1 shadow-lg"
-          >
+          <fieldset style={pos} className="fixed z-50 max-h-72 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-e3">
+            <legend className="sr-only">{t("selectPlos")}</legend>
             {plos.map((p) => (
-              <label key={p.id} className="flex cursor-pointer items-start gap-2 rounded px-2 py-1.5 text-sm hover:bg-background" title={p.description}>
-                <input type="checkbox" className="mt-0.5 accent-brand" checked={selected.has(p.id)} onChange={() => toggle(p.id)} />
+              <label key={p.id} className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-2" title={p.description}>
+                <input type="checkbox" className="mt-0.5 size-4 accent-brand" checked={selected.has(p.id)} onChange={() => toggle(p.id)} />
                 <span>
                   <span className="font-medium">{p.code}</span> <span className="text-xs text-muted">{p.shortLabel}</span>
                   {highlight.includes(p.number) && (
                     <Badge tone="info" className="ml-1">
-                      course PLO
+                      {tw("coursePlo")}
                     </Badge>
                   )}
                 </span>
               </label>
             ))}
-          </div>
+          </fieldset>
         )}
       </div>
       {sorted.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {sorted.map((v) => (
-            <span key={v.plo} className="flex items-center gap-1 rounded-md border border-border bg-background px-1.5 py-0.5 text-xs">
+            <span key={v.plo} className="flex items-center gap-1 rounded-md border border-border bg-surface-2 px-1.5 py-0.5 text-xs">
               {byId.get(v.plo)?.code}
               <input
-                type="number"
-                min={0}
-                max={100}
-                step="any"
-                aria-label={`${byId.get(v.plo)?.code} weight`}
+                type="text"
+                inputMode="decimal"
+                aria-label={tw("weightFor", { plo: byId.get(v.plo)?.code ?? "" })}
                 value={Number.isFinite(v.weight) ? v.weight : ""}
-                onChange={(e) =>
-                  onChange(value.map((w) => (w.plo === v.plo ? { ...w, weight: e.target.value === "" ? NaN : Number(e.target.value) } : w)))
-                }
-                className="h-6 w-14 rounded border border-border bg-surface px-1 text-right tabular"
+                onChange={(e) => {
+                  const n = parseScore(e.target.value);
+                  onChange(value.map((w) => (w.plo === v.plo ? { ...w, weight: n === null ? NaN : n } : w)));
+                }}
+                className="h-6 w-14 rounded border border-border-input bg-surface px-1 text-right tabular"
               />
               %
             </span>

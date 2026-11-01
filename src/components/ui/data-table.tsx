@@ -15,7 +15,7 @@ import {
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Rows3, Rows4, Search, X } from "lucide-react";
 import { useUrlState, urlNumber } from "@/lib/hooks/useUrlState";
-import { Button, EmptyState, Input, cn } from "./index";
+import { Button, EmptyState, Input, Select, cn } from "./index";
 import { SegmentedControl } from "./segmented";
 
 declare module "@tanstack/react-table" {
@@ -163,7 +163,14 @@ export function DataTable<T>({
   const compact = density === "compact";
   const cellPad = compact ? "py-1.5" : "py-2.5";
 
-  const hasToolbar = searchable || toolbar || exportSlot || showDensity;
+  // In the stacked (narrow) layout the header row is hidden, so sorting moves into a select.
+  const sortable = table.getAllLeafColumns().filter((c) => c.getCanSort());
+  const sortValue = sorting[0] ? `${sorting[0].id}.${sorting[0].desc ? "desc" : "asc"}` : "";
+  const columnLabel = (id: string) => {
+    const c = table.getColumn(id)?.columnDef;
+    return c?.meta?.label ?? (typeof c?.header === "string" ? c.header : id);
+  };
+  const hasToolbar = searchable || toolbar || exportSlot || showDensity || (stackOnNarrow && sortable.length > 0);
 
   return (
     <div className={cn("ui-dt-wrap", className)}>
@@ -193,6 +200,24 @@ export function DataTable<T>({
             </div>
           )}
           {toolbar}
+          {stackOnNarrow && sortable.length > 0 && (
+            <Select
+              value={sortValue}
+              onChange={(e) => setSortParam(e.target.value)}
+              aria-label={t("sortLabel")}
+              className="hidden @max-[40rem]:block"
+            >
+              <option value="">{t("sortDefault")}</option>
+              {sortable.flatMap((c) => [
+                <option key={`${c.id}.asc`} value={`${c.id}.asc`}>
+                  {t("sortOption", { column: columnLabel(c.id), direction: t("ascending") })}
+                </option>,
+                <option key={`${c.id}.desc`} value={`${c.id}.desc`}>
+                  {t("sortOption", { column: columnLabel(c.id), direction: t("descending") })}
+                </option>,
+              ])}
+            </Select>
+          )}
           <div className="ml-auto flex items-center gap-2">
             {showDensity && (
               <SegmentedControl

@@ -2,28 +2,45 @@ import { NextResponse } from "next/server";
 import { apiHandler, assertOfferingAccess, HttpError, requireApiUser } from "@/lib/auth/rbac";
 import { gradesSchema } from "@/lib/validators";
 import { recomputeOffering } from "@/lib/obe/recompute";
+import { MAX_SCORE_FACTOR } from "@/lib/gradebook/parse-score";
 import { Assessment, Enrollment, Grade, Types } from "@/models";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-/** Bulk save from the gradebook grid. `score: null` clears a grade. */
+/**
+ * Bulk save from the gradebook. `score: null` clears a grade. Each change may carry `expected`,
+ * the value the edit was based on: if any stored value no longer matches (someone else saved in
+ * between), nothing is written and the conflicting cells come back as 409 `{ conflicts }`.
+ */
 export const PUT = apiHandler<Ctx>(async (req, { params }) => {
   const { id } = await params;
   const user = await requireApiUser();
   await assertOfferingAccess(user, id, "write");
   const { grades } = gradesSchema.parse(await req.json());
 
-  const [assessments, enrollments] = await Promise.all([
+  const [assessments, enrollments, stored] = await Promise.all([
     Assessment.find({ offering: id }).select("maxPoints").lean(),
     Enrollment.find({ offering: id }).select("student").lean(),
+    Grade.find({ offering: id }).select("assessment student score").lean(),
   ]);
   const maxOf = new Map(assessments.map((a) => [String(a._id), a.maxPoints]));
   const enrolled = new Set(enrollments.map((e) => String(e.student)));
+  const current = new Map(stored.map((g) => [`${g.student}:${g.assessment}`, g.score]));
+
+  const conflicts = grades
+    .filter((g) => g.expected !== undefined && (current.get(`${g.student}:${g.assessment}`) ?? null) !== g.expected)
+    .map((g) => ({ student: g.student, assessment: g.assessment, current: current.get(`${g.student}:${g.assessment}`) ?? null }));
+  if (conflicts.length) {
+    return NextResponse.json(
+      { error: "Some grades were changed by someone else since you loaded this page", conflicts },
+      { status: 409 },
+    );
+  }
 
   const ops = grades.map((g) => {
     if (!maxOf.has(g.assessment)) throw new HttpError(400, "Assessment does not belong to this class");
     if (!enrolled.has(g.student)) throw new HttpError(400, "Student is not enrolled in this class");
-    if (g.score !== null && g.score > maxOf.get(g.assessment)! * 1.5) {
+    if (g.score !== null && g.score > maxOf.get(g.assessment)! * MAX_SCORE_FACTOR) {
       throw new HttpError(400, `Score ${g.score} is far above the assessment's max points`);
     }
     const filter = { assessment: new Types.ObjectId(g.assessment), student: new Types.ObjectId(g.student) };

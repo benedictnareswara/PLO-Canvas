@@ -313,6 +313,8 @@ export interface OfferingListItem {
   studentCount: number;
   assessmentCount: number;
   plo: PloValues;
+  /** PLO numbers the curriculum maps to this course. */
+  coursePloNumbers: number[];
 }
 
 export async function listOfferings(filter: { lecturer?: string; departmentId?: string | null }): Promise<{
@@ -321,6 +323,7 @@ export async function listOfferings(filter: { lecturer?: string; departmentId?: 
 }> {
   const curriculum = await getCurriculumForDepartment(filter.departmentId ?? null);
   const plos = curriculum ? await getPlos(curriculum._id) : [];
+  const ploNumberById = new Map(plos.map((p) => [p.id, p.number]));
   const courseFilter = filter.departmentId
     ? { curriculum: { $in: await Curriculum.find({ department: oid(filter.departmentId) }).distinct("_id") } }
     : {};
@@ -366,6 +369,10 @@ export async function listOfferings(filter: { lecturer?: string; departmentId?: 
           studentCount: nEnroll.get(String(o._id)) ?? 0,
           assessmentCount: nAssess.get(String(o._id)) ?? 0,
           plo: mapToPloValues(means.get(String(o._id)) ?? new Map(), plos),
+          coursePloNumbers: course.plos
+            .map((p) => ploNumberById.get(String(p)) ?? 0)
+            .filter(Boolean)
+            .sort((a, b) => a - b),
         };
       })
       .sort((a, b) => b.academicYear - a.academicYear || b.term.localeCompare(a.term) || a.code.localeCompare(b.code)),

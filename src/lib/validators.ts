@@ -16,7 +16,15 @@ export const assessmentSchema = z.object({
 
 export const gradesSchema = z.object({
   grades: z
-    .array(z.object({ student: objectId, assessment: objectId, score: z.number().min(0).nullable() }))
+    .array(
+      z.object({
+        student: objectId,
+        assessment: objectId,
+        score: z.number().min(0).nullable(),
+        // The value the client's edit was based on (null = was blank). Omitted by older clients.
+        expected: z.number().min(0).nullable().optional(),
+      }),
+    )
     .max(20000),
 });
 

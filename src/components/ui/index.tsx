@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { Check, ChevronRight, Loader2 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
 export function cn(...inputs: ClassValue[]) {
@@ -105,7 +105,7 @@ export function CardHeader({
         <h2 id={id} className="text-[0.9375rem] font-semibold leading-6">
           {title}
         </h2>
-        {description && <p className="mt-0.5 max-w-prose text-sm text-muted">{description}</p>}
+        {description && <div className="mt-0.5 max-w-prose text-sm text-muted">{description}</div>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -174,6 +174,44 @@ export function NumberInput({ className, invalid, ...props }: Omit<ComponentProp
       aria-invalid={invalid || undefined}
       {...props}
     />
+  );
+}
+
+/**
+ * On/off filter shown as a chip (native checkbox underneath). The check icon, not only colour,
+ * shows the state. `swatch` adds a series colour dot (chart legends that double as filters).
+ */
+export function ToggleChip({
+  checked,
+  onChange,
+  children,
+  swatch,
+  disabled,
+  className,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  children: ReactNode;
+  swatch?: string;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <label
+      className={cn(
+        "inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border-input bg-surface px-3 text-sm font-medium whitespace-nowrap text-muted select-none",
+        "transition-[background-color,border-color,color] duration-(--dur-1) hover:text-foreground",
+        "has-checked:border-brand/40 has-checked:bg-brand-soft has-checked:text-brand",
+        "has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand",
+        "has-disabled:cursor-not-allowed has-disabled:opacity-50 pointer-coarse:h-10",
+        className,
+      )}
+    >
+      <input type="checkbox" className="sr-only" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      {checked ? <Check className="size-3.5" aria-hidden /> : swatch ? null : <span aria-hidden className="size-3.5 rounded-full border border-current opacity-60" />}
+      {swatch && <span aria-hidden className="size-2.5 rounded-sm" style={{ background: swatch }} />}
+      {children}
+    </label>
   );
 }
 
@@ -283,7 +321,7 @@ export function PageHeader({
       <div className="min-w-0 flex-1 basis-80">
         {eyebrow && <div className="mb-1 text-xs font-medium text-muted">{eyebrow}</div>}
         <h1 className="text-xl font-semibold tracking-tight text-pretty sm:text-2xl">{title}</h1>
-        {description && <p className="mt-1.5 max-w-3xl text-sm text-muted">{description}</p>}
+        {description && <div className="mt-1.5 max-w-3xl text-sm text-muted">{description}</div>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
