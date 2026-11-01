@@ -23,7 +23,6 @@ export function AdviseesView({ data }: { data: StudentsWithRows }) {
           plos={data.plos}
           threshold={data.threshold}
           period={period}
-          from="/lecturer/advisees"
           exportName="advisees"
         />
       </Card>

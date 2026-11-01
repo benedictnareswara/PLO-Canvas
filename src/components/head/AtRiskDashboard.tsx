@@ -13,6 +13,7 @@ import { ExportMenu } from "@/components/ExportMenu";
 import { StudentAttainmentTable } from "@/components/StudentAttainmentTable";
 import { downloadCsv, safeFilename } from "@/lib/export/csv";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { useCurrentHref } from "@/lib/hooks/useCurrentHref";
 import { useUrlState } from "@/lib/hooks/useUrlState";
 import { isAtRisk } from "@/lib/obe/engine";
 import { summarizeCohorts, type CohortSummary } from "@/lib/obe/aggregate";
@@ -152,7 +153,6 @@ export function AtRiskDashboard({ data }: { data: StudentsWithRows }) {
           plos={data.plos}
           threshold={threshold}
           period={period}
-          from="/head/at-risk"
           initialAtRiskOnly
           exportName="students-at-risk"
         />
@@ -175,6 +175,7 @@ function DrillDown({
   onClose: () => void;
 }) {
   const t = useTranslations("analytics.atRisk");
+  const from = useCurrentHref();
   const students = cohort.students.filter((s) => isAtRisk(s.values[plo.number], threshold)).sort((a, b) => (a.values[plo.number] ?? 0) - (b.values[plo.number] ?? 0));
 
   async function copyEmails() {
@@ -242,7 +243,7 @@ function DrillDown({
               {s.atRisk.filter((n) => n !== plo.number).length === 0 && <span className="text-xs text-muted">{t("noOther")}</span>}
             </div>
             <Link
-              href={`/students/${s.id}?from=${encodeURIComponent("/head/at-risk")}`}
+              href={`/students/${s.id}?from=${encodeURIComponent(from)}`}
               className="inline-flex items-center gap-1 text-sm font-medium text-brand underline-offset-2 hover:underline"
             >
               {t("profile")} <ArrowRight className="size-3.5" aria-hidden />

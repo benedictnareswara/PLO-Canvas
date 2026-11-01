@@ -627,5 +627,34 @@
       "emptyTitle": "No classes in this period",
       "emptyBody": "Choose another academic year or term."
     }
+  },
+  "profile": {
+    "welcome": "Welcome, {name}",
+    "welcomeDescription": "Your courses, assessment scores and Program Learning Outcome (PLO) achievement.",
+    "cohort": "Cohort",
+    "classOf": "Class of {year}",
+    "courses": "Courses with grades",
+    "sksAssessed": "{sks} SKS assessed",
+    "plosEvidenced": "PLOs with evidence",
+    "plosAtRisk": "PLOs at risk",
+    "allMet": "All evidenced PLOs ≥ {target}%",
+    "chartTitle": "PLO attainment",
+    "chartDescription": "SKS-weighted attainment against the {target}% passing line",
+    "outcomesTitle": "Outcome summary",
+    "outcomesDescription": "Cumulative attainment per PLO. The marker shows the {target}% target.",
+    "guidanceTitleSelf": "Where to focus",
+    "guidanceTitleStaff": "Where these outcomes are assessed",
+    "guidance": "{plo} is below target. It's assessed in {courses}.",
+    "guidanceNoCourse": "{plo} is below target. Ask your academic advisor which upcoming courses assess it.",
+    "noEvidence": "No evidence yet",
+    "atRisk": "at risk",
+    "coursesTitle": "Courses and assessment scores",
+    "advisor": "Academic advisor (Dosen Wali): {name}",
+    "noCourses": "No courses in this period.",
+    "courseMeta": "Semester {semester} · {period} · {sks} SKS",
+    "inProgress": "In progress",
+    "noAssessments": "No assessments published yet.",
+    "notGraded": "Not graded",
+    "weight": "weight {value}%"
   }
 }

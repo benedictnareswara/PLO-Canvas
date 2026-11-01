@@ -627,5 +627,34 @@
       "emptyTitle": "Tidak ada kelas pada periode ini",
       "emptyBody": "Pilih tahun akademik atau semester lain."
     }
+  },
+  "profile": {
+    "welcome": "Selamat datang, {name}",
+    "welcomeDescription": "Mata kuliah, nilai penilaian, dan capaian Capaian Pembelajaran Lulusan (CPL) Anda.",
+    "cohort": "Angkatan",
+    "classOf": "Angkatan {year}",
+    "courses": "Mata kuliah bernilai",
+    "sksAssessed": "{sks} SKS dinilai",
+    "plosEvidenced": "CPL dengan bukti",
+    "plosAtRisk": "CPL berisiko",
+    "allMet": "Semua CPL yang terukur ≥ {target}%",
+    "chartTitle": "Capaian CPL",
+    "chartDescription": "Capaian yang dibobot SKS terhadap batas lulus {target}%",
+    "outcomesTitle": "Ringkasan capaian",
+    "outcomesDescription": "Capaian kumulatif per CPL. Penanda menunjukkan target {target}%.",
+    "guidanceTitleSelf": "Yang perlu difokuskan",
+    "guidanceTitleStaff": "Tempat capaian ini dinilai",
+    "guidance": "{plo} di bawah target. CPL ini dinilai di {courses}.",
+    "guidanceNoCourse": "{plo} di bawah target. Tanyakan kepada dosen wali mata kuliah mana yang akan menilainya.",
+    "noEvidence": "Belum ada bukti",
+    "atRisk": "berisiko",
+    "coursesTitle": "Mata kuliah dan nilai penilaian",
+    "advisor": "Dosen Wali: {name}",
+    "noCourses": "Tidak ada mata kuliah pada periode ini.",
+    "courseMeta": "Semester {semester} · {period} · {sks} SKS",
+    "inProgress": "Berlangsung",
+    "noAssessments": "Belum ada penilaian yang diterbitkan.",
+    "notGraded": "Belum dinilai",
+    "weight": "bobot {value}%"
   }
 }

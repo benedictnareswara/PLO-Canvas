@@ -132,7 +132,8 @@ export interface StudentProfileData {
   courses: StudentCourseView[];
 }
 
-export async function getStudentProfile(studentId: string): Promise<StudentProfileData | null> {
+/** Cached per request: generateMetadata and the page share one load. */
+export const getStudentProfile = cache(async (studentId: string): Promise<StudentProfileData | null> => {
   const student = await User.findById(studentId).lean();
   if (!student) return null;
   const advisor = student.advisor ? await User.findById(student.advisor).select("name").lean() : null;
@@ -203,7 +204,7 @@ export async function getStudentProfile(studentId: string): Promise<StudentProfi
     rows,
     courses: courseViews,
   };
-}
+});
 
 /* ------------------------------ Offering view ----------------------------- */
 

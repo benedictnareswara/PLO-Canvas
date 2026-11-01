@@ -9,6 +9,7 @@ import { ExportMenu } from "@/components/ExportMenu";
 import { Badge, ToggleChip } from "@/components/ui";
 import { DataTable } from "@/components/ui/data-table";
 import { downloadCsv, safeFilename, type ExportColumn } from "@/lib/export/csv";
+import { useCurrentHref } from "@/lib/hooks/useCurrentHref";
 import { useUrlState } from "@/lib/hooks/useUrlState";
 import { atRiskPlos, cumulativeForStudent, toPloValues } from "@/lib/obe/aggregate";
 import type { PeriodFilter } from "@/lib/obe/semesters";
@@ -27,7 +28,6 @@ export function StudentAttainmentTable({
   plos,
   threshold,
   period,
-  from,
   initialAtRiskOnly = false,
   exportName,
   urlKey = "",
@@ -37,13 +37,13 @@ export function StudentAttainmentTable({
   plos: PloInfo[];
   threshold: number;
   period: PeriodFilter;
-  /** Where profile links come back to (breadcrumbs on the student page). */
-  from: string;
   initialAtRiskOnly?: boolean;
   exportName: string;
   urlKey?: string;
 }) {
   const t = useTranslations("studentsTable");
+  // Profile links carry this view (filters included) so the breadcrumb returns to it.
+  const from = useCurrentHref();
   const [atRiskOnly, setAtRiskOnly] = useUrlState(`${urlKey}risk`, initialAtRiskOnly, {
     parse: (r) => r === "1",
     serialize: (v) => (v ? "1" : "0"),

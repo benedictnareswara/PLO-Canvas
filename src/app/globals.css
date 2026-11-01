@@ -264,6 +264,31 @@ dialog.ui-dialog {
   }
 }
 
+/* --------------------------- Expanding sections -------------------------- */
+
+/* <details class="ui-collapse"> animates its height where the browser can interpolate to `auto`;
+   elsewhere it simply opens. */
+@supports (interpolate-size: allow-keywords) {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+}
+details.ui-collapse::details-content {
+  block-size: 0;
+  overflow-y: clip;
+  transition:
+    block-size var(--dur-3) var(--ease-std),
+    content-visibility var(--dur-3) allow-discrete;
+}
+details.ui-collapse[open]::details-content {
+  block-size: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  details.ui-collapse::details-content {
+    transition: none;
+  }
+}
+
 /* ------------------------------- Popovers ------------------------------- */
 
 .ui-pop {
