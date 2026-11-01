@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Radar } from "lucide-react";
 import { ButtonLink, Card, CardBody, CardHeader, EmptyState, SummaryStrip, Table, Td, Th, cn } from "@/components/ui";
 import { AtRiskBadge, PloCell, formatPct } from "@/components/AtRiskBadge";
-import { PloRadar } from "@/components/charts/PloRadar";
+import { PloRadar } from "@/components/charts/PloRadarLazy";
 import { cohortAggregate, isAtRisk } from "@/lib/obe/engine";
 import type { OfferingDetail } from "@/lib/obe/queries";
 

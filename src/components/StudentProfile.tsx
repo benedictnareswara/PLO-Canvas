@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { PloRadar } from "@/components/charts/PloRadar";
+import { PloRadar } from "@/components/charts/PloRadarLazy";
 import { AtRiskBadge, PloCell, formatPct } from "@/components/AtRiskBadge";
 import { Badge, Card, CardBody, CardHeader, Select, Stat, Table, Td, Th, cn } from "@/components/ui";
 import { atRiskPlos, cumulativeForStudent, rowsToSums, toPloValues } from "@/lib/obe/aggregate";

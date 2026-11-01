@@ -1,31 +1,54 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useTranslations } from "next-intl";
+import { createColumnHelper } from "@tanstack/react-table";
 import { PloCell } from "@/components/AtRiskBadge";
-import { Badge, Select, Table, Td, Th } from "@/components/ui";
+import { ExportMenu } from "@/components/ExportMenu";
+import { Badge, ToggleChip } from "@/components/ui";
+import { DataTable } from "@/components/ui/data-table";
+import { downloadCsv, safeFilename, type ExportColumn } from "@/lib/export/csv";
+import { useUrlState } from "@/lib/hooks/useUrlState";
 import { atRiskPlos, cumulativeForStudent, toPloValues } from "@/lib/obe/aggregate";
-import { PERIOD_FILTERS, type PeriodFilter } from "@/lib/obe/semesters";
-import type { AttainmentSum, PloInfo, StudentSummary } from "@/lib/obe/types";
+import type { PeriodFilter } from "@/lib/obe/semesters";
+import type { AttainmentSum, PloInfo, PloValues, StudentSummary } from "@/lib/obe/types";
 
-/** Students × PLO matrix of cumulative attainment, with at-risk highlighting and profile links. */
+type Row = StudentSummary & { values: PloValues; risky: number[] };
+const col = createColumnHelper<Row>();
+
+/**
+ * Students × PLO cumulative attainment. The period and threshold come from the page's filter bar
+ * (one filter bar per page); sortable by how many PLOs are at risk; exports what is shown.
+ */
 export function StudentAttainmentTable({
   students,
   sums,
   plos,
   threshold,
-  showPeriodFilter = true,
-  onlyAtRisk = false,
+  period,
+  from,
+  initialAtRiskOnly = false,
+  exportName,
+  urlKey = "",
 }: {
   students: StudentSummary[];
   sums: AttainmentSum[];
   plos: PloInfo[];
   threshold: number;
-  showPeriodFilter?: boolean;
-  onlyAtRisk?: boolean;
+  period: PeriodFilter;
+  /** Where profile links come back to (breadcrumbs on the student page). */
+  from: string;
+  initialAtRiskOnly?: boolean;
+  exportName: string;
+  urlKey?: string;
 }) {
-  const [period, setPeriod] = useState<PeriodFilter>("all");
-  const computed = useMemo(
+  const t = useTranslations("studentsTable");
+  const [atRiskOnly, setAtRiskOnly] = useUrlState(`${urlKey}risk`, initialAtRiskOnly, {
+    parse: (r) => r === "1",
+    serialize: (v) => (v ? "1" : "0"),
+  });
+  const rows = useMemo<Row[]>(
     () =>
       students.map((s) => {
         const values = toPloValues(cumulativeForStudent(sums, s.id, period), plos);
@@ -33,67 +56,83 @@ export function StudentAttainmentTable({
       }),
     [students, sums, plos, period, threshold],
   );
-  const shown = onlyAtRisk ? computed.filter((s) => s.risky.length) : computed;
+  const shown = atRiskOnly ? rows.filter((r) => r.risky.length) : rows;
+
+  const columns = useMemo(
+    () => [
+      col.accessor((r) => `${r.name} ${r.studentId ?? ""}`, {
+        id: "student",
+        header: t("student"),
+        meta: { primary: true },
+        cell: ({ row: { original: r } }) => (
+          <div>
+            <Link href={`/students/${r.id}?from=${encodeURIComponent(from)}`} className="font-medium text-brand underline-offset-2 hover:underline">
+              {r.name}
+            </Link>
+            <div className="text-xs text-muted tabular">NIM {r.studentId ?? "—"}</div>
+          </div>
+        ),
+      }),
+      col.accessor((r) => r.cohortYear ?? 0, { id: "cohort", header: t("cohort"), meta: { numeric: true }, cell: ({ row: { original: r } }) => r.cohortYear ?? "—" }),
+      ...plos.map((p) =>
+        col.accessor((r) => r.values[p.number] ?? -1, {
+          id: `plo${p.number}`,
+          header: () => <span title={p.description}>{p.number}</span>,
+          meta: { label: p.code, className: "text-center" },
+          cell: ({ row: { original: r } }) => <PloCell value={r.values[p.number]} threshold={threshold} />,
+        }),
+      ),
+      col.accessor((r) => r.risky.length, {
+        id: "status",
+        header: t("status"),
+        sortDescFirst: true,
+        cell: ({ getValue }) => (getValue() ? <Badge tone="risk">{t("atRisk", { count: getValue() })}</Badge> : <Badge tone="ok">{t("onTrack")}</Badge>),
+      }),
+    ],
+    [plos, threshold, from, t],
+  );
+
+  const exportColumns: ExportColumn<Row>[] = [
+    { header: "NIM", value: (r) => r.studentId },
+    { header: t("student"), value: (r) => r.name },
+    { header: t("email"), value: (r) => r.email },
+    { header: t("cohort"), value: (r) => r.cohortYear },
+    ...plos.map((p): ExportColumn<Row> => ({ header: `${p.code} (%)`, value: (r) => (r.values[p.number] === null ? null : Math.round(r.values[p.number]! * 10) / 10), numFmt: "0.0" })),
+    { header: t("atRiskPlos"), value: (r) => r.risky.map((n) => `PLO ${n}`).join(", ") },
+  ];
+  const file = safeFilename(exportName, period, `${threshold}pct`);
 
   return (
-    <div>
-      {showPeriodFilter && (
-        <div className="flex justify-end px-5 pt-4">
-          <Select value={period} onChange={(e) => setPeriod(e.target.value as PeriodFilter)} aria-label="Period filter">
-            {PERIOD_FILTERS.slice(0, 5).map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </div>
-      )}
-      <Table className="mt-2">
-        <thead>
-          <tr>
-            <Th>Student</Th>
-            <Th>Cohort</Th>
-            {plos.map((p) => (
-              <Th key={p.id} className="text-center" title={p.description}>
-                {p.number}
-              </Th>
-            ))}
-            <Th>Status</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {shown.map((s) => (
-            <tr key={s.id} className="hover:bg-background">
-              <Td>
-                <Link href={`/students/${s.id}`} className="font-medium text-brand hover:underline">
-                  {s.name}
-                </Link>
-                <div className="text-xs text-muted">NIM {s.studentId ?? "—"}</div>
-              </Td>
-              <Td className="whitespace-nowrap">{s.cohortYear ?? "—"}</Td>
-              {plos.map((p) => (
-                <Td key={p.id} className="text-center">
-                  <PloCell value={s.values[p.number]} threshold={threshold} />
-                </Td>
-              ))}
-              <Td>
-                {s.risky.length ? (
-                  <Badge tone="risk">{s.risky.length} at risk</Badge>
-                ) : (
-                  <Badge tone="ok">On track</Badge>
-                )}
-              </Td>
-            </tr>
-          ))}
-          {shown.length === 0 && (
-            <tr>
-              <Td colSpan={plos.length + 3} className="py-8 text-center text-muted">
-                No students to show.
-              </Td>
-            </tr>
-          )}
-        </tbody>
-      </Table>
-    </div>
+    <DataTable
+      data={shown}
+      columns={columns}
+      label={t("label")}
+      searchable
+      searchPlaceholder={t("search")}
+      urlKey={urlKey}
+      initialSort={[{ id: "status", desc: true }]}
+      getRowId={(r) => r.id}
+      stickyFirstColumn
+      empty={<p className="py-6 text-center text-sm text-muted">{atRiskOnly ? t("noneAtRisk") : t("none")}</p>}
+      toolbar={
+        <ToggleChip checked={atRiskOnly} onChange={setAtRiskOnly}>
+          {t("atRiskOnly", { count: rows.filter((r) => r.risky.length).length })}
+        </ToggleChip>
+      }
+      exportSlot={
+        <ExportMenu
+          size="sm"
+          items={[
+            { key: "csv", label: t("exportCsv"), format: "csv", run: () => downloadCsv(`${file}.csv`, shown, exportColumns) },
+            {
+              key: "xlsx",
+              label: t("exportXlsx"),
+              format: "xlsx",
+              run: async () => (await import("@/lib/export/xlsx")).downloadXlsx(`${file}.xlsx`, [{ name: t("label"), rows: shown, columns: exportColumns }]),
+            },
+          ]}
+        />
+      }
+    />
   );
 }

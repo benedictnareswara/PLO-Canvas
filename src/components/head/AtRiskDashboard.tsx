@@ -1,184 +1,255 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight } from "lucide-react";
-import { Badge, Card, CardHeader, Input, Select, Table, Td, Th, cn } from "@/components/ui";
+import { Fragment, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
+import { ArrowRight, Copy, X } from "lucide-react";
+import { Badge, Button, Card, CardHeader, Select, Table, Td, Th, cn } from "@/components/ui";
 import { formatPct } from "@/components/AtRiskBadge";
+import { FilterBar, PeriodPicker, ThresholdWhatIf, useAnalyticsFilters } from "@/components/analytics/filters";
+import { HeatLegend, HeatValue, heatStyle } from "@/components/analytics/HeatCell";
+import { ExportMenu } from "@/components/ExportMenu";
 import { StudentAttainmentTable } from "@/components/StudentAttainmentTable";
+import { downloadCsv, safeFilename } from "@/lib/export/csv";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { useUrlState } from "@/lib/hooks/useUrlState";
 import { isAtRisk } from "@/lib/obe/engine";
-import { summarizeCohorts } from "@/lib/obe/aggregate";
-import { PERIOD_FILTERS, type PeriodFilter } from "@/lib/obe/semesters";
+import { summarizeCohorts, type CohortSummary } from "@/lib/obe/aggregate";
 import type { StudentsWithRows } from "@/lib/obe/queries";
+import type { PloInfo } from "@/lib/obe/types";
 
 /**
- * At-risk detection engine: cohort × PLO means flagged below the threshold, with a
- * drill-down to the individual students who need academic intervention.
+ * At-risk detection: cohort × PLO means against the threshold, with a drill-down (opened right
+ * under its row) to the students who need academic intervention.
  */
 export function AtRiskDashboard({ data }: { data: StudentsWithRows }) {
-  const [period, setPeriod] = useState<PeriodFilter>("all");
-  const [threshold, setThreshold] = useState(data.threshold);
+  const t = useTranslations("analytics.atRisk");
+  const { period, setPeriod, threshold, setThreshold } = useAnalyticsFilters(data.threshold);
   const cohorts = useMemo(() => summarizeCohorts(data.students, data.sums, data.plos, threshold, period), [data, threshold, period]);
   const [drill, setDrill] = useState<{ year: number; plo: number } | null>(null);
+  const phone = useMediaQuery("(width < 48rem)");
+  const [phonePlo, setPhonePlo] = useUrlState("plo", String(data.plos[0]?.number ?? 1));
 
-  const drillCohort = drill ? cohorts.find((c) => c.year === drill.year) : null;
-  const drillPlo = drill ? data.plos.find((p) => p.number === drill.plo) : null;
-  const drillStudents = drillCohort
-    ? drillCohort.students
-        .filter((s) => isAtRisk(s.values[drill!.plo], threshold))
-        .sort((a, b) => (a.values[drill!.plo] ?? 0) - (b.values[drill!.plo] ?? 0))
-    : [];
+  const belowCount = (c: CohortSummary, plo: number) => c.students.filter((s) => isAtRisk(s.values[plo], threshold)).length;
+
+  function cell(c: CohortSummary, p: PloInfo) {
+    const mean = c.mean[p.number];
+    if (mean === null) return <span className="text-xs text-muted">{t("noEvidence")}</span>;
+    const below = belowCount(c, p.number);
+    const active = drill?.year === c.year && drill.plo === p.number;
+    return (
+      <button
+        type="button"
+        onClick={() => setDrill(active ? null : { year: c.year, plo: p.number })}
+        disabled={below === 0}
+        aria-expanded={below ? active : undefined}
+        aria-label={t("cellLabel", { cohort: c.year, plo: p.code, mean: mean.toFixed(1), below })}
+        style={heatStyle(mean, threshold)}
+        className={cn(
+          "inline-flex w-full min-w-36 items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-sm transition-shadow duration-(--dur-1)",
+          below > 0 && "cursor-pointer hover:ring-2 hover:ring-brand/40 focus-visible:outline-2 focus-visible:outline-brand",
+          active && "ring-2 ring-brand",
+        )}
+      >
+        <HeatValue value={mean} threshold={threshold} />
+        {below > 0 ? (
+          <span className="rounded bg-surface px-1.5 text-xs font-medium text-risk">{t("below", { count: below })}</span>
+        ) : (
+          <span className="text-xs text-muted">{t("allMet")}</span>
+        )}
+      </button>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="mb-1 block text-xs font-medium text-muted">Period</span>
-          <Select value={period} onChange={(e) => setPeriod(e.target.value as PeriodFilter)}>
-            {PERIOD_FILTERS.slice(0, 5).map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <label className="text-sm">
-          <span className="mb-1 block text-xs font-medium text-muted">Passing threshold (%)</span>
-          <Input
-            type="number"
-            min={0}
-            max={100}
-            className="w-28"
-            value={threshold}
-            onChange={(e) => setThreshold(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
-          />
-        </label>
-      </div>
+      <FilterBar>
+        <PeriodPicker value={period} onChange={setPeriod} />
+        <ThresholdWhatIf value={threshold} saved={data.threshold} onChange={setThreshold} />
+      </FilterBar>
 
       <Card>
         <CardHeader
-          title="Cohort PLO matrix"
-          description="Each cell shows the cohort mean and how many students fall below the threshold. Select a cell to see those students."
+          title={t("matrixTitle")}
+          description={t("matrixDescription")}
+          actions={<HeatLegend low="0%" high="100%" below={t("legendBelow", { threshold })} />}
         />
-        <Table>
-          <thead>
-            <tr>
-              <Th>PLO</Th>
-              {cohorts.map((c) => (
-                <Th key={c.year} className="text-center">
-                  Class of {c.year} <span className="font-normal normal-case">(n={c.students.length})</span>
-                </Th>
+        {phone ? (
+          <div className="space-y-3 p-4">
+            <Select value={phonePlo} onChange={(e) => setPhonePlo(e.target.value)} aria-label={t("pickPlo")} className="h-11 w-full">
+              {data.plos.map((p) => (
+                <option key={p.id} value={p.number}>
+                  {p.code} · {p.shortLabel}
+                </option>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.plos.map((p) => (
-              <tr key={p.id}>
-                <Td title={p.description}>
-                  <div className="font-medium">{p.code}</div>
-                  <div className="text-xs text-muted">{p.shortLabel}</div>
-                </Td>
-                {cohorts.map((c) => {
-                  const mean = c.mean[p.number];
-                  const below = c.students.filter((s) => isAtRisk(s.values[p.number], threshold)).length;
-                  const cohortRisk = isAtRisk(mean, threshold);
-                  const active = drill?.year === c.year && drill.plo === p.number;
-                  return (
-                    <Td key={c.year} className="text-center">
-                      {mean === null ? (
-                        <span className="text-xs text-muted">No evidence yet</span>
-                      ) : (
-                        <button
-                          onClick={() => setDrill(active ? null : { year: c.year, plo: p.number })}
-                          disabled={below === 0}
-                          className={cn(
-                            "inline-flex min-w-40 items-center justify-center gap-2 rounded-md border px-2 py-1 text-sm tabular transition-colors",
-                            cohortRisk ? "border-risk/30 bg-risk-soft text-risk" : "border-transparent bg-ok-soft text-ok",
-                            below > 0 && "hover:ring-2 hover:ring-brand/30",
-                            active && "ring-2 ring-brand",
-                          )}
-                        >
-                          {cohortRisk && <AlertTriangle className="size-3.5" />}
-                          <span className="font-semibold">{formatPct(mean)}</span>
-                          {below > 0 ? (
-                            <span className="rounded bg-surface px-1.5 text-xs font-medium text-risk">{below} below</span>
-                          ) : (
-                            <span className="text-xs">all met</span>
-                          )}
-                        </button>
-                      )}
-                    </Td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </Card>
-
-      {drill && drillCohort && drillPlo && (
-        <Card className="border-brand/40">
-          <CardHeader
-            title={`Class of ${drill.year} · ${drillPlo.code} below ${threshold}%`}
-            description={drillPlo.description}
-            actions={
-              <button className="text-sm text-muted hover:text-foreground" onClick={() => setDrill(null)}>
-                Close
-              </button>
-            }
-          />
-          <Table>
+            </Select>
+            {(() => {
+              const p = data.plos.find((x) => String(x.number) === phonePlo) ?? data.plos[0];
+              return (
+                <ul className="space-y-2">
+                  {cohorts.map((c) => (
+                    <li key={c.year}>
+                      <div className="mb-1 text-xs font-medium text-muted">
+                        {t("classOf", { year: c.year })} · n={c.students.length}
+                      </div>
+                      {cell(c, p)}
+                      {drill?.year === c.year && drill.plo === p.number && <DrillDown cohort={c} plo={p} threshold={threshold} period={period} onClose={() => setDrill(null)} />}
+                    </li>
+                  ))}
+                </ul>
+              );
+            })()}
+          </div>
+        ) : (
+          <Table label={t("matrixTitle")}>
             <thead>
               <tr>
-                <Th>Student</Th>
-                <Th className="text-right">{drillPlo.code}</Th>
-                <Th className="text-right">Gap to target</Th>
-                <Th>Other at-risk PLOs</Th>
-                <Th />
+                <Th className="sticky left-0 z-10">PLO</Th>
+                {cohorts.map((c) => (
+                  <Th key={c.year} className="text-center">
+                    {t("classOf", { year: c.year })} <span className="font-normal">(n={c.students.length})</span>
+                  </Th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {drillStudents.map((s) => (
-                <tr key={s.id}>
-                  <Td>
-                    <div className="font-medium">{s.name}</div>
-                    <div className="text-xs text-muted">NIM {s.studentId}</div>
-                  </Td>
-                  <Td className="text-right font-semibold text-risk tabular">{formatPct(s.values[drill.plo])}</Td>
-                  <Td className="text-right tabular">−{(threshold - (s.values[drill.plo] ?? 0)).toFixed(1)} pts</Td>
-                  <Td>
-                    <div className="flex flex-wrap gap-1">
-                      {s.atRisk.filter((n) => n !== drill.plo).map((n) => (
-                        <Badge key={n} tone="risk">
-                          PLO {n}
-                        </Badge>
+              {data.plos.map((p) => {
+                const open = drill?.plo === p.number ? cohorts.find((c) => c.year === drill.year) : undefined;
+                return (
+                  <Fragment key={p.id}>
+                    <tr>
+                      <Td title={p.description} className="sticky left-0 bg-surface">
+                        <div className="font-medium">{p.code}</div>
+                        <div className="text-xs text-muted">{p.shortLabel}</div>
+                      </Td>
+                      {cohorts.map((c) => (
+                        <Td key={c.year} className="text-center">
+                          {cell(c, p)}
+                        </Td>
                       ))}
-                      {s.atRisk.filter((n) => n !== drill.plo).length === 0 && <span className="text-xs text-muted">None</span>}
-                    </div>
-                  </Td>
-                  <Td className="text-right">
-                    <Link href={`/students/${s.id}`} className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
-                      Profile <ArrowRight className="size-3.5" />
-                    </Link>
-                  </Td>
-                </tr>
-              ))}
+                    </tr>
+                    {open && (
+                      <tr>
+                        <td colSpan={cohorts.length + 1} className="border-b border-border bg-surface-2/60 p-0">
+                          <DrillDown cohort={open} plo={p} threshold={threshold} period={period} onClose={() => setDrill(null)} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </Table>
-        </Card>
-      )}
+        )}
+      </Card>
 
       <Card>
-        <CardHeader title="Students needing academic intervention" description={`Students with at least one cumulative PLO below ${threshold}%`} />
+        <CardHeader title={t("studentsTitle")} description={t("studentsDescription", { threshold })} />
         <StudentAttainmentTable
-          key={`${threshold}`}
           students={data.students}
           sums={data.sums}
           plos={data.plos}
           threshold={threshold}
-          onlyAtRisk
+          period={period}
+          from="/head/at-risk"
+          initialAtRiskOnly
+          exportName="students-at-risk"
         />
       </Card>
+    </div>
+  );
+}
+
+function DrillDown({
+  cohort,
+  plo,
+  threshold,
+  period,
+  onClose,
+}: {
+  cohort: CohortSummary;
+  plo: PloInfo;
+  threshold: number;
+  period: string;
+  onClose: () => void;
+}) {
+  const t = useTranslations("analytics.atRisk");
+  const students = cohort.students.filter((s) => isAtRisk(s.values[plo.number], threshold)).sort((a, b) => (a.values[plo.number] ?? 0) - (b.values[plo.number] ?? 0));
+
+  async function copyEmails() {
+    try {
+      await navigator.clipboard.writeText(students.map((s) => s.email).join(", "));
+      toast.success(t("copied", { count: students.length }));
+    } catch {
+      toast.error(t("copyFailed"));
+    }
+  }
+
+  const file = safeFilename(`class-of-${cohort.year}`, plo.code, "below", `${threshold}pct`, period);
+
+  return (
+    <div className="ui-enter px-4 py-4 sm:px-5" role="region" aria-label={t("drillTitle", { year: cohort.year, plo: plo.code, threshold })}>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold">{t("drillTitle", { year: cohort.year, plo: plo.code, threshold })}</h3>
+          <p className="text-xs text-muted">{plo.description}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="secondary" onClick={copyEmails}>
+            <Copy aria-hidden /> {t("copyEmails")}
+          </Button>
+          <ExportMenu
+            size="sm"
+            items={[
+              {
+                key: "csv",
+                label: "CSV",
+                format: "csv",
+                run: () =>
+                  downloadCsv(`${file}.csv`, students, [
+                    { header: "NIM", value: (s) => s.studentId },
+                    { header: t("student"), value: (s) => s.name },
+                    { header: "Email", value: (s) => s.email },
+                    { header: `${plo.code} (%)`, value: (s) => (s.values[plo.number] === null ? null : Math.round(s.values[plo.number]! * 10) / 10) },
+                    { header: t("otherRisk"), value: (s) => s.atRisk.filter((n) => n !== plo.number).map((n) => `PLO ${n}`).join(", ") },
+                  ]),
+              },
+            ]}
+          />
+          <Button size="icon-sm" variant="ghost" onClick={onClose} aria-label={t("close")}>
+            <X />
+          </Button>
+        </div>
+      </div>
+      <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface">
+        {students.map((s) => (
+          <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5 text-sm">
+            <div className="min-w-40 flex-1">
+              <div className="font-medium">{s.name}</div>
+              <div className="text-xs text-muted tabular">NIM {s.studentId}</div>
+            </div>
+            <div className="w-24 text-right">
+              <div className="font-semibold text-risk tabular">{formatPct(s.values[plo.number])}</div>
+              <div className="text-xs text-muted tabular">{t("gap", { gap: (threshold - (s.values[plo.number] ?? 0)).toFixed(1) })}</div>
+            </div>
+            <div className="flex min-w-32 flex-1 flex-wrap gap-1">
+              {s.atRisk.filter((n) => n !== plo.number).map((n) => (
+                <Badge key={n} tone="risk">
+                  PLO {n}
+                </Badge>
+              ))}
+              {s.atRisk.filter((n) => n !== plo.number).length === 0 && <span className="text-xs text-muted">{t("noOther")}</span>}
+            </div>
+            <Link
+              href={`/students/${s.id}?from=${encodeURIComponent("/head/at-risk")}`}
+              className="inline-flex items-center gap-1 text-sm font-medium text-brand underline-offset-2 hover:underline"
+            >
+              {t("profile")} <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
