@@ -7,7 +7,8 @@ import { SERIES } from "@/components/charts/series";
 import { AtRiskBadge } from "@/components/AtRiskBadge";
 import { FilterBar, PeriodPicker, useAnalyticsFilters } from "@/components/analytics/filters";
 import { ExportMenu } from "@/components/ExportMenu";
-import { Card, CardBody, CardHeader, SummaryStrip, Table, Td, Th, ToggleChip } from "@/components/ui";
+import { Printer } from "lucide-react";
+import { ButtonLink, Card, CardBody, CardHeader, SummaryStrip, Table, Td, Th, ToggleChip } from "@/components/ui";
 import { Tooltip } from "@/components/ui/client";
 import { downloadCsv, safeFilename, type ExportColumn } from "@/lib/export/csv";
 import { urlList, useUrlState } from "@/lib/hooks/useUrlState";
@@ -47,6 +48,9 @@ export function CohortDashboard({ data }: { data: StudentsWithRows }) {
     <div className="space-y-6">
       <FilterBar>
         <PeriodPicker value={period} onChange={setPeriod} />
+        <ButtonLink href={`/reports/cohort?period=${period}`} className="ml-auto">
+          <Printer aria-hidden /> {t("printReport")}
+        </ButtonLink>
       </FilterBar>
 
       <SummaryStrip

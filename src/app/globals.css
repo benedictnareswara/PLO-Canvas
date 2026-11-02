@@ -543,14 +543,28 @@ details.ui-collapse[open]::details-content {
 
 /* ------------------------------- Print ---------------------------------- */
 
+@page {
+  size: A4;
+  margin: 14mm 14mm 16mm;
+}
+
 @media print {
   :root {
     color-scheme: light;
   }
   body {
     background: white;
+    font-size: 10.5pt;
   }
   .no-print {
     display: none !important;
+  }
+  .report a {
+    color: inherit;
+    text-decoration: none;
+  }
+  /* Charts keep their colours when printed (browsers drop backgrounds and tints by default). */
+  .report {
+    print-color-adjust: exact;
   }
 }

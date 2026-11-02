@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
@@ -16,13 +17,18 @@ import {
   LogOut,
   Menu as MenuIcon,
   Radar,
+  Search,
   Settings2,
   Users,
   X,
 } from "lucide-react";
-import { Button, cn } from "@/components/ui";
+import { Button, Kbd, cn } from "@/components/ui";
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/ui/client";
 import { PreferencesDialog } from "@/components/PreferencesDialog";
+import { useHotkeyLabel, useHotkeys } from "@/lib/hooks/useHotkeys";
+
+// The palette (and cmdk) load on first use, not with every page.
+const CommandPalette = dynamic(() => import("@/components/CommandPalette").then((m) => m.CommandPalette), { ssr: false });
 
 const ICONS = {
   layout: LayoutDashboard,
@@ -41,6 +47,7 @@ export interface NavSection {
 }
 
 interface ShellUser {
+  id: string;
   name: string;
   email: string;
   roles: string[];
@@ -56,7 +63,26 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
   const tc = useTranslations("common");
   const pathname = usePathname();
   const drawerRef = useRef<HTMLDialogElement>(null);
+  const router = useRouter();
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteLoaded, setPaletteLoaded] = useState(false);
+  const [signingOut, startSignOut] = useTransition();
+
+  function openPalette() {
+    setPaletteLoaded(true);
+    setPaletteOpen(true);
+    if (drawerRef.current?.open) drawerRef.current.close();
+  }
+  useHotkeys("mod+k", openPalette, { allowInInputs: true });
+
+  function logout() {
+    startSignOut(async () => {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.replace("/login");
+      router.refresh();
+    });
+  }
 
   // Close the mobile drawer whenever navigation lands on a new page.
   useEffect(() => {
@@ -75,14 +101,17 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
       </a>
 
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 border-r border-border bg-surface lg:block">
-        <SideNav user={user} sections={sections} pathname={pathname} onPreferences={openPrefs} />
+        <SideNav user={user} sections={sections} pathname={pathname} onPreferences={openPrefs} onSearch={openPalette} onSignOut={logout} signingOut={signingOut} />
       </aside>
 
       <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-surface pt-[env(safe-area-inset-top)] pr-[max(1rem,env(safe-area-inset-right))] pl-[max(0.5rem,env(safe-area-inset-left))] lg:hidden">
         <Button variant="ghost" size="icon" onClick={() => drawerRef.current?.showModal()} aria-label={t("openMenu")} className="size-11">
           <MenuIcon className="size-5!" />
         </Button>
-        <span className="py-3 text-sm font-semibold">{tc("appName")}</span>
+        <span className="flex-1 py-3 text-sm font-semibold">{tc("appName")}</span>
+        <Button variant="ghost" size="icon" onClick={openPalette} aria-label={t("searchShort")} className="size-11">
+          <Search className="size-5!" />
+        </Button>
       </header>
 
       <dialog
@@ -101,7 +130,7 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
           >
             <X className="size-5!" />
           </Button>
-          <SideNav user={user} sections={sections} pathname={pathname} onPreferences={openPrefs} />
+          <SideNav user={user} sections={sections} pathname={pathname} onPreferences={openPrefs} onSearch={openPalette} onSignOut={logout} signingOut={signingOut} />
         </div>
       </dialog>
 
@@ -110,6 +139,16 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
       </main>
 
       <PreferencesDialog open={prefsOpen} onClose={() => setPrefsOpen(false)} />
+      {paletteLoaded && (
+        <CommandPalette
+          open={paletteOpen}
+          onClose={() => setPaletteOpen(false)}
+          userId={user.id}
+          nav={sections.flatMap((s) => s.items.map((i) => ({ href: i.href, label: i.label, section: s.title })))}
+          onPreferences={openPrefs}
+          onSignOut={logout}
+        />
+      )}
     </div>
   );
 }
@@ -119,13 +158,20 @@ function SideNav({
   sections,
   pathname,
   onPreferences,
+  onSearch,
+  onSignOut,
+  signingOut,
 }: {
   user: ShellUser;
   sections: NavSection[];
   pathname: string;
   onPreferences: () => void;
+  onSearch: () => void;
+  onSignOut: () => void;
+  signingOut: boolean;
 }) {
   const t = useTranslations();
+  const searchKey = useHotkeyLabel("mod+k");
   const listRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLSpanElement>(null);
   const allHrefs = sections.flatMap((s) => s.items.map((i) => i.href));
@@ -169,6 +215,18 @@ function SideNav({
         </div>
       </div>
 
+      <div className="px-2 pb-1">
+        <button
+          type="button"
+          onClick={onSearch}
+          className="flex h-9 w-full items-center gap-2 rounded-lg border border-border bg-surface-2/60 px-2.5 text-sm text-muted hover:border-border-strong hover:text-foreground focus-visible:outline-2 focus-visible:outline-brand pointer-coarse:h-11"
+        >
+          <Search className="size-4" aria-hidden />
+          <span className="flex-1 text-left">{t("shell.searchPlaceholder")}</span>
+          <Kbd>{searchKey}</Kbd>
+        </button>
+      </div>
+
       <div ref={listRef} className="relative flex-1 space-y-5 overflow-y-auto px-2 py-2">
         <span
           ref={barRef}
@@ -203,24 +261,24 @@ function SideNav({
       </div>
 
       <div className="border-t border-border p-2">
-        <UserMenu user={user} onPreferences={onPreferences} />
+        <UserMenu user={user} onPreferences={onPreferences} onSignOut={onSignOut} signingOut={signingOut} />
       </div>
     </nav>
   );
 }
 
-function UserMenu({ user, onPreferences }: { user: ShellUser; onPreferences: () => void }) {
+function UserMenu({
+  user,
+  onPreferences,
+  onSignOut,
+  signingOut,
+}: {
+  user: ShellUser;
+  onPreferences: () => void;
+  onSignOut: () => void;
+  signingOut: boolean;
+}) {
   const t = useTranslations();
-  const router = useRouter();
-  const [signingOut, startSignOut] = useTransition();
-
-  function logout() {
-    startSignOut(async () => {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.replace("/login");
-      router.refresh();
-    });
-  }
 
   const roleList = user.roles.map((r) => (t.has(`roles.${r}`) ? t(`roles.${r}`) : r)).join(" · ");
 
@@ -258,7 +316,7 @@ function UserMenu({ user, onPreferences }: { user: ShellUser; onPreferences: () 
         <Settings2 aria-hidden />
         {t("shell.preferences")}…
       </MenuItem>
-      <MenuItem onSelect={logout} disabled={signingOut}>
+      <MenuItem onSelect={onSignOut} disabled={signingOut}>
         <LogOut aria-hidden />
         {signingOut ? t("shell.signingOut") : t("shell.signOut")}
       </MenuItem>

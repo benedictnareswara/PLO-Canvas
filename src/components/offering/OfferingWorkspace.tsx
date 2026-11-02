@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Upload } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Printer, Upload } from "lucide-react";
+import { Button, ButtonLink } from "@/components/ui";
 import { Tabs } from "@/components/ui/client";
 import { ExportMenu } from "@/components/ExportMenu";
 import type { OfferingDetail } from "@/lib/obe/queries";
@@ -48,6 +48,9 @@ export function OfferingActions({ detail, canEdit }: { detail: OfferingDetail; c
   const [importOpen, setImportOpen] = useState(false);
   return (
     <>
+      <ButtonLink href={`/reports/offering/${detail.id}`} variant="secondary">
+        <Printer aria-hidden /> {t("printReport")}
+      </ButtonLink>
       <ExportMenu
         items={[
           { key: "grades", label: t("exportGrades"), format: "csv", run: () => exportGradesCsv(detail, labels) },

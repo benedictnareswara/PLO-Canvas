@@ -4,8 +4,8 @@ import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ArrowRight, Copy, X } from "lucide-react";
-import { Badge, Button, Card, CardHeader, Select, Table, Td, Th, cn } from "@/components/ui";
+import { ArrowRight, Copy, Printer, X } from "lucide-react";
+import { Badge, Button, ButtonLink, Card, CardHeader, Select, Table, Td, Th, cn } from "@/components/ui";
 import { formatPct } from "@/components/AtRiskBadge";
 import { FilterBar, PeriodPicker, ThresholdWhatIf, useAnalyticsFilters } from "@/components/analytics/filters";
 import { HeatLegend, HeatValue, heatStyle } from "@/components/analytics/HeatCell";
@@ -68,6 +68,9 @@ export function AtRiskDashboard({ data }: { data: StudentsWithRows }) {
       <FilterBar>
         <PeriodPicker value={period} onChange={setPeriod} />
         <ThresholdWhatIf value={threshold} saved={data.threshold} onChange={setThreshold} />
+        <ButtonLink href={`/reports/cohort?period=${period}&threshold=${threshold}`} className="ml-auto">
+          <Printer aria-hidden /> {t("printReport")}
+        </ButtonLink>
       </FilterBar>
 
       <Card>

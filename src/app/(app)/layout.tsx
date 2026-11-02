@@ -45,7 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <AppShell user={{ name: user.name, email: user.email, roles: user.roles }} sections={sections}>
+    <AppShell user={{ id: user.id, name: user.name, email: user.email, roles: user.roles }} sections={sections}>
       {children}
     </AppShell>
   );

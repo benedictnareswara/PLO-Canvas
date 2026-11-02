@@ -260,7 +260,8 @@
       "save": "Simpan target",
       "saved": "Target diatur ke {value}%",
       "reset": "Kembalikan ke {value}%"
-    }
+    },
+    "printReport": "Cetak laporan"
   },
   "gradebook": {
     "student": "Mahasiswa",
@@ -581,7 +582,8 @@
       "pickCohort": "Pilih minimal satu angkatan untuk menampilkan diagram.",
       "tableTitle": "Perbandingan angkatan",
       "tableDescription": "Rata-rata angkatan per CPL (n = mahasiswa yang memiliki bukti untuk CPL tersebut)",
-      "outcome": "Capaian"
+      "outcome": "Capaian",
+      "printReport": "Cetak laporan"
     },
     "atRisk": {
       "matrixTitle": "Matriks CPL angkatan",
@@ -604,7 +606,8 @@
       "gap": "{gap} poin di bawah",
       "noOther": "Tidak ada CPL berisiko lainnya",
       "profile": "Profil",
-      "close": "Tutup"
+      "close": "Tutup",
+      "printReport": "Cetak laporan"
     },
     "courses": {
       "year": "Tahun akademik",
@@ -658,7 +661,8 @@
     "inProgress": "Berlangsung",
     "noAssessments": "Belum ada penilaian yang diterbitkan.",
     "notGraded": "Belum dinilai",
-    "weight": "bobot {value}%"
+    "weight": "bobot {value}%",
+    "printTranscript": "Cetak transkrip"
   },
   "admin": {
     "actions": "Tindakan",
@@ -850,6 +854,94 @@
       "currently": "saat ini: {name}",
       "assigned": "{name} kini menjadi dosen wali {count} mahasiswa",
       "advisorRemoved": "Dosen wali dihapus dari {count} mahasiswa"
+    }
+  },
+  "palette": {
+    "label": "Palet perintah",
+    "placeholder": "Cari mahasiswa, kelas, atau halaman…",
+    "searching": "Mencari…",
+    "empty": "Tidak ada yang cocok. Coba nama, NIM, kode mata kuliah, atau halaman.",
+    "recent": "Terakhir dibuka",
+    "students": "Mahasiswa",
+    "classes": "Kelas",
+    "courses": "Mata kuliah",
+    "actions": "Tindakan",
+    "themeLight": "Gunakan tema terang",
+    "themeDark": "Gunakan tema gelap",
+    "themeSystem": "Ikuti tema sistem",
+    "language": "Bahasa",
+    "switchLanguage": "Ganti ke {language}",
+    "preferences": "Buka preferensi",
+    "signOut": "Keluar",
+    "navigate": "untuk berpindah",
+    "open": "untuk membuka"
+  },
+  "reports": {
+    "back": "Kembali",
+    "print": "Cetak / Simpan sebagai PDF",
+    "printTranscript": "Cetak transkrip",
+    "university": "Sampoerna University",
+    "registry": "Biro Akademik · Buku Nilai OBE",
+    "generatedAt": "Dibuat {date}",
+    "generatedBy": "oleh {name}",
+    "footer": "Capaian adalah capaian CPL tingkat mata kuliah yang dibobot SKS, dihitung sesuai ketentuan DIKTI, LAM INFOKOM, dan IABEE.",
+    "classOf": "Angkatan {year}",
+    "cohortLabel": "Angkatan",
+    "outcome": "Capaian",
+    "attainment": "Nilai capaian",
+    "status": "Status",
+    "noEvidence": "Belum ada bukti",
+    "atRisk": "Berisiko",
+    "met": "Terpenuhi",
+    "course": "Mata kuliah",
+    "semester": "Sem.",
+    "grade": "Nilai",
+    "letter": "Huruf",
+    "ploValues": "Nilai CPL",
+    "inProgress": "Berlangsung",
+    "target": "target {value}%",
+    "mean": "Rata-rata",
+    "range": "Min–maks",
+    "belowTarget": "Di bawah target",
+    "studentCol": "Mahasiswa",
+    "assessment": "Penilaian",
+    "maxPoints": "Nilai maks",
+    "gradeWeight": "Bobot nilai",
+    "ploWeights": "Bobot CPL",
+    "atRiskPlos": "CPL berisiko",
+    "student": {
+      "title": "Transkrip capaian CPL",
+      "metaTitle": "Transkrip · {name}",
+      "advisor": "dosen wali {name}",
+      "summary": "Ringkasan",
+      "summaryRisk": "{count} CPL di bawah target {target}%: {list}.",
+      "summaryOk": "Semua CPL yang memiliki bukti memenuhi target {target}%.",
+      "radar": "Capaian CPL",
+      "outcomes": "Capaian kumulatif per CPL",
+      "courses": "Mata kuliah"
+    },
+    "offering": {
+      "title": "Laporan CPL kelas",
+      "metaTitle": "Laporan kelas · {code}",
+      "summary": "Ringkasan",
+      "summaryText": "{students} mahasiswa terdaftar. {measured} dari {mapped} CPL kurikulum terukur; {below, plural, =0 {tidak ada rata-rata kelas di bawah target} other {# rata-rata kelas di bawah target}}.",
+      "radar": "Rata-rata capaian CPL kelas",
+      "classMean": "Rata-rata kelas",
+      "distribution": "Sebaran capaian",
+      "flagNote": "* rata-rata kelas di bawah target {target}%",
+      "students": "Capaian CPL mahasiswa",
+      "starNote": "* di bawah target {target}%",
+      "assessments": "Rancangan penilaian"
+    },
+    "cohort": {
+      "title": "Laporan CPL angkatan",
+      "whatIf": "eksplorasi; target tersimpan {saved}%",
+      "summary": "Ringkasan",
+      "summaryText": "{students} mahasiswa dalam {cohorts} angkatan; {atRisk, plural, =0 {tidak ada mahasiswa yang memiliki} other {# mahasiswa memiliki}} CPL di bawah {target}%.",
+      "radar": "Perbandingan angkatan",
+      "means": "Rata-rata angkatan per CPL",
+      "students": "Mahasiswa yang memerlukan intervensi akademik",
+      "none": "Tidak ada mahasiswa dengan CPL di bawah target pada periode ini."
     }
   }
 }

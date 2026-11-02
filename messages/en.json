@@ -260,7 +260,8 @@
       "save": "Save target",
       "saved": "Target set to {value}%",
       "reset": "Reset to {value}%"
-    }
+    },
+    "printReport": "Print report"
   },
   "gradebook": {
     "student": "Student",
@@ -581,7 +582,8 @@
       "pickCohort": "Choose at least one cohort to draw the chart.",
       "tableTitle": "Cohort comparison",
       "tableDescription": "Cohort mean per PLO (n = students with evidence for that PLO)",
-      "outcome": "Outcome"
+      "outcome": "Outcome",
+      "printReport": "Print report"
     },
     "atRisk": {
       "matrixTitle": "Cohort PLO matrix",
@@ -604,7 +606,8 @@
       "gap": "{gap} pts below",
       "noOther": "No other PLO at risk",
       "profile": "Profile",
-      "close": "Close"
+      "close": "Close",
+      "printReport": "Print report"
     },
     "courses": {
       "year": "Academic year",
@@ -658,7 +661,8 @@
     "inProgress": "In progress",
     "noAssessments": "No assessments published yet.",
     "notGraded": "Not graded",
-    "weight": "weight {value}%"
+    "weight": "weight {value}%",
+    "printTranscript": "Print transcript"
   },
   "admin": {
     "actions": "Actions",
@@ -850,6 +854,94 @@
       "currently": "now: {name}",
       "assigned": "{name} is now the advisor of {count, plural, one {# student} other {# students}}",
       "advisorRemoved": "Advisor removed from {count, plural, one {# student} other {# students}}"
+    }
+  },
+  "palette": {
+    "label": "Command palette",
+    "placeholder": "Search students, classes or pages…",
+    "searching": "Searching…",
+    "empty": "No matches. Try a name, NIM, course code or page.",
+    "recent": "Recent",
+    "students": "Students",
+    "classes": "Classes",
+    "courses": "Courses",
+    "actions": "Actions",
+    "themeLight": "Use light theme",
+    "themeDark": "Use dark theme",
+    "themeSystem": "Follow the system theme",
+    "language": "Language",
+    "switchLanguage": "Switch to {language}",
+    "preferences": "Open preferences",
+    "signOut": "Sign out",
+    "navigate": "to move",
+    "open": "to open"
+  },
+  "reports": {
+    "back": "Back",
+    "print": "Print / Save as PDF",
+    "printTranscript": "Print transcript",
+    "university": "Sampoerna University",
+    "registry": "Academic Registry · OBE Gradebook",
+    "generatedAt": "Generated {date}",
+    "generatedBy": "by {name}",
+    "footer": "Attainment is SKS-weighted course-level PLO attainment, calculated according to DIKTI, LAM INFOKOM and IABEE conventions.",
+    "classOf": "Class of {year}",
+    "cohortLabel": "Cohort",
+    "outcome": "Outcome",
+    "attainment": "Attainment",
+    "status": "Status",
+    "noEvidence": "No evidence yet",
+    "atRisk": "At risk",
+    "met": "Met",
+    "course": "Course",
+    "semester": "Sem.",
+    "grade": "Grade",
+    "letter": "Letter",
+    "ploValues": "PLO values",
+    "inProgress": "In progress",
+    "target": "target {value}%",
+    "mean": "Mean",
+    "range": "Min–max",
+    "belowTarget": "Below target",
+    "studentCol": "Student",
+    "assessment": "Assessment",
+    "maxPoints": "Max points",
+    "gradeWeight": "Grade weight",
+    "ploWeights": "PLO weights",
+    "atRiskPlos": "At-risk PLOs",
+    "student": {
+      "title": "PLO attainment transcript",
+      "metaTitle": "Transcript · {name}",
+      "advisor": "advisor {name}",
+      "summary": "Summary",
+      "summaryRisk": "{count, plural, one {# PLO is} other {# PLOs are}} below the {target}% target: {list}.",
+      "summaryOk": "Every PLO with evidence meets the {target}% target.",
+      "radar": "PLO attainment",
+      "outcomes": "Cumulative attainment by PLO",
+      "courses": "Courses"
+    },
+    "offering": {
+      "title": "Class PLO report",
+      "metaTitle": "Class report · {code}",
+      "summary": "Summary",
+      "summaryText": "{students, plural, one {# student} other {# students}} enrolled. {measured} of {mapped} curriculum PLOs measured; {below, plural, =0 {no class mean is below target} one {# class mean is below target} other {# class means are below target}}.",
+      "radar": "Class mean PLO attainment",
+      "classMean": "Class mean",
+      "distribution": "Achievement distribution",
+      "flagNote": "* class mean below the {target}% target",
+      "students": "Student PLO attainment",
+      "starNote": "* below the {target}% target",
+      "assessments": "Assessment design"
+    },
+    "cohort": {
+      "title": "Cohort PLO report",
+      "whatIf": "exploratory; saved target {saved}%",
+      "summary": "Summary",
+      "summaryText": "{students, plural, one {# student} other {# students}} in {cohorts, plural, one {# cohort} other {# cohorts}}; {atRisk, plural, =0 {no student has} one {# student has} other {# students have}} a PLO below {target}%.",
+      "radar": "Cohort comparison",
+      "means": "Cohort means by PLO",
+      "students": "Students needing academic intervention",
+      "none": "No student has a PLO below target for this period."
     }
   }
 }

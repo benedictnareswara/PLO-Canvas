@@ -4,7 +4,8 @@ import { getTranslations } from "next-intl/server";
 import { canViewStudent, getCurrentUser, requirePageUser } from "@/lib/auth/rbac";
 import { studentBackLink } from "@/lib/back-link";
 import { getStudentProfile } from "@/lib/obe/queries";
-import { Breadcrumbs, PageHeader } from "@/components/ui";
+import { Printer } from "lucide-react";
+import { Breadcrumbs, ButtonLink, PageHeader } from "@/components/ui";
 import { StudentProfile } from "@/components/StudentProfile";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ from?: string }> };
@@ -29,7 +30,15 @@ export default async function StudentProfilePage({ params, searchParams }: Props
   return (
     <>
       <Breadcrumbs label={t("shell.breadcrumb")} items={[{ href: back.href, label: t(back.labelKey) }, { label: data.student.name }]} />
-      <PageHeader title={data.student.name} description={`${data.student.email} · NIM ${data.student.studentId ?? "—"}`} />
+      <PageHeader
+        title={data.student.name}
+        description={`${data.student.email} · NIM ${data.student.studentId ?? "—"}`}
+        actions={
+          <ButtonLink href={`/reports/student/${id}`}>
+            <Printer aria-hidden /> {t("reports.printTranscript")}
+          </ButtonLink>
+        }
+      />
       <StudentProfile data={data} audience="staff" />
     </>
   );
