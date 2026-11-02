@@ -1,7 +1,7 @@
 // Pure aggregation helpers usable on both server and client (for instant period filtering).
 import { cohortAggregate, isAtRisk, type CohortStat } from "./engine";
 import { inPeriod, type PeriodFilter } from "./semesters";
-import type { AttainmentRow, AttainmentSum, PloInfo, PloValues, StudentSummary } from "./types";
+import type { AttainmentRow, AttainmentSum, PackedSums, PloInfo, PloValues, StudentSummary } from "./types";
 
 /**
  * Same grouping as the $group in getAttainmentSums (and the same exclusions as
@@ -18,6 +18,26 @@ export function rowsToSums(rows: AttainmentRow[]): AttainmentSum[] {
     acc.set(key, cur);
   }
   return [...acc.values()];
+}
+
+/** Compact transport form (see PackedSums). Sums keep 6 decimals: far below display precision. */
+export function packSums(sums: AttainmentSum[]): PackedSums {
+  const index = new Map<string, number>();
+  const data: number[] = [];
+  for (const s of sums) {
+    let i = index.get(s.student);
+    if (i === undefined) index.set(s.student, (i = index.size));
+    data.push(i, s.studentSemester, s.ploNumber, Math.round(s.sum * 1e6) / 1e6, s.sks);
+  }
+  return { students: [...index.keys()], data };
+}
+
+export function unpackSums(packed: PackedSums): AttainmentSum[] {
+  const out: AttainmentSum[] = [];
+  for (let i = 0; i < packed.data.length; i += 5) {
+    out.push({ student: packed.students[packed.data[i]], studentSemester: packed.data[i + 1], ploNumber: packed.data[i + 2], sum: packed.data[i + 3], sks: packed.data[i + 4] });
+  }
+  return out;
 }
 
 // Sums grouped by student, computed once per array (dashboards call this for every student).

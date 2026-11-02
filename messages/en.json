@@ -35,7 +35,8 @@
     "invalidCount": "{count, plural, one {# invalid} other {# invalid}}",
     "copied": "Copied",
     "copy": "Copy",
-    "ok": "OK"
+    "ok": "OK",
+    "description": "Outcome-Based Education gradebook and PLO analytics for the Sampoerna University Academic Registry"
   },
   "status": {
     "atRisk": "At risk",
@@ -46,7 +47,10 @@
     "current": "Current",
     "allMet": "all met",
     "below": "{count} below",
-    "target": "Target {value}"
+    "target": "Target {value}",
+    "met": "Met",
+    "belowTarget": "At risk: below the {target}% target",
+    "meetsTarget": "Meets the {target}% target"
   },
   "roles": {
     "superadmin": "Superadmin",
@@ -134,7 +138,8 @@
     "point1": "Canvas gradebook import with PLO mapping",
     "point2": "Student, class and cohort spider charts",
     "point3": "At-risk detection for academic advising",
-    "footer": "Calculations follow DIKTI, LAM INFOKOM and IABEE conventions."
+    "footer": "Calculations follow DIKTI, LAM INFOKOM and IABEE conventions.",
+    "expired": "Your session ended. Sign in again to continue."
   },
   "table": {
     "sortAscending": "Sorted ascending",
@@ -460,6 +465,13 @@
       "grades": "Grades written",
       "blank": "Blank or excused cells skipped",
       "enrolled": "{count, plural, one {# student enrolled} other {# students enrolled}}"
+    },
+    "warnings": {
+      "csvRow": "CSV row {row}: {message}",
+      "noCanvasId": "Column “{column}” has no Canvas ID, so it will be matched by its title.",
+      "noSisColumn": "No “SIS Login ID” or “SIS User ID” column was found, so students can't be matched automatically.",
+      "noPointsPossible": "No “Points Possible” row was found. Enter the max points for each assignment yourself.",
+      "noStudents": "No student rows were found."
     }
   },
   "history": {

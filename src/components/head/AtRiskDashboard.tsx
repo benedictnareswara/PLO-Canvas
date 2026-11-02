@@ -16,7 +16,7 @@ import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { useCurrentHref } from "@/lib/hooks/useCurrentHref";
 import { useUrlState } from "@/lib/hooks/useUrlState";
 import { isAtRisk } from "@/lib/obe/engine";
-import { summarizeCohorts, type CohortSummary } from "@/lib/obe/aggregate";
+import { summarizeCohorts, unpackSums, type CohortSummary } from "@/lib/obe/aggregate";
 import type { StudentsWithRows } from "@/lib/obe/queries";
 import type { PloInfo } from "@/lib/obe/types";
 
@@ -27,7 +27,8 @@ import type { PloInfo } from "@/lib/obe/types";
 export function AtRiskDashboard({ data }: { data: StudentsWithRows }) {
   const t = useTranslations("analytics.atRisk");
   const { period, setPeriod, threshold, setThreshold } = useAnalyticsFilters(data.threshold);
-  const cohorts = useMemo(() => summarizeCohorts(data.students, data.sums, data.plos, threshold, period), [data, threshold, period]);
+  const sums = useMemo(() => unpackSums(data.sums), [data.sums]);
+  const cohorts = useMemo(() => summarizeCohorts(data.students, sums, data.plos, threshold, period), [data, sums, threshold, period]);
   const [drill, setDrill] = useState<{ year: number; plo: number } | null>(null);
   const phone = useMediaQuery("(width < 48rem)");
   const [phonePlo, setPhonePlo] = useUrlState("plo", String(data.plos[0]?.number ?? 1));
@@ -152,7 +153,7 @@ export function AtRiskDashboard({ data }: { data: StudentsWithRows }) {
         <CardHeader title={t("studentsTitle")} description={t("studentsDescription", { threshold })} />
         <StudentAttainmentTable
           students={data.students}
-          sums={data.sums}
+          sums={sums}
           plos={data.plos}
           threshold={threshold}
           period={period}

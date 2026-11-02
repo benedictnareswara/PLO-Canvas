@@ -35,7 +35,8 @@
     "invalidCount": "{count, plural, other {# tidak valid}}",
     "copied": "Tersalin",
     "copy": "Salin",
-    "ok": "OK"
+    "ok": "OK",
+    "description": "Buku nilai Pendidikan Berbasis Capaian (OBE) dan analitik CPL untuk Biro Akademik Sampoerna University"
   },
   "status": {
     "atRisk": "Berisiko",
@@ -46,7 +47,10 @@
     "current": "Berjalan",
     "allMet": "semua tercapai",
     "below": "{count} di bawah",
-    "target": "Target {value}"
+    "target": "Target {value}",
+    "met": "Terpenuhi",
+    "belowTarget": "Berisiko: di bawah target {target}%",
+    "meetsTarget": "Memenuhi target {target}%"
   },
   "roles": {
     "superadmin": "Superadmin",
@@ -134,7 +138,8 @@
     "point1": "Impor gradebook Canvas dengan pemetaan CPL",
     "point2": "Diagram jaring mahasiswa, kelas, dan angkatan",
     "point3": "Deteksi mahasiswa berisiko untuk perwalian",
-    "footer": "Perhitungan mengikuti ketentuan DIKTI, LAM INFOKOM, dan IABEE."
+    "footer": "Perhitungan mengikuti ketentuan DIKTI, LAM INFOKOM, dan IABEE.",
+    "expired": "Sesi Anda telah berakhir. Masuk lagi untuk melanjutkan."
   },
   "table": {
     "sortAscending": "Diurutkan naik",
@@ -460,6 +465,13 @@
       "grades": "Nilai ditulis",
       "blank": "Sel kosong atau dispensasi dilewati",
       "enrolled": "{count} mahasiswa didaftarkan"
+    },
+    "warnings": {
+      "csvRow": "Baris CSV {row}: {message}",
+      "noCanvasId": "Kolom “{column}” tidak memiliki Canvas ID, sehingga dicocokkan berdasarkan judulnya.",
+      "noSisColumn": "Kolom “SIS Login ID” atau “SIS User ID” tidak ditemukan, sehingga mahasiswa tidak dapat dicocokkan secara otomatis.",
+      "noPointsPossible": "Baris “Points Possible” tidak ditemukan. Masukkan nilai maks setiap tugas secara manual.",
+      "noStudents": "Tidak ada baris mahasiswa yang ditemukan."
     }
   },
   "history": {

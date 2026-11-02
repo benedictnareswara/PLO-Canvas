@@ -14,7 +14,8 @@ import {
 } from "@/models";
 import { DEFAULT_THRESHOLD, courseGrade, cumulativePloAttainment, letterGrade, scorePercentage } from "./engine";
 import { offeringPeriodLabel, studentSemester } from "./semesters";
-import type { AttainmentRow, AttainmentSum, PloInfo, PloValues, StudentSummary } from "./types";
+import type { AttainmentRow, AttainmentSum, PackedSums, PloInfo, PloValues, StudentSummary } from "./types";
+import { packSums } from "./aggregate";
 
 const oid = (id: string) => new Types.ObjectId(id);
 
@@ -417,7 +418,8 @@ export async function listOfferings(filter: { lecturer?: string; departmentId?: 
 
 export interface StudentsWithRows {
   students: StudentSummary[];
-  sums: AttainmentSum[];
+  /** Packed for transport; use useStudentSums / unpackSums. */
+  sums: PackedSums;
   plos: PloInfo[];
   threshold: number;
 }
@@ -431,7 +433,7 @@ export async function getStudentsWithRows(filter: { advisor?: string; department
   const plos = curriculum ? await getPlos(curriculum._id) : [];
   return {
     students: students.map(toStudentSummary),
-    sums: await getAttainmentSums(students.map((s) => s._id)),
+    sums: packSums(await getAttainmentSums(students.map((s) => s._id))),
     plos,
     threshold: curriculum?.defaultThreshold ?? DEFAULT_THRESHOLD,
   };

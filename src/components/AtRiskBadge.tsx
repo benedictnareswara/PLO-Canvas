@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { isAtRisk } from "@/lib/obe/engine";
 import { Badge } from "@/components/ui";
@@ -16,6 +17,7 @@ export function AtRiskBadge({
   threshold: number;
   compact?: boolean;
 }) {
+  const t = useTranslations("status");
   if (value === null || value === undefined) return <span className="text-muted">—</span>;
   const risk = isAtRisk(value, threshold);
   return (
@@ -23,14 +25,14 @@ export function AtRiskBadge({
       <span className={risk ? "font-semibold text-risk" : undefined}>{formatPct(value)}</span>
       {risk ? (
         <Badge tone="risk">
-          <AlertTriangle className="size-3" />
-          {compact ? "" : "At-Risk"}
+          <AlertTriangle className="size-3" aria-hidden />
+          {compact ? <span className="sr-only">{t("atRisk")}</span> : t("atRisk")}
         </Badge>
       ) : (
         !compact && (
           <Badge tone="ok">
-            <CheckCircle2 className="size-3" />
-            Met
+            <CheckCircle2 className="size-3" aria-hidden />
+            {t("met")}
           </Badge>
         )
       )}
@@ -40,17 +42,18 @@ export function AtRiskBadge({
 
 /** Heatmap-style cell for PLO matrices. */
 export function PloCell({ value, threshold }: { value: number | null; threshold: number }) {
+  const t = useTranslations("status");
   if (value === null || value === undefined) return <span className="text-muted">—</span>;
   const risk = isAtRisk(value, threshold);
   return (
     <span
-      title={risk ? `At-Risk: below ${threshold}%` : `Meets ${threshold}% target`}
+      title={risk ? t("belowTarget", { target: threshold }) : t("meetsTarget", { target: threshold })}
       className={
         "inline-flex min-w-14 items-center justify-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium tabular " +
         (risk ? "bg-risk-soft text-risk ring-1 ring-risk/30" : "bg-ok-soft text-ok")
       }
     >
-      {risk && <AlertTriangle className="size-3" aria-label="At-Risk" />}
+      {risk && <AlertTriangle className="size-3" aria-label={t("atRisk")} />}
       {value.toFixed(1)}
     </span>
   );

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { requirePageUser } from "@/lib/auth/rbac";
 import { getStudentsWithRows } from "@/lib/obe/queries";
-import { atRiskPlos, summarizeCohorts } from "@/lib/obe/aggregate";
+import { atRiskPlos, summarizeCohorts, unpackSums } from "@/lib/obe/aggregate";
 import { isAtRisk } from "@/lib/obe/engine";
 import { PERIOD_FILTERS, type PeriodFilter } from "@/lib/obe/semesters";
 import { formatPct } from "@/components/AtRiskBadge";
@@ -24,7 +24,7 @@ export default async function CohortReport({ searchParams }: { searchParams: Pro
   const period: PeriodFilter = PERIOD_FILTERS.some((p) => p.value === sp.period) ? (sp.period as PeriodFilter) : "all";
   const asked = Number(sp.threshold);
   const threshold = Number.isFinite(asked) && asked >= 0 && asked <= 100 && sp.threshold ? asked : data.threshold;
-  const cohorts = summarizeCohorts(data.students, data.sums, data.plos, threshold, period);
+  const cohorts = summarizeCohorts(data.students, unpackSums(data.sums), data.plos, threshold, period);
   const atRisk = cohorts.flatMap((c) => c.students).filter((s) => s.atRisk.length).sort((a, b) => b.atRisk.length - a.atRisk.length);
   const periodLabel = period === "all" ? tp("allLong") : period.startsWith("y") ? tp("yearLong", { n: period.slice(1) }) : tp("semesterN", { n: period.slice(1) });
 

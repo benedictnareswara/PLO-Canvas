@@ -10,7 +10,9 @@ import { Notice } from "@/components/ui/client";
 export function LoginForm() {
   const t = useTranslations();
   const router = useRouter();
-  const next = useSearchParams().get("next");
+  const params = useSearchParams();
+  const next = params.get("next");
+  const expired = params.get("reason") === "expired";
   const passwordRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -49,6 +51,7 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      {expired && !error && <Notice tone="info">{t("login.expired")}</Notice>}
       <Field label={t("login.email")} htmlFor="login-email">
         <Input
           id="login-email"

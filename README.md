@@ -9,9 +9,11 @@ It comes seeded with the **Sampoerna University Computer Science 2024 curriculum
 | Framework | Next.js 16 (App Router, route handlers, `proxy.ts`), React 19, TypeScript |
 | Database | MongoDB 7 (single-node replica set via Docker Compose) + Mongoose 9 |
 | Auth | Email/password (bcrypt) → signed JWT (`jose`) in an httpOnly cookie; RBAC enforced server-side |
-| UI | Tailwind CSS v4, lucide icons, lightweight in-house components |
-| Charts | Recharts `RadarChart` |
-| CSV | PapaParse with a dedicated Canvas gradebook parser |
+| UI | Tailwind CSS v4 with OKLCH design tokens (light, dark, system), lucide icons, in-house components on native `<dialog>` and the Popover API |
+| Tables / palette / toasts | TanStack Table, cmdk, sonner |
+| Language | next-intl: English (default) and Bahasa Indonesia, chosen per user, no locale in URLs |
+| Charts | Recharts `RadarChart` (lazy-loaded) |
+| CSV / Excel | PapaParse with a dedicated Canvas gradebook parser; CSV export; exceljs for XLSX (loaded on demand) |
 | Validation / tests | zod, Vitest |
 
 ---
@@ -69,6 +71,12 @@ npm run dev                   # http://localhost:3000
 ```
 
 Other scripts: `npm run build`, `npm start`, `npm test` (Vitest), `npm run lint`, `npm run typecheck`.
+
+**Large demo data.** `npm run seed -- --large` adds about 600 synthetic students in four cohorts (24 classes, ~12,000 grades) for checking performance at realistic scale. Like the normal seed it drops the database it points at, so to keep your data, aim it at another database:
+
+```bash
+MONGODB_URI="mongodb://localhost:27017/su_obe_large?replicaSet=rs0&directConnection=true" npm run seed -- --large
+```
 
 ### Troubleshooting
 - **`ECONNREFUSED` / server selection timed out**: Docker Desktop isn't running, or the container isn't healthy yet. Run `docker compose ps` and wait for `healthy`.
@@ -164,7 +172,38 @@ Importing the same file again **updates** the existing assessments instead of du
 
 ---
 
-## 5. OBE calculation engine
+## 5. Features at a glance
+
+**Gradebook (lecturers).** A spreadsheet grid on desktop and tablets, a one-assessment-at-a-time grader on phones. Both edit the same unsaved state and have the same Save bar; leaving with unsaved changes asks first. Saves send only the changed cells, each with the value it replaces: if someone else changed a cell in the meantime, nothing is written and the conflicting cells are offered as "Use theirs / Keep mine". Course grades update as you type (shown in italics until saved).
+
+| Key | In the grid |
+|---|---|
+| Arrows, Home/End, Ctrl/⌘+Home/End, Page Up/Down | Move the cell cursor |
+| Tab / Shift+Tab | Move along the row (leaves the grid at the edge) |
+| Type a digit, Enter or F2 | Edit the cell (`85.5` and `85,5` both work) |
+| Enter / Tab while editing | Save the cell and move down / right |
+| Esc | Cancel the edit |
+| Delete / Backspace | Clear the cell |
+| Ctrl/⌘+V | Paste a block copied from Excel, Google Sheets or Numbers |
+| Ctrl/⌘+Z | Undo the last edit or paste |
+| Ctrl/⌘+S | Save all changes |
+| Alt/⌥+H (or right-click) | History of the cell |
+
+**Everywhere.** Ctrl/⌘+K opens the command palette: pages, recent items, and students and classes you're allowed to open. Theme (System / Light / Dark) and language (English / Bahasa Indonesia) live under the account menu → Preferences; the language is saved to your account and also offered on the sign-in page.
+
+**Audit trail.** Every grade, assessment and target change, and every Canvas import, is recorded with old → new values, who and when, in the same database transaction as the change. Each class has a read-only **History** tab; Heads and Admins can read it but nobody can edit or revert it.
+
+**Exports and reports.** Gradebooks, class attainment, student lists, cohort comparisons and admin lists export to CSV (UTF-8 with BOM, safe against spreadsheet formula injection) or Excel. Print-ready A4 reports (student PLO transcript, class report, cohort report) open from the class page, student profiles and the head dashboards; use the browser's **Save as PDF** for a file.
+
+**Department analytics (Heads).** One filter bar per page, kept in the URL so a view can be shared: period, a clearly labelled what-if threshold, and cohorts to compare. Heatmapped matrices with the numbers written in, drill-downs that open under their row, and a one-PLO-at-a-time view on phones.
+
+**Administration.** Searchable, sortable, paginated lists with export; validated forms with an error summary; deletes that first say what depends on the record; bulk Academic Advisor assignment; a setup checklist on the overview.
+
+**Accessibility and quality.** Built to WCAG 2.2 AA: keyboard operation throughout (grid pattern for the gradebook, roving-focus tabs, menus and dialogs with focus return), visible focus never hidden behind sticky bars, at-risk states never shown by colour alone, 44 px touch targets for form fields, reduced-motion support, and contrast of every colour token checked by a test in both themes.
+
+---
+
+## 6. OBE calculation engine
 
 All formulas live in [`src/lib/obe/engine.ts`](src/lib/obe/engine.ts). They are pure functions covered by unit tests in [`tests/engine.test.ts`](tests/engine.test.ts).
 
@@ -184,12 +223,14 @@ All formulas live in [`src/lib/obe/engine.ts`](src/lib/obe/engine.ts). They are 
 
 ---
 
-## 6. Roles and access control
+## 7. Roles and access control
 
 Enforcement happens at three levels:
 1. **Proxy** (`src/proxy.ts`): an optimistic cookie check that redirects to the user's home.
 2. **Pages** (`requirePageUser`).
-3. **Every API route** (`requireApiUser`, `canAccessOffering`, `canViewStudent` in [`src/lib/auth/rbac.ts`](src/lib/auth/rbac.ts)). Roles are re-read from MongoDB on each request, so role changes apply immediately.
+3. **Every API route** (`requireApiUser`, `canAccessOffering`, `canViewStudent` in [`src/lib/auth/rbac.ts`](src/lib/auth/rbac.ts)). Roles are re-read from MongoDB on each request, so role changes apply immediately, and a session whose account was deactivated or deleted is ended on the next page load.
+
+Search applies the same rules inside the database query ([`src/lib/search/scope.ts`](src/lib/search/scope.ts)), so records you can't open are never fetched. Print reports use the same checks as the matching screens.
 
 | Capability | Superadmin | Faculty Head | Lecturer | Student |
 |---|---|---|---|---|
@@ -197,12 +238,14 @@ Enforcement happens at three levels:
 | Department analytics, cohort radar, at-risk engine, course matrix | | ✅ (read-only, own department) | | |
 | View any class in the department | | ✅ read-only | own classes | |
 | Edit assessments, grades, threshold, Canvas import | ✅ (API) | own classes only | own classes | |
+| Read a class's change history | ✅ | department classes | own classes | |
+| Search (command palette) | everything | department students and classes, advisees | advisees, own classes | |
 | My Advisees + advisee profiles | | if assigned | if assigned | |
 | Own dashboard and spider chart | | | | ✅ |
 
 ---
 
-## 7. Project structure
+## 8. Project structure
 
 ```
 docker-compose.yml          MongoDB 7 single-node replica set
@@ -211,16 +254,27 @@ samples/                    Canvas gradebook CSV sample
 src/proxy.ts                session/role routing (Next 16 "proxy", formerly middleware)
 src/models/                 Mongoose models (Faculty … CourseAttainment)
 src/lib/obe/                engine (formulas), semesters, aggregate, recompute, queries
+src/lib/gradebook/          score parsing, clipboard paste, grid state (pure, tested)
+src/lib/audit/              audit diff, recording, history grouping
 src/lib/canvas/             parse.ts (pure CSV parser), import.ts (transactional upsert)
+src/lib/export/             CSV and XLSX writers
+src/lib/search/             RBAC-scoped search filters
 src/lib/auth/               session JWT, password hashing, RBAC guards
-src/lib/admin/              generic admin resource config + data loaders
-src/app/(app)/              admin/, head/, lecturer/, student/, students/[id]
-src/app/api/                auth, offerings (grades, assessments, import), admin
-src/components/             PloRadar, StudentProfile, offering workspace, import wizard, admin
-tests/                      Vitest: engine + Canvas parser
+src/lib/admin/              generic admin resource config (with dependents) + data loaders
+src/lib/hooks/              URL state, unsaved-changes guard, hotkeys, media queries
+src/i18n/, messages/        next-intl config; en.json and id.json
+src/app/(app)/              admin/, head/, lecturer/, student/, students/[id], loading/error/not-found
+src/app/(print)/reports/    printable student, class and cohort reports
+src/app/api/                auth, me, search, offerings (grades, assessments, import, history), admin
+src/components/ui/          design-system primitives (dialog, menu, tabs, tooltip, data table, …)
+src/components/             app shell, command palette, charts, offering workspace + gradebook, analytics, admin
+tests/                      Vitest: engine, Canvas parser, gradebook, export, audit, aggregation
+                            equivalence, search scope, i18n keys and usage, colour tokens and contrast
 ```
 
-## 8. Notes and limitations
+## 9. Notes and limitations
 - **Transactions need a replica set.** Against a standalone `mongod`, the Canvas import falls back to sequential writes and the result screen says so.
 - A **null PLO value** means "no evidence yet". The radar draws it at the centre, labels it in the tooltip and caption, and never flags it as at-risk.
 - The letter-grade scale (A ≥ 85 … E) is a single constant, `LETTER_SCALE` in `engine.ts`.
+- **Translations.** All interface text is in `messages/en.json` and `messages/id.json`; tests fail if the two files have different keys or if code uses a key that doesn't exist. Error messages produced by the server (for example a validation message from an API route) are still in English.
+- **Audit history** is append-only and kept indefinitely. Reseeding (`npm run seed`) clears it with everything else.

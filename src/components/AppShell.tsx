@@ -84,6 +84,37 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
     });
   }
 
+  // Swipe left on the drawer to close it. The drawer follows the finger (unless reduced motion is
+  // on); releasing past a third of its width, or a quick flick, closes it.
+  const swipe = useRef<{ x: number; y: number; t: number; dx: number; horizontal: boolean | null } | null>(null);
+  function onDrawerPointerDown(e: React.PointerEvent<HTMLDialogElement>) {
+    if (e.pointerType !== "touch") return;
+    swipe.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, dx: 0, horizontal: null };
+  }
+  function onDrawerPointerMove(e: React.PointerEvent<HTMLDialogElement>) {
+    const s = swipe.current;
+    const el = drawerRef.current;
+    if (!s || !el) return;
+    const dx = e.clientX - s.x;
+    if (s.horizontal === null && (Math.abs(dx) > 8 || Math.abs(e.clientY - s.y) > 8)) s.horizontal = Math.abs(dx) > Math.abs(e.clientY - s.y);
+    if (!s.horizontal) return;
+    s.dx = Math.min(0, dx);
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      el.style.transition = "none";
+      el.style.translate = `${s.dx}px 0`;
+    }
+  }
+  function onDrawerPointerEnd(e: React.PointerEvent<HTMLDialogElement>) {
+    const s = swipe.current;
+    const el = drawerRef.current;
+    swipe.current = null;
+    if (!s || !el) return;
+    el.style.transition = "";
+    el.style.translate = "";
+    const fast = s.dx < -30 && e.timeStamp - s.t < 250;
+    if (s.horizontal && (s.dx < -el.offsetWidth / 3 || fast)) el.close();
+  }
+
   // Close the mobile drawer whenever navigation lands on a new page.
   useEffect(() => {
     if (drawerRef.current?.open) drawerRef.current.close();
@@ -92,7 +123,7 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
   const openPrefs = () => setPrefsOpen(true);
 
   return (
-    <div className="min-h-dvh lg:flex [--app-sticky-top:calc(3.25rem+env(safe-area-inset-top))] lg:[--app-sticky-top:0px]">
+    <div className="min-h-dvh lg:flex">
       <a
         href="#main"
         className="sr-only-focusable fixed top-2 left-2 z-50 rounded-md bg-surface px-3 py-2 text-sm font-medium shadow-e2 focus-visible:outline-2 focus-visible:outline-brand"
@@ -118,7 +149,11 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
         ref={drawerRef}
         aria-label={t("mainNav")}
         onClick={(e) => e.target === drawerRef.current && drawerRef.current.close()}
-        className="ui-drawer fixed inset-y-0 left-0 m-0 h-dvh max-h-dvh w-72 max-w-[85vw] border-r border-border bg-surface p-0 text-foreground shadow-e3 lg:hidden"
+        onPointerDown={onDrawerPointerDown}
+        onPointerMove={onDrawerPointerMove}
+        onPointerUp={onDrawerPointerEnd}
+        onPointerCancel={onDrawerPointerEnd}
+        className="ui-drawer fixed inset-y-0 left-0 m-0 h-dvh max-h-dvh w-72 max-w-[85vw] touch-pan-y border-r border-border bg-surface p-0 text-foreground shadow-e3 lg:hidden"
       >
         <div className="relative h-full pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
           <Button

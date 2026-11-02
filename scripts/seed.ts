@@ -3,6 +3,7 @@
  * offerings, assessments and deterministic grades.
  *
  *   npm run seed            (drops the database first, then repopulates)
+ *   npm run seed -- --large (adds ~600 synthetic students in four cohorts, for performance checks)
  */
 import { config } from "dotenv";
 config({ path: ".env.local" });
@@ -129,6 +130,10 @@ const STUDENTS = [
   { key: "student5", name: "Eka Kurniawan", nim: "2024002", cohort: 2024, base: 77, adj: { 3: -28, 4: -32, 5: -12 } },
 ];
 
+const LARGE = process.argv.includes("--large");
+const COHORTS = LARGE ? [2022, 2023, 2024, 2025] : [2023, 2024];
+const LARGE_PER_COHORT = 150;
+
 /* Deterministic PRNG so every seed run produces identical data. */
 function mulberry32(seed: number) {
   return () => {
@@ -141,6 +146,32 @@ function mulberry32(seed: number) {
 }
 const rand = mulberry32(20241);
 const gaussian = () => Math.sqrt(-2 * Math.log(1 - rand())) * Math.cos(2 * Math.PI * rand());
+
+/**
+ * Synthetic students for --large: ability between ~58% and ~94%, with one or two weak PLOs for a
+ * third of them, so dashboards show realistic at-risk spreads. A separate PRNG keeps the default
+ * seed's data unchanged.
+ */
+const FIRST = ["Adi", "Bayu", "Citra", "Dewi", "Eko", "Fajar", "Gita", "Hadi", "Indah", "Joko", "Kartika", "Lina", "Made", "Nanda", "Oki", "Putri", "Rizki", "Sari", "Teguh", "Wulan", "Yoga", "Zahra"];
+const LAST = ["Wijaya", "Lestari", "Pratama", "Saputra", "Kurniawan", "Santoso", "Hidayat", "Nugroho", "Siregar", "Halim", "Gunawan", "Permata", "Utami", "Setiawan", "Rahman", "Putra"];
+function largeStudents(): typeof STUDENTS {
+  const r = mulberry32(7331);
+  return COHORTS.flatMap((cohort) =>
+    Array.from({ length: LARGE_PER_COHORT }, (_, i) => {
+      const adj: Record<number, number> = {};
+      if (r() < 0.33) adj[1 + Math.floor(r() * 10)] = -(10 + Math.round(r() * 20));
+      if (r() < 0.15) adj[1 + Math.floor(r() * 10)] = -(10 + Math.round(r() * 20));
+      return {
+        key: `s${cohort}-${String(i + 1).padStart(3, "0")}`,
+        name: `${FIRST[Math.floor(r() * FIRST.length)]} ${LAST[Math.floor(r() * LAST.length)]}`,
+        nim: `${cohort}${String(100 + i).padStart(3, "0")}`,
+        cohort,
+        base: 58 + Math.round(r() * 36),
+        adj,
+      };
+    }),
+  );
+}
 
 function semesterToPeriod(cohort: number, semester: number) {
   return { academicYear: cohort + Math.floor((semester - 1) / 2), term: (semester % 2 === 1 ? "odd" : "even") as Term };
@@ -188,8 +219,10 @@ async function main() {
     lecturer2: await User.create({ email: "lecturer2@sampoerna.ac.id", name: "Budi Santoso, M.Kom.", roles: ["lecturer"], department: dept, passwordHash, staffId: "FET-CS-012" }),
   } as Record<string, InstanceType<typeof User>>;
 
+  const roster = LARGE ? [...STUDENTS, ...largeStudents()] : STUDENTS;
+  const advisors = [staff.lecturer1._id, staff.lecturer2._id, staff["head.cs"]._id];
   const students = await User.insertMany(
-    STUDENTS.map((s) => ({
+    roster.map((s, i) => ({
       email: `${s.key}@sampoerna.ac.id`,
       name: s.name,
       roles: ["student"],
@@ -197,11 +230,12 @@ async function main() {
       curriculum: curriculum._id,
       studentId: s.nim,
       cohortYear: s.cohort,
-      advisor: staff.lecturer1._id,
+      // The five named students keep lecturer1 as advisor; synthetic ones are spread across advisors.
+      advisor: i < STUDENTS.length ? staff.lecturer1._id : advisors[i % advisors.length],
       passwordHash,
     })),
   );
-  const profile = new Map(students.map((u, i) => [String(u._id), STUDENTS[i]]));
+  const profile = new Map(students.map((u, i) => [String(u._id), roster[i]]));
 
   let offeringCount = 0;
   let gradeCount = 0;
@@ -217,7 +251,7 @@ async function main() {
 
     // One offering per (academic year, term) in which a cohort takes this course.
     const periods = new Map<string, { academicYear: number; term: Term; cohort: number }>();
-    for (const cohort of [2023, 2024]) {
+    for (const cohort of COHORTS) {
       const p = semesterToPeriod(cohort, c.semester);
       if (!isFuture(p)) periods.set(`${p.academicYear}-${p.term}`, { ...p, cohort });
     }

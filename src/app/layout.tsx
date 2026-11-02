@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("common");
   return {
     title: { default: t("appName"), template: `%s · ${t("appName")}` },
-    description: "Outcome-Based Education gradebook and PLO analytics for the Sampoerna University Academic Registry",
+    description: t("description"),
   };
 }
 

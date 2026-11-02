@@ -2,6 +2,31 @@
 
 Branch: `feat/ux-overhaul`. App: `plo-canvas` (Next 16.4 / React 19.3 / Tailwind v4 / MongoDB 7 replica set).
 
+## Final status (2026-11-03): all phases done
+
+One commit per phase on `feat/ux-overhaul`. Every commit passed typecheck, lint, Vitest and `next build`, and was checked in the browser (desktop and phone widths, light and dark, English and Indonesian where relevant).
+
+| Phase | Commit | Where it differs from the plan |
+|---|---|---|
+| 0 Foundation | `89959b7` | See "0b: done" below. Desktop top bar and drawer swipe were deferred, then done in Phases 1 and 7 (breadcrumbs sit above the page header instead of in a top bar) |
+| 1 Lecturer | `bdd55a5` | Grade saves carry `expected` values; conflicts come back as 409 and are resolved per cell (change #5). Tabs became URL-driven and mount lazily |
+| 2 Audit + backend | `80e681f` | History filters by change *kind* rather than single action. Pre-aggregation matched the seed DB to 1.4e-14 |
+| 3 Heads | `b8bec9a` | Radar series also differ by dash and marker shape; drill-downs open under their row |
+| 4 Students/advisors | `f16a824` | `?from=` is allow-listed and keeps the originating filters |
+| 5 Superadmin | `9de92ce` | Deletes name dependents through one declaration that drives both the dialog and the server guard. Found and fixed: inline table cell definitions remounted every cell on each render |
+| 6 Palette + reports | `0f0db5d` | Preferences had already moved to Phase 0. Reports live in a chrome-free `(print)` route group |
+| 7 Quality | this commit | See below |
+
+**Phase 7 results**
+- Remaining hard-coded strings translated (status badges, Canvas parser warnings now codes, metadata). A test fails on any message key used in code but missing from the files.
+- Focus not obscured: scroll padding accounts for the phone header, sticky tab bar and the docked Save bar.
+- Phone drawer: swipe to close (follows the finger unless reduced motion is on).
+- `npm run seed -- --large` (~600 students). Measured against a separate database:
+  - At-Risk page 3.3 MB → 0.87 MB and Cohort Overview 1.2 MB → 0.41 MB (dev build, uncompressed), by paginating the students table and packing attainment sums for transport.
+  - Gradebook with 153 students: cursor movement median 7 ms, worst 40 ms; typing ~20 ms (dev build) after memoising row previews; well under the 200 ms INP target.
+- Bug found and fixed: a session whose account was deleted or deactivated caused a `/login` ↔ app redirect loop; it is now ended with a notice.
+- Not done: a screen-reader (VoiceOver) pass by a person, and review of the Indonesian wording by a native speaker (Open question 2). Server-side error messages are still English only.
+
 ## Status (2026-11-01)
 
 The previous run stopped partway through Phase 0. What exists on disk, uncommitted:

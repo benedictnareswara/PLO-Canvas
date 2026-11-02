@@ -59,6 +59,9 @@ export function GradeGrid({
   const col = Math.min(active.col, Math.max(0, cols - 1));
   const activeKey = students[row] && assessments[col] ? cellKey(students[row].id, assessments[col].id) : null;
   const ploCode = useMemo(() => new Map(plos.map((p) => [p.id, p.code])), [plos]);
+  // Row previews change only with the cell values, not with cursor moves.
+  const preview = state.preview;
+  const previews = useMemo(() => new Map(students.map((s) => [s.id, preview(s.id)])), [students, preview]);
 
   const cellDomId = (r: number, c: number) => `${gridId}-${r}-${c}`;
 
@@ -287,7 +290,7 @@ export function GradeGrid({
           {students.map((s, r) => {
             const rowDirty = assessments.some((a) => state.dirtySet.has(cellKey(s.id, a.id)));
             const editingThisRow = editing && editing.key.startsWith(`${s.id}:`);
-            const grade = state.preview(s.id, editingThisRow ? { [editing.key]: editing.text } : undefined);
+            const grade = editingThisRow ? state.preview(s.id, { [editing.key]: editing.text }) : previews.get(s.id)!;
             return (
               <tr key={s.id} aria-rowindex={r + 2} className="group/row">
                 <th scope="row" className="sticky left-0 z-10 border-b border-border bg-surface px-3 py-1.5 pl-5 text-left font-normal group-hover/row:bg-surface-2">

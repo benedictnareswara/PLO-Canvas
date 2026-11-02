@@ -12,7 +12,7 @@ import { ButtonLink, Card, CardBody, CardHeader, SummaryStrip, Table, Td, Th, To
 import { Tooltip } from "@/components/ui/client";
 import { downloadCsv, safeFilename, type ExportColumn } from "@/lib/export/csv";
 import { urlList, useUrlState } from "@/lib/hooks/useUrlState";
-import { atRiskPlos, summarizeCohorts } from "@/lib/obe/aggregate";
+import { atRiskPlos, summarizeCohorts, unpackSums } from "@/lib/obe/aggregate";
 import type { StudentsWithRows } from "@/lib/obe/queries";
 import type { PloInfo } from "@/lib/obe/types";
 
@@ -20,7 +20,8 @@ import type { PloInfo } from "@/lib/obe/types";
 export function CohortDashboard({ data }: { data: StudentsWithRows }) {
   const t = useTranslations("analytics.cohort");
   const { period, setPeriod } = useAnalyticsFilters(data.threshold);
-  const cohorts = useMemo(() => summarizeCohorts(data.students, data.sums, data.plos, data.threshold, period), [data, period]);
+  const sums = useMemo(() => unpackSums(data.sums), [data.sums]);
+  const cohorts = useMemo(() => summarizeCohorts(data.students, sums, data.plos, data.threshold, period), [data, sums, period]);
   const defaultCohorts = useMemo(() => cohorts.slice(-SERIES.length).map((c) => String(c.year)), [cohorts]);
   const [selectedRaw, setSelected] = useUrlState<string[]>("cohorts", defaultCohorts, urlList);
   const selected = selectedRaw.map(Number).filter((y) => cohorts.some((c) => c.year === y));

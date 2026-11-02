@@ -81,7 +81,7 @@ export function GradebookTab({ detail, canEdit }: { detail: OfferingDetail; canE
     <div
       className={cn(
         "z-30 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border bg-surface px-5 py-3",
-        phone ? "fixed inset-x-0 bottom-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-e3" : "sticky bottom-0 rounded-b-xl",
+        phone ? "ui-savebar-docked fixed inset-x-0 bottom-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-e3" : "sticky bottom-0 rounded-b-xl",
       )}
     >
       <p className="min-w-0 flex-1 text-sm" role="status" aria-live="polite">

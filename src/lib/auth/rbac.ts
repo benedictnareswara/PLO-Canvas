@@ -48,7 +48,8 @@ export function hasRole(user: CurrentUser, ...roles: Role[]): boolean {
 /** Page guard: redirects to /login (no session) or the user's home (wrong role). */
 export async function requirePageUser(...roles: Role[]): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  // A token whose account is gone or deactivated: clear it, or the proxy loops /login → app.
+  if (!user) redirect((await cookies()).get(SESSION_COOKIE)?.value ? "/api/auth/logout" : "/login");
   if (roles.length && !hasRole(user, ...roles)) redirect(homeForRoles(user.roles));
   return user;
 }

@@ -112,6 +112,7 @@ export function StudentAttainmentTable({
       urlKey={urlKey}
       initialSort={[{ id: "status", desc: true }]}
       getRowId={(r) => r.id}
+      pageSize={50}
       stickyFirstColumn
       empty={<p className="py-6 text-center text-sm text-muted">{atRiskOnly ? t("noneAtRisk") : t("none")}</p>}
       toolbar={

@@ -35,6 +35,15 @@ export interface AttainmentSum {
   sks: number;
 }
 
+/**
+ * AttainmentSum[] packed for transport: student ids once, then five numbers per entry
+ * (student index, semester, PLO, sum, SKS). About a third of the JSON size of the objects.
+ */
+export interface PackedSums {
+  students: string[];
+  data: number[];
+}
+
 export interface StudentSummary {
   id: string;
   name: string;

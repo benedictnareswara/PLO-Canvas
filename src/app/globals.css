@@ -127,10 +127,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Height of the sticky app header: the phone header bar, none on desktop (sidebar layout). */
+:root {
+  --app-sticky-top: calc(3.25rem + env(safe-area-inset-top));
+}
+@media (width >= 64rem) {
+  :root {
+    --app-sticky-top: 0px;
+  }
+}
+
 html {
-  /* Keep focused elements clear of the sticky top bar (WCAG 2.4.11). */
-  scroll-padding-top: 4.5rem;
+  /* Keep focused elements clear of sticky bars (WCAG 2.4.11 Focus Not Obscured): the app header
+     plus a sticky tab bar at the top, and the phone gradebook's Save bar at the bottom. */
+  scroll-padding-top: calc(var(--app-sticky-top) + 3.5rem);
   -webkit-tap-highlight-color: transparent;
+}
+
+html:has(.ui-savebar-docked) {
+  scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
 }
 
 body {

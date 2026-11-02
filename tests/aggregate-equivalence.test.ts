@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cumulativeForStudent, rowsToSums } from "@/lib/obe/aggregate";
+import { cumulativeForStudent, packSums, rowsToSums, unpackSums } from "@/lib/obe/aggregate";
 import { cumulativePloAttainment } from "@/lib/obe/engine";
 import { inPeriod, type PeriodFilter } from "@/lib/obe/semesters";
 import type { AttainmentRow } from "@/lib/obe/types";
@@ -62,5 +62,19 @@ describe("pre-aggregated attainment", () => {
       { student: "a", offering: "o", courseCode: "C", ploNumber: 1, value: 60, sks: 3, studentSemester: 1 },
     ];
     expect(cumulativeForStudent(rowsToSums(rows), "a").get(1)).toBe(60);
+  });
+
+  it("survives packing for transport", () => {
+    const rows = randomRows(99, 400);
+    const sums = rowsToSums(rows);
+    const packed = packSums(sums);
+    expect(packed.data.length).toBe(sums.length * 5);
+    const back = unpackSums(packed);
+    for (const student of new Set(rows.map((x) => x.student))) {
+      for (const period of PERIODS) {
+        const expected = cumulativeForStudent(sums, student, period);
+        for (const [plo, v] of cumulativeForStudent(back, student, period)) expect(v).toBeCloseTo(expected.get(plo)!, 5);
+      }
+    }
   });
 });

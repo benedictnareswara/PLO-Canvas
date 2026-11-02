@@ -28,11 +28,17 @@ export interface CanvasStudentRow {
   scores: Record<string, number | null>;
 }
 
+export interface ParseWarning {
+  code: "csvRow" | "noCanvasId" | "noSisColumn" | "noPointsPossible" | "noStudents";
+  params?: Record<string, string | number>;
+}
+
 export interface ParsedCanvasGradebook {
   assignments: CanvasAssignment[];
   students: CanvasStudentRow[];
   skippedColumns: string[];
-  warnings: string[];
+  /** Problems found while reading the file, as codes the UI translates. */
+  warnings: ParseWarning[];
 }
 
 const IDENTITY_COLUMNS: Record<string, keyof Omit<CanvasStudentRow, "scores"> | null> = {
@@ -62,9 +68,9 @@ export function parseScoreCell(raw: string | undefined, maxPoints: number | null
 }
 
 export function parseCanvasGradebook(csvText: string): ParsedCanvasGradebook {
-  const warnings: string[] = [];
+  const warnings: ParseWarning[] = [];
   const { data, errors } = Papa.parse<string[]>(csvText.replace(/^﻿/, ""), { skipEmptyLines: "greedy" });
-  if (errors.length) warnings.push(...errors.slice(0, 5).map((e) => `CSV row ${(e.row ?? 0) + 1}: ${e.message}`));
+  if (errors.length) warnings.push(...errors.slice(0, 5).map((e): ParseWarning => ({ code: "csvRow", params: { row: (e.row ?? 0) + 1, message: e.message } })));
   if (data.length < 2) throw new Error("The file has no data rows. Is this a Canvas gradebook export?");
 
   const header = data[0].map((h) => h.trim());
@@ -85,14 +91,14 @@ export function parseCanvasGradebook(csvText: string): ParsedCanvasGradebook {
       if (h) skippedColumns.push(h);
     } else {
       assignmentIdx.push({ idx, key: h, title: h, canvasId: null });
-      warnings.push(`Column "${h}" has no Canvas ID; it will be matched by title.`);
+      warnings.push({ code: "noCanvasId", params: { column: h } });
     }
   });
 
   const has = (field: string) => [...identityIdx.values()].includes(field as never);
   if (!has("name")) throw new Error('Missing "Student" column. Is this a Canvas gradebook export?');
   if (!has("sisLoginId") && !has("sisUserId")) {
-    warnings.push('No "SIS Login ID" or "SIS User ID" column found; students cannot be matched automatically.');
+    warnings.push({ code: "noSisColumn" });
   }
 
   const maxPoints = new Map<number, number | null>();
@@ -126,8 +132,8 @@ export function parseCanvasGradebook(csvText: string): ParsedCanvasGradebook {
     return student;
   });
 
-  if (!maxPoints.size) warnings.push('No "Points Possible" row found; enter max points manually for each assignment.');
-  if (!students.length) warnings.push("No student rows were found.");
+  if (!maxPoints.size) warnings.push({ code: "noPointsPossible" });
+  if (!students.length) warnings.push({ code: "noStudents" });
 
   return { assignments, students, skippedColumns, warnings };
 }

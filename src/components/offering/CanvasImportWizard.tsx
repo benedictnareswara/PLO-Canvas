@@ -453,9 +453,9 @@ function UploadStep({ fileName, parsed, onFile }: { fileName: string | null; par
       {parsed && (
         <div className="space-y-2">
           <Notice tone="ok">{t("detected", { file: fileName ?? "", columns: parsed.assignments.length, students: parsed.students.length })}</Notice>
-          {parsed.warnings.map((w) => (
-            <Notice key={w} tone="info">
-              {w}
+          {parsed.warnings.map((w, i) => (
+            <Notice key={i} tone="info">
+              {t(`warnings.${w.code}`, w.params ?? {})}
             </Notice>
           ))}
         </div>
