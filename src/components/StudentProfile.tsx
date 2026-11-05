@@ -1,182 +1,189 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
-import { PloRadar } from "@/components/charts/PloRadar";
-import { AtRiskBadge, PloCell, formatPct } from "@/components/AtRiskBadge";
-import { Badge, Card, CardBody, CardHeader, Select, Stat, Table, Td, Th, cn } from "@/components/ui";
-import { atRiskPlos, cumulativeForStudent, toPloValues } from "@/lib/obe/aggregate";
-import { PERIOD_FILTERS, inPeriod, type PeriodFilter } from "@/lib/obe/semesters";
+import { useMemo } from "react";
+import { useTranslations } from "next-intl";
+import { ChevronDown, Lightbulb } from "lucide-react";
+import { PloRadar } from "@/components/charts/PloRadarLazy";
+import { PloCell, formatPct } from "@/components/AtRiskBadge";
+import { PeriodPicker, useAnalyticsFilters } from "@/components/analytics/filters";
+import { Badge, Card, CardBody, CardHeader, Meter, SummaryStrip, cn } from "@/components/ui";
+import { atRiskPlos, cumulativeForStudent, rowsToSums, toPloValues } from "@/lib/obe/aggregate";
+import { isAtRisk } from "@/lib/obe/engine";
+import { inPeriod } from "@/lib/obe/semesters";
 import type { StudentCourseView, StudentProfileData } from "@/lib/obe/queries";
 
-export function StudentProfile({ data }: { data: StudentProfileData }) {
+/**
+ * One student's outcomes. Laid out for phones first: summary, period, radar, the outcome list
+ * (each PLO against the target, with guidance on where at-risk PLOs are assessed), then courses
+ * that expand to their assessments.
+ */
+export function StudentProfile({ data, audience }: { data: StudentProfileData; audience: "self" | "staff" }) {
+  const t = useTranslations("profile");
   const { student, plos, threshold, rows, courses } = data;
-  const [period, setPeriod] = useState<PeriodFilter>("all");
+  const { period, setPeriod } = useAnalyticsFilters(threshold);
 
-  const maxSemester = Math.max(1, ...courses.map((c) => c.semester));
-  const periodOptions = PERIOD_FILTERS.filter((f) => {
-    if (f.value === "all") return true;
-    const n = Number(f.value.slice(1));
-    return f.value.startsWith("y") ? n * 2 - 1 <= maxSemester : n <= maxSemester;
-  });
-
-  const values = useMemo(
-    () => toPloValues(cumulativeForStudent(rows, student.id, period), plos),
-    [rows, student.id, period, plos],
-  );
+  const sums = useMemo(() => rowsToSums(rows), [rows]);
+  const values = useMemo(() => toPloValues(cumulativeForStudent(sums, student.id, period), plos), [sums, student.id, period, plos]);
   const risky = atRiskPlos(values, threshold);
   const visibleCourses = courses.filter((c) => inPeriod(c.semester, period));
-  const completedSks = courses.filter((c) => c.grade !== null).reduce((s, c) => s + c.sks, 0);
+  const graded = courses.filter((c) => c.grade !== null);
+  const completedSks = graded.reduce((s, c) => s + c.sks, 0);
   const evidenced = Object.values(values).filter((v) => v !== null).length;
+  const ploCode = (n: number) => plos.find((p) => p.number === n)?.code ?? `PLO ${n}`;
+
+  // Where each at-risk PLO is assessed: the courses in this period that produced a value for it.
+  const guidance = risky.map((n) => ({
+    plo: n,
+    courses: visibleCourses.filter((c) => c.plo[n] !== null && c.plo[n] !== undefined).map((c) => c.code),
+  }));
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Cohort" value={student.cohortYear ? `Class of ${student.cohortYear}` : "—"} hint={`NIM ${student.studentId ?? "—"}`} />
-        <Stat label="Courses with grades" value={courses.filter((c) => c.grade !== null).length} hint={`${completedSks} SKS assessed`} />
-        <Stat label="PLOs with evidence" value={`${evidenced} / ${plos.length}`} hint={periodOptions.find((p) => p.value === period)?.label} />
-        <Stat
-          label="PLOs at risk"
-          value={risky.length}
-          tone={risky.length ? "risk" : "ok"}
-          hint={risky.length ? risky.map((n) => `PLO ${n}`).join(", ") : `All evidenced PLOs ≥ ${threshold}%`}
-        />
-      </div>
+      <SummaryStrip
+        className="mb-0"
+        items={[
+          { label: t("cohort"), value: student.cohortYear ? t("classOf", { year: student.cohortYear }) : "—", hint: `NIM ${student.studentId ?? "—"}` },
+          { label: t("courses"), value: graded.length, hint: t("sksAssessed", { sks: completedSks }) },
+          { label: t("plosEvidenced"), value: `${evidenced}/${plos.length}` },
+          {
+            label: t("plosAtRisk"),
+            value: risky.length,
+            tone: risky.length ? "risk" : "ok",
+            hint: risky.length ? risky.map(ploCode).join(", ") : t("allMet", { target: threshold }),
+          },
+        ]}
+      />
+
+      <PeriodPicker value={period} onChange={setPeriod} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Card>
-          <CardHeader
-            title="PLO Attainment Spider Chart"
-            description={`SKS-weighted attainment against the ${threshold}% passing line`}
-            actions={
-              <Select value={period} onChange={(e) => setPeriod(e.target.value as PeriodFilter)} aria-label="Period filter">
-                {periodOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </Select>
-            }
-          />
+          <CardHeader title={t("chartTitle")} description={t("chartDescription", { target: threshold })} />
           <CardBody>
             <PloRadar plos={plos} threshold={threshold} series={[{ key: "student", label: student.name, values }]} />
           </CardBody>
         </Card>
 
         <Card>
-          <CardHeader title="Outcome Summary" description="Cumulative PLO attainment and status" />
-          <div>
-            {plos.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-3 border-b border-border px-5 py-2.5 last:border-0">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium">
-                    {p.code} <span className="font-normal text-muted">· {p.shortLabel}</span>
+          <CardHeader title={t("outcomesTitle")} description={t("outcomesDescription", { target: threshold })} />
+          {guidance.length > 0 && (
+            <div className="border-b border-border bg-warn-soft/60 px-5 py-3">
+              <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-warn">
+                <Lightbulb className="size-4" aria-hidden /> {audience === "self" ? t("guidanceTitleSelf") : t("guidanceTitleStaff")}
+              </p>
+              <ul className="space-y-1 text-sm">
+                {guidance.map((g) => (
+                  <li key={g.plo}>
+                    {g.courses.length
+                      ? t("guidance", { plo: ploCode(g.plo), courses: g.courses.join(", "), count: g.courses.length })
+                      : t("guidanceNoCourse", { plo: ploCode(g.plo) })}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <ul className="divide-y divide-border">
+            {plos.map((p) => {
+              const v = values[p.number];
+              const risk = isAtRisk(v, threshold);
+              return (
+                <li key={p.id} className="px-5 py-3">
+                  <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                    <div className="min-w-0 text-sm">
+                      <span className="font-medium">{p.code}</span> <span className="text-muted">· {p.shortLabel}</span>
+                    </div>
+                    <span className={cn("text-sm tabular", risk ? "font-semibold text-risk" : v === null ? "text-muted" : "font-medium")}>
+                      {v === null ? t("noEvidence") : formatPct(v)}
+                      {risk && <span className="sr-only"> {t("atRisk")}</span>}
+                    </span>
                   </div>
-                  <div className="truncate text-xs text-muted" title={p.description}>
+                  <Meter value={v} target={threshold} tone={v === null ? "brand" : risk ? "risk" : "ok"} label={`${p.code}: ${v === null ? t("noEvidence") : formatPct(v)}`} />
+                  <p className="mt-1 line-clamp-2 text-xs text-muted" title={p.description}>
                     {p.description}
-                  </div>
-                </div>
-                <AtRiskBadge value={values[p.number]} threshold={threshold} />
-              </div>
-            ))}
-          </div>
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
         </Card>
       </div>
 
       <Card>
-        <CardHeader
-          title="Courses & Assessment Scores"
-          description={student.advisorName ? `Academic advisor (Dosen Wali): ${student.advisorName}` : undefined}
-        />
-        <div className="divide-y divide-border">
-          {visibleCourses.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted">No courses in this period.</div>}
-          {visibleCourses.map((c) => (
-            <CourseRow key={c.offeringId} course={c} plos={plos} />
-          ))}
-        </div>
+        <CardHeader title={t("coursesTitle")} description={student.advisorName ? t("advisor", { name: student.advisorName }) : undefined} />
+        {visibleCourses.length === 0 ? (
+          <p className="px-5 py-8 text-center text-sm text-muted">{t("noCourses")}</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {visibleCourses.map((c) => (
+              <li key={c.offeringId} className="[contain-intrinsic-size:auto_4.5rem] [content-visibility:auto]">
+                <CourseCard course={c} />
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </div>
   );
 }
 
-function CourseRow({ course, plos }: { course: StudentCourseView; plos: StudentProfileData["plos"] }) {
-  const [open, setOpen] = useState(false);
-  const mapped = plos.filter((p) => course.plo[p.number] !== null);
+function CourseCard({ course }: { course: StudentCourseView }) {
+  const t = useTranslations("profile");
+  const mapped = Object.entries(course.plo)
+    .filter(([, v]) => v !== null)
+    .map(([n, v]) => ({ number: Number(n), value: v as number }));
   return (
-    <div>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 text-left hover:bg-background"
-        aria-expanded={open}
-      >
-        <ChevronDown className={cn("size-4 shrink-0 text-muted transition-transform", open && "rotate-180")} />
-        <div className="min-w-48 flex-1">
+    <details className="ui-collapse group/c">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden">
+        <ChevronDown className="size-4 shrink-0 text-muted transition-transform duration-(--dur-2) group-open/c:rotate-180 motion-reduce:transition-none" aria-hidden />
+        <div className="min-w-44 flex-1">
           <div className="text-sm font-medium">
             {course.code} · {course.title}
           </div>
-          <div className="text-xs text-muted">
-            Semester {course.semester} · {course.period} · {course.sks} SKS
-          </div>
+          <div className="text-xs text-muted">{t("courseMeta", { semester: course.semester, period: course.period, sks: course.sks })}</div>
         </div>
         <div className="flex flex-wrap gap-1">
           {mapped.map((p) => (
-            <span key={p.id} className="flex items-center gap-1 text-xs">
-              <span className="text-muted">{p.code}</span>
-              <PloCell value={course.plo[p.number]} threshold={course.threshold} />
+            <span key={p.number} className="flex items-center gap-1 text-xs">
+              <span className="text-muted">PLO {p.number}</span>
+              <PloCell value={p.value} threshold={course.threshold} />
             </span>
           ))}
         </div>
-        <div className="w-28 text-right">
+        <div className="ml-auto text-right">
           {course.grade === null ? (
-            <Badge>In progress</Badge>
+            <Badge>{t("inProgress")}</Badge>
           ) : (
             <span className="text-sm font-semibold tabular">
               {formatPct(course.grade)} <span className="ml-1 rounded bg-brand-soft px-1.5 py-0.5 text-xs text-brand">{course.letter}</span>
             </span>
           )}
         </div>
-      </button>
-      {open && (
-        <div className="px-5 pb-4">
-          <Table>
-            <thead>
-              <tr>
-                <Th>Assessment</Th>
-                <Th className="text-right">Score</Th>
-                <Th className="text-right">%</Th>
-                <Th className="text-right">Grade weight</Th>
-                <Th>PLO mapping</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {course.assessments.map((a) => (
-                <tr key={a.id}>
-                  <Td>{a.title}</Td>
-                  <Td className="text-right tabular">{a.score === null ? <span className="text-muted">Not graded</span> : `${a.score} / ${a.maxPoints}`}</Td>
-                  <Td className="text-right tabular">{formatPct(a.pct)}</Td>
-                  <Td className="text-right tabular">{a.gradeWeight ? `${a.gradeWeight}%` : "—"}</Td>
-                  <Td>
-                    <div className="flex flex-wrap gap-1">
-                      {a.plos.map((p) => (
-                        <Badge key={p.number} tone="info">
-                          PLO {p.number} · {p.weight}%
-                        </Badge>
-                      ))}
-                    </div>
-                  </Td>
-                </tr>
-              ))}
-              {course.assessments.length === 0 && (
-                <tr>
-                  <Td colSpan={5} className="text-center text-muted">
-                    No assessments published yet.
-                  </Td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        </div>
-      )}
-    </div>
+      </summary>
+      <div className="px-5 pb-4 sm:pl-13">
+        {course.assessments.length === 0 ? (
+          <p className="text-sm text-muted">{t("noAssessments")}</p>
+        ) : (
+          <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+            {course.assessments.map((a) => (
+              <li key={a.id} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-3 py-2 text-sm sm:grid-cols-[1fr_7rem_4rem_auto]">
+                <span className="font-medium">{a.title}</span>
+                <span className="text-right tabular">{a.score === null ? <span className="text-muted">{t("notGraded")}</span> : `${a.score} / ${a.maxPoints}`}</span>
+                <span className="text-xs text-muted tabular sm:text-right sm:text-sm sm:text-foreground">
+                  {formatPct(a.pct)}
+                  {a.gradeWeight ? <span className="sm:hidden"> · {t("weight", { value: a.gradeWeight })}</span> : null}
+                </span>
+                <span className="flex flex-wrap justify-end gap-1">
+                  {a.plos.map((p) => (
+                    <Badge key={p.number} tone="info">
+                      PLO {p.number} · {p.weight}%
+                    </Badge>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </details>
   );
 }

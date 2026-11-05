@@ -1,14 +1,74 @@
 // Pure aggregation helpers usable on both server and client (for instant period filtering).
-import { cohortAggregate, cumulativePloAttainment, isAtRisk, type CohortStat } from "./engine";
+import { cohortAggregate, isAtRisk, type CohortStat } from "./engine";
 import { inPeriod, type PeriodFilter } from "./semesters";
-import type { AttainmentRow, PloInfo, PloValues, StudentSummary } from "./types";
+import type { AttainmentRow, AttainmentSum, PackedSums, PloInfo, PloValues, StudentSummary } from "./types";
 
-export function cumulativeForStudent(rows: AttainmentRow[], studentId: string, period: PeriodFilter = "all") {
-  return cumulativePloAttainment(
-    rows
-      .filter((r) => r.student === studentId && inPeriod(r.studentSemester, period))
-      .map((r) => ({ plo: r.ploNumber, value: r.value, sks: r.sks })),
-  );
+/**
+ * Same grouping as the $group in getAttainmentSums (and the same exclusions as
+ * cumulativePloAttainment: rows without positive SKS or a finite value don't count).
+ */
+export function rowsToSums(rows: AttainmentRow[]): AttainmentSum[] {
+  const acc = new Map<string, AttainmentSum>();
+  for (const r of rows) {
+    if (!(r.sks > 0) || !Number.isFinite(r.value)) continue;
+    const key = `${r.student}|${r.studentSemester}|${r.ploNumber}`;
+    const cur = acc.get(key) ?? { student: r.student, studentSemester: r.studentSemester, ploNumber: r.ploNumber, sum: 0, sks: 0 };
+    cur.sum += r.value * r.sks;
+    cur.sks += r.sks;
+    acc.set(key, cur);
+  }
+  return [...acc.values()];
+}
+
+/** Compact transport form (see PackedSums). Sums keep 6 decimals: far below display precision. */
+export function packSums(sums: AttainmentSum[]): PackedSums {
+  const index = new Map<string, number>();
+  const data: number[] = [];
+  for (const s of sums) {
+    let i = index.get(s.student);
+    if (i === undefined) index.set(s.student, (i = index.size));
+    data.push(i, s.studentSemester, s.ploNumber, Math.round(s.sum * 1e6) / 1e6, s.sks);
+  }
+  return { students: [...index.keys()], data };
+}
+
+export function unpackSums(packed: PackedSums): AttainmentSum[] {
+  const out: AttainmentSum[] = [];
+  for (let i = 0; i < packed.data.length; i += 5) {
+    out.push({ student: packed.students[packed.data[i]], studentSemester: packed.data[i + 1], ploNumber: packed.data[i + 2], sum: packed.data[i + 3], sks: packed.data[i + 4] });
+  }
+  return out;
+}
+
+// Sums grouped by student, computed once per array (dashboards call this for every student).
+const byStudentCache = new WeakMap<AttainmentSum[], Map<string, AttainmentSum[]>>();
+function sumsOf(sums: AttainmentSum[], studentId: string): AttainmentSum[] {
+  let index = byStudentCache.get(sums);
+  if (!index) {
+    index = new Map();
+    for (const s of sums) {
+      const list = index.get(s.student);
+      if (list) list.push(s);
+      else index.set(s.student, [s]);
+    }
+    byStudentCache.set(sums, index);
+  }
+  return index.get(studentId) ?? [];
+}
+
+/** SKS-weighted cumulative PLO attainment (formula 3) of one student over the chosen period. */
+export function cumulativeForStudent(sums: AttainmentSum[], studentId: string, period: PeriodFilter = "all"): Map<number, number> {
+  const acc = new Map<number, { sum: number; sks: number }>();
+  for (const s of sumsOf(sums, studentId)) {
+    if (!inPeriod(s.studentSemester, period)) continue;
+    const cur = acc.get(s.ploNumber) ?? { sum: 0, sks: 0 };
+    cur.sum += s.sum;
+    cur.sks += s.sks;
+    acc.set(s.ploNumber, cur);
+  }
+  const out = new Map<number, number>();
+  for (const [plo, { sum, sks }] of acc) if (sks > 0) out.set(plo, sum / sks);
+  return out;
 }
 
 export function toPloValues(m: Map<number, number>, plos: PloInfo[]): PloValues {
@@ -32,7 +92,7 @@ export interface CohortSummary {
 /** Groups students by intake year and computes the cohort aggregate (formula 4). */
 export function summarizeCohorts(
   students: StudentSummary[],
-  rows: AttainmentRow[],
+  sums: AttainmentSum[],
   plos: PloInfo[],
   threshold: number,
   period: PeriodFilter = "all",
@@ -46,7 +106,7 @@ export function summarizeCohorts(
   return [...byYear.entries()]
     .sort(([a], [b]) => a - b)
     .map(([year, members]) => {
-      const perStudent = members.map((s) => cumulativeForStudent(rows, s.id, period));
+      const perStudent = members.map((s) => cumulativeForStudent(sums, s.id, period));
       const agg = cohortAggregate(perStudent);
       return {
         year,

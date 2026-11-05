@@ -1,9 +1,12 @@
 import "server-only";
-import mongoose, { type ClientSession } from "mongoose";
+import type { ClientSession } from "mongoose";
 import { Assessment, Enrollment, Grade, Plo, User, CourseOffering, Course, Types } from "@/models";
 import { recomputeOffering } from "@/lib/obe/recompute";
 import { HttpError } from "@/lib/auth/rbac";
 import type { CanvasImportPayload } from "@/lib/validators";
+import { diffGrades, type AuditInput, type GradeWrite } from "@/lib/audit/diff";
+import { newBatchId, recordAudit } from "@/lib/audit/record";
+import { runInTransaction } from "@/lib/transaction";
 import { normalizeLogin } from "./parse";
 
 export interface StudentMatch {
@@ -59,7 +62,11 @@ async function findExistingAssessment(offeringId: string, a: CanvasImportPayload
   return Assessment.findOne(filter, null, session ? { session } : {});
 }
 
-export async function runCanvasImport(offeringId: string, payload: CanvasImportPayload): Promise<ImportReport> {
+export async function runCanvasImport(
+  offeringId: string,
+  payload: CanvasImportPayload,
+  actor: { id: string; name: string },
+): Promise<ImportReport> {
   const offering = await CourseOffering.findById(offeringId).lean();
   if (!offering) throw new HttpError(404, "Class not found");
   const course = await Course.findById(offering.course).lean();
@@ -119,7 +126,7 @@ export async function runCanvasImport(offeringId: string, payload: CanvasImportP
       written.enrolled = toEnroll.length;
     }
 
-    const ops: Parameters<typeof Grade.bulkWrite>[0] = [];
+    const writes: GradeWrite[] = [];
     payload.students.forEach((row, i) => {
       const m = matches[i];
       if (!m.userId || (!m.enrolled && !payload.enrollUnenrolled)) return;
@@ -129,38 +136,32 @@ export async function runCanvasImport(offeringId: string, payload: CanvasImportP
           written.blankCells++; // blank / excused cells never overwrite existing grades
           continue;
         }
-        const assessment = assessmentIdByKey.get(a.key)!;
-        ops.push({
-          updateOne: {
-            filter: { assessment, student: new Types.ObjectId(m.userId) },
-            update: { $set: { score, offering: offering._id } },
-            upsert: true,
-          },
-        });
+        writes.push({ assessment: String(assessmentIdByKey.get(a.key)!), student: m.userId, score });
       }
     });
+
+    // Write and audit only cells whose value actually changes.
+    const stored = await Grade.find({ offering: offering._id }, "assessment student score", opts).lean();
+    const current = new Map(stored.map((g) => [`${g.student}:${g.assessment}`, g.score]));
+    const titleByKeyId = new Map(payload.assessments.map((a) => [String(assessmentIdByKey.get(a.key)), a.title]));
+    const changes = diffGrades(current, writes, (aid) => titleByKeyId.get(aid));
+    const ops = changes.map((c) => ({
+      updateOne: {
+        filter: { assessment: new Types.ObjectId(c.assessment), student: new Types.ObjectId(c.student) },
+        update: { $set: { score: c.after as number, offering: offering._id } },
+        upsert: true,
+      },
+    }));
     if (ops.length) await Grade.bulkWrite(ops, opts);
     written.gradesWritten = ops.length;
+
+    const summaryEntry: AuditInput = { action: "canvas.import", after: { ...written, assessments: payload.assessments.map((a) => a.title) } };
+    await recordAudit([summaryEntry, ...changes], { offering: offering._id, actor, source: "canvas", batch: newBatchId() }, session);
 
     await recomputeOffering(offering._id, session);
     return written;
   };
 
-  const session = await mongoose.startSession();
-  try {
-    let written: ImportReport["written"];
-    await session.withTransaction(async () => {
-      written = await write(session);
-    });
-    return { matches, summary, assessments: assessmentsPreview, written, transactional: true };
-  } catch (err) {
-    // Standalone MongoDB (no replica set) cannot run transactions; fall back to sequential writes.
-    const msg = (err as Error).message ?? "";
-    if (/replica set|Transaction numbers/i.test(msg)) {
-      return { matches, summary, assessments: assessmentsPreview, written: await write(), transactional: false };
-    }
-    throw err;
-  } finally {
-    await session.endSession();
-  }
+  const { result: written, transactional } = await runInTransaction(write);
+  return { matches, summary, assessments: assessmentsPreview, written, transactional };
 }

@@ -1,96 +1,136 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { PloRadar, SERIES_COLORS } from "@/components/charts/PloRadar";
+import { useMemo } from "react";
+import { useTranslations } from "next-intl";
+import { PloRadar } from "@/components/charts/PloRadarLazy";
+import { SERIES } from "@/components/charts/series";
 import { AtRiskBadge } from "@/components/AtRiskBadge";
-import { Card, CardBody, CardHeader, Select, Stat, Table, Td, Th } from "@/components/ui";
-import { atRiskPlos, summarizeCohorts } from "@/lib/obe/aggregate";
-import { PERIOD_FILTERS, type PeriodFilter } from "@/lib/obe/semesters";
+import { FilterBar, PeriodPicker, useAnalyticsFilters } from "@/components/analytics/filters";
+import { ExportMenu } from "@/components/ExportMenu";
+import { Printer } from "lucide-react";
+import { ButtonLink, Card, CardBody, CardHeader, SummaryStrip, Table, Td, Th, ToggleChip } from "@/components/ui";
+import { Tooltip } from "@/components/ui/client";
+import { downloadCsv, safeFilename, type ExportColumn } from "@/lib/export/csv";
+import { urlList, useUrlState } from "@/lib/hooks/useUrlState";
+import { atRiskPlos, summarizeCohorts, unpackSums } from "@/lib/obe/aggregate";
 import type { StudentsWithRows } from "@/lib/obe/queries";
+import type { PloInfo } from "@/lib/obe/types";
 
-/** Cohort comparison: one radar polygon per graduation cohort (max three overlaid). */
+/** Cohort comparison: one radar polygon per graduation cohort (up to three overlaid). */
 export function CohortDashboard({ data }: { data: StudentsWithRows }) {
-  const [period, setPeriod] = useState<PeriodFilter>("all");
-  const cohorts = useMemo(
-    () => summarizeCohorts(data.students, data.rows, data.plos, data.threshold, period),
-    [data, period],
-  );
-  const [selected, setSelected] = useState<number[]>(() => cohorts.slice(-3).map((c) => c.year));
-  const shown = cohorts.filter((c) => selected.includes(c.year)).slice(0, SERIES_COLORS.length);
+  const t = useTranslations("analytics.cohort");
+  const { period, setPeriod } = useAnalyticsFilters(data.threshold);
+  const sums = useMemo(() => unpackSums(data.sums), [data.sums]);
+  const cohorts = useMemo(() => summarizeCohorts(data.students, sums, data.plos, data.threshold, period), [data, sums, period]);
+  const defaultCohorts = useMemo(() => cohorts.slice(-SERIES.length).map((c) => String(c.year)), [cohorts]);
+  const [selectedRaw, setSelected] = useUrlState<string[]>("cohorts", defaultCohorts, urlList);
+  const selected = selectedRaw.map(Number).filter((y) => cohorts.some((c) => c.year === y));
+  const shown = cohorts.filter((c) => selected.includes(c.year)).slice(0, SERIES.length);
 
-  function toggle(year: number) {
-    setSelected((s) => (s.includes(year) ? s.filter((y) => y !== year) : s.length >= SERIES_COLORS.length ? s : [...s, year].sort()));
+  function toggle(year: number, on: boolean) {
+    const next = on ? [...selected, year].sort() : selected.filter((y) => y !== year);
+    setSelected(next.map(String));
   }
 
-  const totalStudents = data.students.length;
   const studentsAtRisk = cohorts.flatMap((c) => c.students).filter((s) => s.atRisk.length).length;
+  const ploCode = (n: number) => data.plos.find((p) => p.number === n)?.code ?? `PLO ${n}`;
+
+  const exportColumns: ExportColumn<PloInfo>[] = [
+    { header: "PLO", value: (p) => p.code },
+    { header: t("outcome"), value: (p) => p.shortLabel, width: 30 },
+    ...cohorts.flatMap((c): ExportColumn<PloInfo>[] => [
+      { header: `${t("classOf", { year: c.year })} (%)`, value: (p) => (c.mean[p.number] === null ? null : Math.round(c.mean[p.number]! * 10) / 10), numFmt: "0.0" },
+      { header: `${t("classOf", { year: c.year })} n`, value: (p) => c.aggregate[p.number]?.n ?? null },
+    ]),
+  ];
+  const file = safeFilename("cohort-comparison", period);
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Students" value={totalStudents} hint={`${cohorts.length} cohort(s)`} />
-        <Stat label="Students needing intervention" value={studentsAtRisk} tone={studentsAtRisk ? "risk" : "ok"} hint="At least one PLO below target" />
-        {cohorts.slice(-2).map((c) => {
-          const risky = atRiskPlos(c.mean, data.threshold);
-          return (
-            <Stat
-              key={c.year}
-              label={`Class of ${c.year}: cohort PLOs at risk`}
-              value={risky.length}
-              tone={risky.length ? "risk" : "ok"}
-              hint={risky.length ? risky.map((n) => `PLO ${n}`).join(", ") : `All cohort means ≥ ${data.threshold}%`}
-            />
-          );
-        })}
-      </div>
+      <FilterBar>
+        <PeriodPicker value={period} onChange={setPeriod} />
+        <ButtonLink href={`/reports/cohort?period=${period}`} className="ml-auto">
+          <Printer aria-hidden /> {t("printReport")}
+        </ButtonLink>
+      </FilterBar>
+
+      <SummaryStrip
+        className="mb-0"
+        items={[
+          { label: t("students"), value: data.students.length, hint: t("cohorts", { count: cohorts.length }) },
+          { label: t("needIntervention"), value: studentsAtRisk, tone: studentsAtRisk ? "risk" : "ok", hint: t("needInterventionHint", { target: data.threshold }) },
+          ...cohorts.slice(-2).map((c) => {
+            const risky = atRiskPlos(c.mean, data.threshold);
+            return {
+              label: t("cohortPlosAtRisk", { year: c.year }),
+              value: risky.length,
+              tone: risky.length ? ("risk" as const) : ("ok" as const),
+              hint: risky.length ? risky.map(ploCode).join(", ") : t("allMet", { target: data.threshold }),
+            };
+          }),
+        ]}
+      />
 
       <Card>
         <CardHeader
-          title="Cohort OBE spider chart"
-          description={`Cohort aggregate = mean of students' SKS-weighted cumulative PLO attainment. Dashed line: ${data.threshold}% target.`}
+          title={t("chartTitle")}
+          description={t("chartDescription", { target: data.threshold })}
           actions={
-            <>
-              <div className="flex flex-wrap items-center gap-3" role="group" aria-label="Cohorts">
-                {cohorts.map((c) => {
-                  const idx = shown.findIndex((s) => s.year === c.year);
-                  return (
-                    <label key={c.year} className="flex items-center gap-1.5 text-sm">
-                      <input type="checkbox" className="accent-brand" checked={selected.includes(c.year)} onChange={() => toggle(c.year)} />
-                      {idx >= 0 && <span className="inline-block size-2.5 rounded-sm" style={{ background: SERIES_COLORS[idx] }} />}
-                      Class of {c.year}
-                    </label>
-                  );
-                })}
-              </div>
-              <Select value={period} onChange={(e) => setPeriod(e.target.value as PeriodFilter)} aria-label="Period filter">
-                {PERIOD_FILTERS.slice(0, 5).map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </Select>
-            </>
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("cohortPicker")}>
+              {cohorts.map((c) => {
+                const idx = shown.findIndex((s) => s.year === c.year);
+                const full = !selected.includes(c.year) && selected.length >= SERIES.length;
+                const chip = (
+                  <ToggleChip checked={selected.includes(c.year)} onChange={(on) => toggle(c.year, on)} swatch={idx >= 0 ? SERIES[idx].color : undefined} disabled={full}>
+                    {t("classOf", { year: c.year })}
+                  </ToggleChip>
+                );
+                return full ? (
+                  <Tooltip key={c.year} content={t("maxSeries", { max: SERIES.length })}>
+                    <span tabIndex={0}>{chip}</span>
+                  </Tooltip>
+                ) : (
+                  <span key={c.year}>{chip}</span>
+                );
+              })}
+            </div>
           }
         />
         <CardBody>
-          <PloRadar
-            plos={data.plos}
-            threshold={data.threshold}
-            height={440}
-            series={shown.map((c) => ({ key: `c${c.year}`, label: `Class of ${c.year} (n=${c.students.length})`, values: c.mean }))}
-          />
+          {shown.length ? (
+            <PloRadar
+              plos={data.plos}
+              threshold={data.threshold}
+              height={440}
+              series={shown.map((c) => ({ key: `c${c.year}`, label: t("seriesLabel", { year: c.year, n: c.students.length }), values: c.mean }))}
+            />
+          ) : (
+            <p className="py-16 text-center text-sm text-muted">{t("pickCohort")}</p>
+          )}
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader title="Cohort comparison" description="Cohort mean per PLO (n = students with evidence for that PLO)" />
-        <Table>
+        <CardHeader
+          title={t("tableTitle")}
+          description={t("tableDescription")}
+          actions={
+            <ExportMenu
+              size="sm"
+              items={[
+                { key: "csv", label: "CSV", format: "csv", run: () => downloadCsv(`${file}.csv`, data.plos, exportColumns) },
+                { key: "xlsx", label: "Excel", format: "xlsx", run: async () => (await import("@/lib/export/xlsx")).downloadXlsx(`${file}.xlsx`, [{ name: t("tableTitle"), rows: data.plos, columns: exportColumns }]) },
+              ]}
+            />
+          }
+        />
+        <Table label={t("tableTitle")}>
           <thead>
             <tr>
-              <Th>PLO</Th>
+              <Th className="sticky left-0 z-10">PLO</Th>
               {cohorts.map((c) => (
                 <Th key={c.year} className="text-right">
-                  Class of {c.year}
+                  {t("classOf", { year: c.year })}
                 </Th>
               ))}
             </tr>
@@ -98,13 +138,13 @@ export function CohortDashboard({ data }: { data: StudentsWithRows }) {
           <tbody>
             {data.plos.map((p) => (
               <tr key={p.id}>
-                <Td title={p.description}>
+                <Td title={p.description} className="sticky left-0 bg-surface">
                   <span className="font-medium">{p.code}</span> <span className="text-muted">{p.shortLabel}</span>
                 </Td>
                 {cohorts.map((c) => (
-                  <Td key={c.year} className="text-right">
+                  <Td key={c.year} className="text-right whitespace-nowrap">
                     <AtRiskBadge value={c.mean[p.number]} threshold={data.threshold} />
-                    {c.aggregate[p.number] && <span className="ml-2 text-xs text-muted">n={c.aggregate[p.number]!.n}</span>}
+                    {c.aggregate[p.number] && <span className="ml-2 text-xs text-muted tabular">n={c.aggregate[p.number]!.n}</span>}
                   </Td>
                 ))}
               </tr>

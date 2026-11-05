@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiHandler, HttpError, requireApiUser } from "@/lib/auth/rbac";
-import { getResource } from "@/lib/admin/resources";
+import { assertDeletable, getResource } from "@/lib/admin/resources";
 import { objectId } from "@/lib/validators";
 
 type Ctx = { params: Promise<{ resource: string; id: string }> };
@@ -21,12 +21,24 @@ export const PATCH = apiHandler<Ctx>(async (req, { params }) => {
   return NextResponse.json({ ok: true });
 });
 
+/** `?dependents=1`: what deleting this record would affect (for the confirmation dialog). */
+export const GET = apiHandler<Ctx>(async (req, { params }) => {
+  await requireApiUser("superadmin");
+  const { resource, id } = await params;
+  objectId.parse(id);
+  if (new URL(req.url).searchParams.get("dependents") !== "1") throw new HttpError(400, "Only ?dependents=1 is supported");
+  const config = getResource(resource);
+  const dependents = (await config.dependents?.(id)) ?? [];
+  return NextResponse.json({ dependents: dependents.map(({ key, count, blocking }) => ({ key, count, blocking })) });
+});
+
 export const DELETE = apiHandler<Ctx>(async (_req, { params }) => {
   const user = await requireApiUser("superadmin");
   const { resource, id } = await params;
   objectId.parse(id);
   if (resource === "users" && id === user.id) throw new HttpError(400, "You cannot delete your own account");
   const config = getResource(resource);
+  await assertDeletable(config, id);
   await config.beforeDelete?.(id);
   const res = await config.model.deleteOne({ _id: id });
   if (!res.deletedCount) throw new HttpError(404, "Not found");
