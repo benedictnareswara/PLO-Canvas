@@ -44,7 +44,16 @@ const PLOS: [string, string][] = [
 
 type Template = { title: string; max: number; gradeWeight: number; plos: Record<number, number> };
 
-// Per-assessment PLO weights; for every course the weights of each PLO sum to 100%.
+// Relative PLO emphasis per assessment. At seed time each assessment's weights are scaled to a
+// split that totals 100% (proposal FR-08); the engine then multiplies by the assessment's grade share.
+function splitTo100(plos: Record<number, number>): { plo: number; weight: number }[] {
+  const entries = Object.entries(plos).map(([n, w]) => [Number(n), w] as const);
+  const total = entries.reduce((s, [, w]) => s + w, 0);
+  const out = entries.map(([plo, w]) => ({ plo, weight: Math.round((w / total) * 10000) / 100 }));
+  const drift = Math.round((100 - out.reduce((s, w) => s + w.weight, 0)) * 100) / 100;
+  out[0].weight = Math.round((out[0].weight + drift) * 100) / 100;
+  return out;
+}
 const COURSES: {
   code: string;
   title: string;
@@ -274,7 +283,7 @@ async function main() {
           title: t.title,
           maxPoints: t.max,
           gradeWeight: t.gradeWeight,
-          ploWeights: Object.entries(t.plos).map(([n, weight]) => ({ plo: ploId(Number(n)), weight })),
+          ploWeights: splitTo100(t.plos).map(({ plo, weight }) => ({ plo: ploId(plo), weight })),
           source: "manual",
         })),
       );

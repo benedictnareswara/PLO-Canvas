@@ -3,6 +3,8 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { Check, ChevronRight, Loader2 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
+import { parseScore } from "@/lib/gradebook/parse-score";
+import { stripNegative } from "@/lib/ranges";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -162,8 +164,16 @@ export function Input({ className, invalid, ...props }: ComponentProps<"input"> 
 /**
  * Text input for scores and percentages: `inputmode="decimal"` (not type=number, so the
  * scroll wheel can't change values and "85,5" can be typed), right-aligned tabular figures.
+ * Every number in the app is non-negative, so a minus sign can't be typed or pasted. With `max`,
+ * a larger value is brought down to `max` as it is typed (for percentages: 0 to 100).
  */
-export function NumberInput({ className, invalid, ...props }: Omit<ComponentProps<"input">, "type"> & { invalid?: boolean }) {
+export function NumberInput({
+  className,
+  invalid,
+  onChange,
+  max,
+  ...props
+}: Omit<ComponentProps<"input">, "type" | "max"> & { invalid?: boolean; max?: number }) {
   return (
     <input
       type="text"
@@ -172,6 +182,13 @@ export function NumberInput({ className, invalid, ...props }: Omit<ComponentProp
       spellCheck={false}
       className={cn(inputClass, "text-right tabular", className)}
       aria-invalid={invalid || undefined}
+      onChange={(e) => {
+        let text = stripNegative(e.currentTarget.value);
+        const n = parseScore(text);
+        if (max !== undefined && n !== null && !Number.isNaN(n) && n > max) text = String(max);
+        if (text !== e.currentTarget.value) e.currentTarget.value = text;
+        onChange?.(e);
+      }}
       {...props}
     />
   );

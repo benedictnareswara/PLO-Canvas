@@ -8,7 +8,8 @@ import { applyPaste, cellKey, parseClipboardMatrix } from "@/lib/gradebook/paste
 import { formatPct } from "@/components/AtRiskBadge";
 import type { OfferingAssessmentView } from "@/lib/obe/queries";
 import type { PloInfo, StudentSummary } from "@/lib/obe/types";
-import { MAX_SCORE_FACTOR, type ScoreError } from "@/lib/gradebook/parse-score";
+import { MAX_SCORE_FACTOR, parseScore, type ScoreError } from "@/lib/gradebook/parse-score";
+import { stripNegative } from "@/lib/ranges";
 import type { GradebookState } from "./useGradebookState";
 import { CellHistory } from "./CellHistory";
 
@@ -301,6 +302,7 @@ export function GradeGrid({
                   const key = cellKey(s.id, a.id);
                   const isActive = r === row && c === col;
                   const isEditing = isActive && editing?.key === key;
+                  const value = parseScore(state.values[key] ?? "");
                   return (
                     <GridCell
                       key={a.id}
@@ -313,6 +315,8 @@ export function GradeGrid({
                       dirty={state.dirtySet.has(key)}
                       error={state.invalid.get(key)}
                       conflict={state.conflicts.has(key)}
+                      // Above max but within the bonus cap: allowed (extra credit), but shown so a wrong scale is noticed.
+                      aboveMax={value !== null && !Number.isNaN(value) && value > a.maxPoints}
                       editor={
                         isEditing
                           ? {
@@ -379,6 +383,7 @@ const GridCell = memo(function GridCell({
   dirty,
   error,
   conflict,
+  aboveMax,
   editor,
   max,
 }: {
@@ -391,11 +396,13 @@ const GridCell = memo(function GridCell({
   dirty: boolean;
   error: ScoreError | undefined;
   conflict: boolean;
+  aboveMax: boolean;
   editor: CellEditor | null;
   max: number;
 }) {
   const t = useTranslations("gradebook");
   const errorText = error ? t(`errors.${error}`, { max: max * MAX_SCORE_FACTOR }) : null;
+  const warnText = !error && aboveMax ? t("aboveMax", { max }) : null;
   return (
     <td
       id={id}
@@ -404,10 +411,11 @@ const GridCell = memo(function GridCell({
       data-col={col}
       tabIndex={active && !editor ? 0 : -1}
       aria-invalid={error ? true : undefined}
-      title={errorText ?? undefined}
+      title={errorText ?? warnText ?? undefined}
       className={cn(
         "relative h-10 border-b border-l border-border px-3 text-right tabular outline-none group-hover/row:bg-surface-2/60",
         error && "bg-risk-soft text-risk",
+        warnText && "bg-warn-soft",
         conflict && !error && "bg-info-soft",
         active && "outline-2 -outline-offset-2",
         active && (focused ? "outline-brand" : "outline-border-strong"),
@@ -424,7 +432,8 @@ const GridCell = memo(function GridCell({
           // Editors mount only while editing, so focusing on mount is the intended behaviour.
           autoFocus
           value={editor.text}
-          onChange={(e) => editor.onChange(e.target.value)}
+          // Scores are never negative, so a minus sign is dropped as it is typed.
+          onChange={(e) => editor.onChange(stripNegative(e.target.value))}
           onKeyDown={editor.onKeyDown}
           onBlur={editor.onBlur}
           onFocus={(e) => e.currentTarget.setSelectionRange(e.currentTarget.value.length, e.currentTarget.value.length)}
@@ -436,13 +445,14 @@ const GridCell = memo(function GridCell({
         />
       ) : (
         <span className="inline-flex items-center gap-1">
-          {error && <AlertCircle className="size-3.5 shrink-0" aria-hidden />}
+          {(error || warnText) && <AlertCircle className={cn("size-3.5 shrink-0", warnText && "text-warn")} aria-hidden />}
           {conflict && !error && <ArrowLeftRight className="size-3.5 shrink-0 text-info" aria-hidden />}
           {text === "" ? <span className="text-subtle">—</span> : text}
         </span>
       )}
       {dirty && <span className="sr-only">{t("unsaved")}</span>}
       {errorText && <span className="sr-only">{errorText}</span>}
+      {warnText && <span className="sr-only">{warnText}</span>}
       {conflict && <span className="sr-only">{t("conflictCell")}</span>}
     </td>
   );

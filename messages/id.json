@@ -266,7 +266,8 @@
       "saved": "Target diatur ke {value}%",
       "reset": "Kembalikan ke {value}%"
     },
-    "printReport": "Cetak laporan"
+    "printReport": "Cetak laporan",
+    "mappingReview": "Tinjauan pemetaan CPL"
   },
   "gradebook": {
     "student": "Mahasiswa",
@@ -323,7 +324,14 @@
     "previousStudent": "Mahasiswa sebelumnya",
     "nextStudent": "Mahasiswa berikutnya",
     "studentPosition": "Mahasiswa {index} dari {total}",
-    "historyHint": "<kbd>{history}</kbd> atau klik kanan sel untuk melihat riwayatnya"
+    "historyHint": "<kbd>{history}</kbd> atau klik kanan sel untuk melihat riwayatnya",
+    "aboveMax": "Melebihi nilai maks {max}. Diperbolehkan sebagai nilai tambahan; pastikan nilainya tidak memakai skala lain.",
+    "blanksMenu": "Hitung nilai kosong sebagai 0",
+    "blanksButton": "Kosong = 0",
+    "blanksCount": "{count, plural, =0 {tidak ada yang kosong} other {# kosong}}",
+    "blanksFilled": "{count} nilai kosong pada “{title}” diisi 0",
+    "blanksFilledHint": "Tugas yang tidak dikumpulkan kini dihitung 0. Periksa, lalu simpan; setiap perubahan dicatat di riwayat.",
+    "blanksFillOne": "Hitung {count} nilai kosong sebagai 0"
   },
   "weights": {
     "coursePlo": "CPL mata kuliah",
@@ -337,13 +345,13 @@
     "add": "Tambah penilaian",
     "addForPlo": "Tambah penilaian untuk {plo}",
     "unmeasured": "Kurikulum memetakan {list} ke mata kuliah ini, tetapi belum ada penilaian yang mengukurnya.",
-    "weightTotal": "Total bobot nilai {total}%",
-    "weightNormalized": "bobot disesuaikan menjadi 100% saat menghitung nilai mata kuliah",
+    "weightTotal": "Total porsi nilai akhir {total}%",
+    "weightNormalized": "porsi disesuaikan menjadi 100% saat dihitung",
     "emptyTitle": "Belum ada penilaian",
     "emptyBody": "Capaian CPL diukur dari penilaian. Tambahkan satu, atau impor gradebook Canvas.",
     "colTitle": "Penilaian",
     "colMax": "Nilai maks",
-    "colWeight": "Bobot nilai",
+    "colWeight": "Porsi nilai",
     "colPlos": "Bobot CPL",
     "colSource": "Sumber",
     "colActions": "Tindakan",
@@ -360,18 +368,18 @@
     "deleted": "“{title}” dihapus",
     "recalculated": "Capaian CPL telah dihitung ulang.",
     "matrixTitle": "Matriks bobot CPL efektif",
-    "matrixDescription": "Setiap kolom disesuaikan menjadi 100%. Ini adalah w(a,k) dalam PLO(c,k) = Σ ScorePct(a) × w(a,k).",
+    "matrixDescription": "Bobot efektif = porsi nilai akhir × bobot CPL, dengan setiap kolom disesuaikan menjadi 100%. Capaian CPL mata kuliah adalah Σ(bobot efektif × nilai %) dari penilaian yang sudah dinilai.",
     "total": "Total",
     "dialog": {
       "newTitle": "Penilaian baru",
       "editTitle": "Edit penilaian",
-      "description": "Bobot menunjukkan seberapa besar penilaian ini berkontribusi pada setiap CPL. Untuk setiap CPL, bobot disesuaikan di seluruh penilaian mata kuliah.",
+      "description": "Setiap penilaian memiliki dua bobot. Porsi nilai akhir menunjukkan seberapa besar penilaian ini dihitung dalam mata kuliah; bobot CPL membaginya ke beberapa CPL dan harus berjumlah 100%. Keduanya dikalikan menjadi bobot efektif.",
       "title": "Judul",
       "titlePlaceholder": "mis. Ujian Tengah Semester (UTS)",
       "maxPoints": "Nilai maks",
-      "gradeWeight": "Bobot nilai %",
+      "gradeWeight": "Porsi nilai (%)",
       "mapping": "Pemetaan dan bobot CPL",
-      "mappingHint": "CPL mata kuliah ditampilkan lebih dulu.",
+      "mappingHint": "CPL mata kuliah ditampilkan lebih dulu. Bobot harus berjumlah 100%.",
       "cancel": "Batal",
       "save": "Simpan penilaian",
       "summaryTitle": "Ada masalah",
@@ -381,11 +389,19 @@
       "recalculated": "Capaian CPL telah dihitung ulang.",
       "errors": {
         "title": "Masukkan judul",
-        "maxPoints": "Nilai maks harus berupa angka lebih dari 0",
-        "gradeWeight": "Bobot nilai harus berupa angka 0 sampai 100",
-        "weights": "Setiap CPL yang dipilih memerlukan bobot lebih dari 0%"
-      }
-    }
+        "maxPoints": "Nilai maks harus berupa angka lebih dari 0 dan paling banyak {max}",
+        "gradeWeight": "Porsi nilai harus berupa angka 0 sampai 100",
+        "weights": "Setiap CPL yang dipilih memerlukan bobot lebih dari 0%",
+        "weightsTotal": "Bobot CPL setiap penilaian harus berjumlah 100%"
+      },
+      "mappingTitle": "Bobot CPL “{title}”",
+      "mappingDescription": "Perbaiki CPL yang diukur penilaian ini beserta bobotnya (total 100%). Judul, nilai maks, dan porsi nilai tetap seperti yang diatur dosen. Perubahan dicatat di riwayat kelas."
+    },
+    "reviewNotice": "Anda dapat meninjau pemetaan CPL kelas ini dan memperbaiki bobot suatu penilaian. Setiap perubahan dicatat di riwayat kelas dan capaian dihitung ulang. Nilai dan pengaturan penilaian lainnya tetap diatur oleh dosen pengampu.",
+    "outsideCourse": "{count} penilaian dipetakan ke CPL yang tidak tercantum pada mata kuliah ini (CPL mata kuliah: {list}). Periksa apakah pemetaan ini memang disengaja.",
+    "notCoursePlo": "Bukan CPL mata kuliah ini",
+    "editMapping": "Edit bobot CPL",
+    "editMappingNamed": "Edit bobot CPL {title}"
   },
   "importer": {
     "title": "Impor gradebook Canvas",
@@ -419,7 +435,7 @@
     "colMax": "Nilai maks",
     "colGraded": "Dinilai",
     "colMapping": "Pemetaan dan bobot CPL",
-    "colWeight": "Bobot %",
+    "colWeight": "Porsi nilai %",
     "importNamed": "Impor {title}",
     "titleFor": "Judul untuk {title}",
     "maxFor": "Nilai maks untuk {title}",
@@ -464,14 +480,28 @@
       "updated": "Penilaian diperbarui",
       "grades": "Nilai ditulis",
       "blank": "Sel kosong atau dispensasi dilewati",
-      "enrolled": "{count} mahasiswa didaftarkan"
+      "enrolled": "{count} mahasiswa didaftarkan",
+      "cleared": "{count} nilai dispensasi dihapus"
     },
     "warnings": {
       "csvRow": "Baris CSV {row}: {message}",
       "noCanvasId": "Kolom “{column}” tidak memiliki Canvas ID, sehingga dicocokkan berdasarkan judulnya.",
       "noSisColumn": "Kolom “SIS Login ID” atau “SIS User ID” tidak ditemukan, sehingga mahasiswa tidak dapat dicocokkan secara otomatis.",
       "noPointsPossible": "Baris “Points Possible” tidak ditemukan. Masukkan nilai maks setiap tugas secara manual.",
-      "noStudents": "Tidak ada baris mahasiswa yang ditemukan."
+      "noStudents": "Tidak ada baris mahasiswa yang ditemukan.",
+      "negativeScores": "{count} sel berisi nilai negatif. Nilai tidak boleh negatif, sehingga sel tersebut dilewati."
+    },
+    "checks": {
+      "changesTitle": "Impor ini mengubah pengaturan penilaian yang sudah ada:",
+      "changesItem": "{title}: {fields}",
+      "fields": {
+        "ploWeights": "bobot CPL",
+        "gradeWeight": "porsi nilai",
+        "maxPoints": "nilai maks"
+      },
+      "aboveMax": "{count} nilai melebihi nilai maks tugasnya (hingga 150% diperbolehkan sebagai nilai tambahan). Pastikan berkas memakai poin, bukan persentase.",
+      "excused": "{count} sel ditandai EX (dispensasi) di Canvas tetapi sudah memiliki nilai di sini. Secara bawaan nilai yang ada tetap disimpan.",
+      "clearExcused": "Hapus {count} nilai tersebut agar tugas yang didispensasi tidak dihitung (dicatat di riwayat)"
     }
   },
   "history": {
@@ -718,7 +748,10 @@
         "choose": "Pilih salah satu untuk {field}",
         "email": "Masukkan alamat email seperti nama@sampoerna.ac.id",
         "number": "{field} harus berupa angka",
-        "password": "Kata sandi minimal 8 karakter"
+        "password": "Kata sandi minimal 8 karakter",
+        "range": "{field} harus bernilai {min} sampai {max}",
+        "rangeInteger": "{field} harus berupa bilangan bulat {min} sampai {max}",
+        "integer": "{field} harus berupa bilangan bulat"
       }
     },
     "pages": {
@@ -815,7 +848,9 @@
       "odd": "Ganjil",
       "even": "Genap",
       "threshold": "Ambang kelulusan (%)",
-      "unassignedOnly": "Tanpa dosen ({count})"
+      "unassignedOnly": "Tanpa dosen ({count})",
+      "thresholdDefault": "Bawaan kurikulum",
+      "thresholdHint": "Kosongkan untuk memakai target bawaan kurikulum."
     },
     "roster": {
       "title": "Peserta kelas",

@@ -65,6 +65,49 @@ describe("coursePloAttainment (formula 2)", () => {
   });
 });
 
+describe("proposal worked example (§1.3, COMP1401)", () => {
+  // Share of grade × PLO weight, with each assessment's PLO weights totalling 100%.
+  const comp1401 = [
+    { id: "quiz1", maxPoints: 100, gradeWeight: 10, ploWeights: [{ plo: 1, weight: 100 }] },
+    { id: "a1", maxPoints: 50, gradeWeight: 20, ploWeights: [{ plo: 1, weight: 50 }, { plo: 6, weight: 50 }] },
+    { id: "uts", maxPoints: 100, gradeWeight: 30, ploWeights: [{ plo: 1, weight: 40 }, { plo: 6, weight: 60 }] },
+    { id: "uas", maxPoints: 100, gradeWeight: 40, ploWeights: [{ plo: 1, weight: 20 }, { plo: 6, weight: 80 }] },
+  ];
+  const andi = { quiz1: 80, a1: 35, uts: 60, uas: 85 };
+
+  it("gives PLO 1 = 72.5% and PLO 6 = 75.0% (within 0.1 point, objective O2)", () => {
+    const res = coursePloAttainment(comp1401, andi);
+    expect(res.get(1)).toBeCloseTo(72.5, 1);
+    expect(res.get(6)).toBeCloseTo(75.0, 1);
+  });
+
+  it("gives the cumulative values 70.6% (on target) and 68.5% (at-risk)", () => {
+    const res = cumulativePloAttainment([
+      { plo: 1 as number, value: 72.5, sks: 4 },
+      { plo: 1, value: 68, sks: 3 },
+      { plo: 6, value: 75, sks: 4 },
+      { plo: 6, value: 62, sks: 4 },
+    ]);
+    expect(res.get(1)).toBeCloseTo(70.6, 1);
+    expect(res.get(6)).toBeCloseTo(68.5, 1);
+    expect(isAtRisk(res.get(1)!, 70)).toBe(false);
+    expect(isAtRisk(res.get(6)!, 70)).toBe(true);
+  });
+
+  it("shows effective weights of share × PLO weight, scaled to 100 per PLO", () => {
+    const eff = effectivePloWeights(comp1401);
+    expect(eff.get(1)!.get("quiz1")).toBeCloseTo(25); // 10 of 40
+    expect(eff.get(1)!.get("uts")).toBeCloseTo(30); // 12 of 40
+    expect(eff.get(6)!.get("uas")).toBeCloseTo((32 / 60) * 100);
+    expect(eff.get(6)!.has("quiz1")).toBe(false);
+  });
+
+  it("a larger share moves the result: the share is not ignored", () => {
+    const heavyFinal = comp1401.map((a) => (a.id === "uas" ? { ...a, gradeWeight: 80 } : a));
+    expect(coursePloAttainment(heavyFinal, andi).get(6)).toBeGreaterThan(75);
+  });
+});
+
 describe("cumulativePloAttainment (formula 3)", () => {
   it("weights by SKS and only counts courses mapping to the PLO", () => {
     const res = cumulativePloAttainment([

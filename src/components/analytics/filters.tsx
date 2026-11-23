@@ -73,6 +73,7 @@ export function ThresholdWhatIf({ value, saved, onChange }: { value: number; sav
         id="whatif"
         className="w-20"
         value={String(value)}
+        max={100}
         onChange={(e) => {
           const n = parseScore(e.target.value);
           if (n !== null && !Number.isNaN(n) && n >= 0 && n <= 100) onChange(n);

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { formatScoreInput } from "@/lib/gradebook/parse-score";
-import { buildSavePayload, dirtyKeys, invalidCells, previewCourseGrade, rebase, valuesFromGrades } from "@/lib/gradebook/state";
+import { buildSavePayload, dirtyKeys, fillBlanks, invalidCells, previewCourseGrade, rebase, valuesFromGrades } from "@/lib/gradebook/state";
 import { useHotkeys } from "@/lib/hooks/useHotkeys";
 import { useUnsavedChangesGuard } from "@/lib/hooks/useUnsavedChangesGuard";
 import type { OfferingDetail } from "@/lib/obe/queries";
@@ -99,6 +99,19 @@ export function useGradebookState(detail: OfferingDetail, canEdit: boolean) {
 
   const undo = useCallback(() => dispatch({ type: "undo" }), []);
 
+  /**
+   * Missing work counts as zero once the lecturer says so: fills the blank cells of one assessment
+   * with 0 as unsaved edits (one undo step). Saving records each one in the history as usual.
+   */
+  const fillBlanksWithZero = useCallback(
+    (assessmentId: string, studentIds: string[]) => {
+      const { next, changed } = fillBlanks(values, assessmentId, studentIds);
+      dispatch({ type: "setMany", next, changed });
+      return changed.length;
+    },
+    [values],
+  );
+
   const discard = useCallback(() => {
     dispatch({ type: "reset", values: baseline });
     setConflicts(new Map());
@@ -169,6 +182,7 @@ export function useGradebookState(detail: OfferingDetail, canEdit: boolean) {
     canUndo: undoStack.length > 0,
     setCell,
     setCells,
+    fillBlanksWithZero,
     undo,
     discard,
     resolveConflict,

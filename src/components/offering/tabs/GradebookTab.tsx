@@ -2,9 +2,11 @@
 
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { ClipboardList, Search, Undo2, X } from "lucide-react";
+import { toast } from "sonner";
+import { ChevronDown, ClipboardList, Search, Undo2, X } from "lucide-react";
 import { Button, ButtonLink, Card, EmptyState, Input, Kbd, ToggleChip, cn } from "@/components/ui";
-import { Notice } from "@/components/ui/client";
+import { Menu, MenuItem, Notice } from "@/components/ui/client";
+import { blankCells } from "@/lib/gradebook/state";
 import { ExportMenu } from "@/components/ExportMenu";
 import { cellKey } from "@/lib/gradebook/paste";
 import { useHotkeyLabel } from "@/lib/hooks/useHotkeys";
@@ -49,6 +51,31 @@ export function GradebookTab({ detail, canEdit }: { detail: OfferingDetail; canE
     );
   }
   if (!detail.students.length) return <EmptyState title={t("noStudentsTitle")} description={t("noStudentsBody")} />;
+
+  /** Once a deadline has passed, missing work can be counted as 0 (unsaved edits; logged when saved). */
+  function countBlanksAsZero(assessmentId: string) {
+    const filled = state.fillBlanksWithZero(assessmentId, detail.students.map((s) => s.id));
+    if (filled) toast.info(t("blanksFilled", { count: filled, title: assessmentTitle.get(assessmentId) ?? "" }), { description: t("blanksFilledHint") });
+  }
+  const blanksByAssessment = new Map(detail.assessments.map((a) => [a.id, blankCells(state.values, a.id, detail.students.map((s) => s.id)).length]));
+  const blankMenu = canEdit && (
+    <Menu
+      label={t("blanksMenu")}
+      trigger={
+        <Button variant="secondary" size="sm">
+          {t("blanksButton")}
+          <ChevronDown aria-hidden className="-mr-1 text-muted" />
+        </Button>
+      }
+    >
+      {detail.assessments.map((a) => (
+        <MenuItem key={a.id} onSelect={() => countBlanksAsZero(a.id)} disabled={!blanksByAssessment.get(a.id)}>
+          <span className="min-w-0 flex-1 truncate">{a.title}</span>
+          <span className="text-xs text-muted tabular">{t("blanksCount", { count: blanksByAssessment.get(a.id) ?? 0 })}</span>
+        </MenuItem>
+      ))}
+    </Menu>
+  );
 
   const dirtyCount = state.dirty.length;
   const invalidCount = state.invalid.size;
@@ -146,7 +173,7 @@ export function GradebookTab({ detail, canEdit }: { detail: OfferingDetail; canE
 
       {phone ? (
         <>
-          <MobileGrader students={detail.students} assessments={detail.assessments} state={state} canEdit={canEdit} />
+          <MobileGrader students={detail.students} assessments={detail.assessments} state={state} canEdit={canEdit} onCountBlanksAsZero={countBlanksAsZero} blanksByAssessment={blanksByAssessment} />
           {saveBar}
         </>
       ) : (
@@ -179,7 +206,8 @@ export function GradebookTab({ detail, canEdit }: { detail: OfferingDetail; canE
             {filtersActive && (
               <span className="text-xs text-muted tabular">{t("showing", { shown: students.length, total: detail.students.length })}</span>
             )}
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              {blankMenu}
               <ExportMenu
                 size="sm"
                 items={[

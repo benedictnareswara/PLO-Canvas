@@ -70,6 +70,41 @@ async function recomputeCourseOfferings(courseId: string) {
   for (const o of offerings) await recomputeOffering(o._id);
 }
 
+/** Attainment rows store the PLO number, so renumbering a PLO must rebuild every class that uses it. */
+async function recomputePloOfferings(ploId: string) {
+  const offerings = await Assessment.find({ "ploWeights.plo": ploId }).distinct("offering");
+  for (const o of offerings) await recomputeOffering(o);
+}
+
+const isStaff = (roles: string[]) => roles.some((r) => r === "lecturer" || r === "faculty_head");
+
+/** Every id must belong to a lecturer (or a faculty head, who also teaches). */
+async function assertLecturers(ids: unknown, message: string) {
+  if (!Array.isArray(ids) || !ids.length) return;
+  const unique = [...new Set(ids.map(String))];
+  const staff = await User.countDocuments({ _id: { $in: unique }, roles: { $in: ["lecturer", "faculty_head"] } });
+  if (staff !== unique.length) throw new HttpError(400, message);
+}
+
+/**
+ * UC-02: a new class takes the program's default target unless one is given, and UC-03 7a: a
+ * deactivated curriculum stays stored but is not offered for new classes.
+ */
+async function prepareOffering(data: Record<string, unknown>, mode: "create" | "update") {
+  await assertLecturers(data.lecturers, "Only lecturers can be assigned to a class");
+  if (data.threshold === null || data.threshold === undefined) delete data.threshold;
+  if (mode === "create") {
+    const course = await Course.findById(data.course).select("curriculum").lean();
+    if (!course) throw new HttpError(400, "Course not found");
+    const curriculum = await Curriculum.findById(course.curriculum).select("defaultThreshold isActive").lean();
+    if (curriculum?.isActive === false) {
+      throw new HttpError(400, "This course belongs to a deactivated curriculum, so no new classes can be opened for it");
+    }
+    data.threshold ??= curriculum?.defaultThreshold ?? 70;
+  }
+  return data;
+}
+
 
 export const RESOURCES: Record<string, ResourceConfig> = {
   faculties: {
@@ -103,6 +138,7 @@ export const RESOURCES: Record<string, ResourceConfig> = {
     create: ploSchema,
     update: ploSchema.partial(),
     transform: async (data) => (typeof data.number === "number" ? { ...data, code: `PLO ${data.number}` } : data),
+    afterWrite: recomputePloOfferings,
     dependents: (id) =>
       Promise.all([
         dep("courseMappings", Course.countDocuments({ plos: id }), true, "PLO is mapped to courses"),
@@ -120,6 +156,7 @@ export const RESOURCES: Record<string, ResourceConfig> = {
     model: CourseOffering,
     create: offeringSchema,
     update: offeringSchema.partial(),
+    transform: prepareOffering,
     dependents: (id) =>
       Promise.all([
         dep("enrollments", Enrollment.countDocuments({ offering: id }), false),
@@ -146,6 +183,9 @@ export const RESOURCES: Record<string, ResourceConfig> = {
       for (const k of ["department", "curriculum", "advisor", "studentId", "cohortYear", "staffId"]) {
         if (rest[k as keyof typeof rest] === "") (rest as Record<string, unknown>)[k] = null;
       }
+      // UC-01 / FR-07: an academic advisor is a lecturer.
+      const advisor = (rest as Record<string, unknown>).advisor;
+      if (advisor) await assertLecturers([advisor], "The academic advisor must be a lecturer");
       return password ? { ...rest, passwordHash: await hashPassword(password) } : rest;
     },
     dependents: (id) =>
@@ -164,7 +204,7 @@ export const RESOURCES: Record<string, ResourceConfig> = {
       for (const o of offerings) await recomputeOffering(o);
       // Clear advisor links that point at a user who is no longer a lecturer.
       const user = await User.findById(id).select("roles").lean();
-      if (user && !user.roles.some((r) => r === "lecturer" || r === "faculty_head")) {
+      if (user && !isStaff(user.roles)) {
         await User.updateMany({ advisor: id }, { $unset: { advisor: 1 } });
       }
     },

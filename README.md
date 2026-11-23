@@ -110,7 +110,7 @@ MONGODB_URI="mongodb://localhost:27017/su_obe_large?replicaSet=rs0&directConnect
   - The **Class of 2024** (student4–5) is in semester 5.
   - Current-term classes have only their first two assessments graded.
   - **COMP4334 2026/27 has no assessments.** It is the target for the Canvas import walkthrough below.
-- **Assessments and grades**: about 4 assessments per class (quizzes, assignments, UTS, UAS, projects), with PLO weights that sum to 100% per PLO. Grades come from a deterministic PRNG applied to per-student ability profiles, so every run produces the same data, including these at-risk cases:
+- **Assessments and grades**: about 4 assessments per class (quizzes, assignments, UTS, UAS, projects), with a PLO split that totals 100% per assessment (seed data is scaled to this at seed time). Grades come from a deterministic PRNG applied to per-student ability profiles, so every run produces the same data, including these at-risk cases:
   - student3 is weak on PLO 1, 2 and 6.
   - student5 is weak on PLO 3, 4 and 5, which pulls the Class of 2024 cohort means for PLO 4 and 5 below 70%.
   - student2 is borderline on PLO 9.
@@ -166,7 +166,12 @@ The sample covers every matching path:
 5. **Confirm**. Assessments are upserted by `(offering, Canvas ID)` and grades are bulk-upserted, all in **one MongoDB transaction**. The class's PLO attainment is then recalculated: 11 grades are written and 1 excused cell is skipped.
 6. Check the **Class Radar** tab, then sign in as `student1` and look at the updated cumulative spider chart (Year 4 / Semester 7 filter).
 
-Importing the same file again **updates** the existing assessments instead of duplicating them. Blank, `-` and `EX` cells never overwrite existing grades.
+Importing the same file again **updates** the existing assessments instead of duplicating them; a column you created by hand with the same title is adopted rather than duplicated. Blank, `-` and `EX` cells never overwrite existing grades.
+
+The dry run also lists:
+- **Existing assessments whose PLO weights, share or max points the file would change**, so a re-import doesn't silently undo a faculty head's correction. Each change is recorded in the class history.
+- **Scores above the max points.** Up to 150% is accepted as extra credit; anything higher stops the import.
+- **EX cells for students who already have a grade here.** The grade is kept by default (NFR-03). Tick *Remove these grades* to drop them, so excused work isn't counted. Each removal is recorded as a cleared grade.
 
 **Exporting from Canvas:** Course → Grades → Actions/Export → *Export Entire Gradebook*.
 
@@ -210,12 +215,12 @@ All formulas live in [`src/lib/obe/engine.ts`](src/lib/obe/engine.ts). They are 
 | # | Quantity | Formula |
 |---|---|---|
 | 1 | Assessment score | `ScorePct_a = Score / MaxPoints × 100` |
-| 2 | Course PLO attainment | `PLO_c,k = Σ_a ScorePct_a × w_a,k`, with `Σ_a w_a,k = 100%` for each PLO k |
+| 2 | Course PLO attainment | `e_a,k = share_a × PLOweight_a,k`, then `PLO_c,k = Σ_a (e_a,k × ScorePct_a) / Σ_a e_a,k` (graded assessments only) |
 | 3 | Cumulative PLO (SKS-weighted) | `Σ_c (PLO_c,k × SKS_c) / Σ_c SKS_c`. Only courses that produced a value for PLO k count in the denominator |
 | 4 | Cohort aggregate | `mean_i( Cumulative PLO_i,k )`, over students who have evidence for k |
 | 5 | At-risk | `PLO_k < threshold` (default 70%). Course level uses the class threshold set by the lecturer; cumulative and cohort level use the curriculum target |
 
-**Weight convention.** Lecturers enter weights per assessment, either as course-level shares (`Midterm → PLO 1: 40%`) or as a split of one assessment across PLOs (`60% PLO 4 / 40% PLO 7`). For each PLO, the engine normalizes the weights over the graded assessments mapped to it: `PLO_c,k = Σ ScorePct_a·w_a,k / Σ w_a,k`. This is exactly formula 2 whenever the weights already total 100%. The **Assessments** tab shows the resulting effective weight matrix, with each column summing to 100%. Assessments that haven't been graded yet are excluded, so in-progress courses aren't penalized.
+**Weight convention (matches the signed proposal, §1.3).** Each assessment has a *share of the course grade* (`gradeWeight`) and a *PLO split* that must total 100% (e.g. `60% PLO 4 / 40% PLO 7`; the API and the dialog both refuse anything else). The effective weight is `share × PLO weight`, and the engine averages over the **graded** assessments mapped to each PLO, so in-progress courses aren't penalized. If a course has no shares at all, every assessment counts with share 1. The **Assessments** tab shows the resulting effective weight matrix, with each column summing to 100%. Worked example (COMP1401, Andi): PLO 1 = 72.5%, PLO 6 = 75.0%, as in the proposal.
 
 **Semester progression.** A student's semester for an offering is `(academicYear − cohortYear) × 2 + (odd ? 1 : 2)`. The radar filters (*Cumulative*, *Year 1–4*, *Semester n*) re-run formula 3 on the matching subset.
 
@@ -237,6 +242,7 @@ Search applies the same rules inside the database query ([`src/lib/search/scope.
 | Faculties, departments, curricula, PLOs, courses, offerings, users, advisors | ✅ | | | |
 | Department analytics, cohort radar, at-risk engine, course matrix | | ✅ (read-only, own department) | | |
 | View any class in the department | | ✅ read-only | own classes | |
+| Review and edit the PLO weights of a department class (FR-26, UC-08; logged, attainment recalculated) | ✅ | ✅ department classes | own classes | |
 | Edit assessments, grades, threshold, Canvas import | ✅ (API) | own classes only | own classes | |
 | Read a class's change history | ✅ | department classes | own classes | |
 | Search (command palette) | everything | department students and classes, advisees | advisees, own classes | |
@@ -277,4 +283,6 @@ tests/                      Vitest: engine, Canvas parser, gradebook, export, au
 - A **null PLO value** means "no evidence yet". The radar draws it at the centre, labels it in the tooltip and caption, and never flags it as at-risk.
 - The letter-grade scale (A ≥ 85 … E) is a single constant, `LETTER_SCALE` in `engine.ts`.
 - **Translations.** All interface text is in `messages/en.json` and `messages/id.json`; tests fail if the two files have different keys or if code uses a key that doesn't exist. Error messages produced by the server (for example a validation message from an API route) are still in English.
+- **Missing work.** Attainment counts graded assessments only (proposal §1.3, step 3), so an in-progress course isn't penalized. Once a deadline has passed, **Gradebook → Count blanks as 0** fills an assessment's blank cells with 0 as unsaved edits; saving records each one in the history.
+- **Numbers are never negative.** Number fields drop a minus sign as it is typed, and the forms, API validators and Mongoose models share one set of ranges ([`src/lib/ranges.ts`](src/lib/ranges.ts)): percentages (PLO weights, shares, targets) 0–100, max points above 0 and up to 100,000, scores 0 to 150% of max, years 1990–2100, SKS 0–24, semester 1–14, PLO numbers 1–10.
 - **Audit history** is append-only and kept indefinitely. Reseeding (`npm run seed`) clears it with everything else.

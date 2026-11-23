@@ -1,7 +1,10 @@
 import mongoose, { Schema, model, models, type Model, Types } from "mongoose";
 import { LOCALES, type Locale } from "@/i18n/config";
+import { RANGES } from "@/lib/ranges";
 
 const { ObjectId } = Schema.Types;
+// Range checks only (no structural change): the same limits as the forms and API validators.
+const { percent, maxPoints, year, sks, totalSks, semester, ploNumber } = RANGES;
 
 function getModel<T>(name: string, schema: Schema<T>): Model<T> {
   return (models[name] as Model<T>) ?? model<T>(name, schema);
@@ -29,10 +32,10 @@ const departmentSchema = new Schema<DepartmentDoc>(
 const curriculumSchema = new Schema<CurriculumDoc>(
   {
     name: { type: String, required: true, trim: true },
-    year: { type: Number, required: true },
-    totalSks: { type: Number, required: true, min: 0 },
+    year: { type: Number, required: true, min: year.min, max: year.max },
+    totalSks: { type: Number, required: true, min: totalSks.min, max: totalSks.max },
     department: { type: ObjectId, ref: "Department", required: true },
-    defaultThreshold: { type: Number, default: 70, min: 0, max: 100 },
+    defaultThreshold: { type: Number, default: 70, min: percent.min, max: percent.max },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
@@ -41,7 +44,7 @@ const curriculumSchema = new Schema<CurriculumDoc>(
 const ploSchema = new Schema<PloDoc>(
   {
     curriculum: { type: ObjectId, ref: "Curriculum", required: true },
-    number: { type: Number, required: true, min: 1 },
+    number: { type: Number, required: true, min: ploNumber.min, max: ploNumber.max },
     code: { type: String, required: true },
     shortLabel: { type: String, required: true },
     description: { type: String, required: true },
@@ -55,8 +58,8 @@ const courseSchema = new Schema<CourseDoc>(
     curriculum: { type: ObjectId, ref: "Curriculum", required: true },
     code: { type: String, required: true, trim: true },
     title: { type: String, required: true, trim: true },
-    sks: { type: Number, required: true, min: 0 },
-    semester: { type: Number, required: true, min: 1, max: 14 },
+    sks: { type: Number, required: true, min: sks.min, max: sks.max },
+    semester: { type: Number, required: true, min: semester.min, max: semester.max },
     plos: [{ type: ObjectId, ref: "Plo" }],
   },
   { timestamps: true },
@@ -77,7 +80,7 @@ const userSchema = new Schema<UserDoc>(
     department: { type: ObjectId, ref: "Department" },
     // Student-only fields
     studentId: { type: String, trim: true, sparse: true, unique: true },
-    cohortYear: { type: Number },
+    cohortYear: { type: Number, min: year.min, max: year.max },
     curriculum: { type: ObjectId, ref: "Curriculum" },
     advisor: { type: ObjectId, ref: "User" },
     // Staff-only fields
@@ -102,11 +105,11 @@ const offeringSchema = new Schema<OfferingDoc>(
   {
     course: { type: ObjectId, ref: "Course", required: true },
     // Start year of the academic year, e.g. 2025 for "2025/2026".
-    academicYear: { type: Number, required: true },
+    academicYear: { type: Number, required: true, min: year.min, max: year.max },
     term: { type: String, enum: TERMS, required: true },
     section: { type: String, default: "A" },
     lecturers: [{ type: ObjectId, ref: "User" }],
-    threshold: { type: Number, default: 70, min: 0, max: 100 },
+    threshold: { type: Number, default: 70, min: percent.min, max: percent.max },
   },
   { timestamps: true },
 );
@@ -126,7 +129,7 @@ enrollmentSchema.index({ student: 1 });
 const ploWeightSchema = new Schema<{ plo: Types.ObjectId; weight: number }>(
   {
     plo: { type: ObjectId, ref: "Plo", required: true },
-    weight: { type: Number, required: true, min: 0, max: 100 },
+    weight: { type: Number, required: true, min: percent.min, max: percent.max },
   },
   { _id: false },
 );
@@ -135,9 +138,9 @@ const assessmentSchema = new Schema<AssessmentDoc>(
   {
     offering: { type: ObjectId, ref: "CourseOffering", required: true },
     title: { type: String, required: true, trim: true },
-    maxPoints: { type: Number, required: true, min: 0.0001 },
-    // Share of the overall course grade (any positive scale; normalized when computing).
-    gradeWeight: { type: Number, default: 0, min: 0 },
+    maxPoints: { type: Number, required: true, min: maxPoints.min, max: maxPoints.max },
+    // Share of the overall course grade, 0–100% (proposal §1.3 step 2).
+    gradeWeight: { type: Number, default: 0, min: percent.min, max: percent.max },
     canvasId: { type: String },
     ploWeights: { type: [ploWeightSchema], default: [] },
     source: { type: String, enum: ["manual", "canvas"], default: "manual" },

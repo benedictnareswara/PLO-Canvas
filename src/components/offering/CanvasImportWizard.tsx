@@ -8,6 +8,7 @@ import { Badge, Button, Input, NumberInput, SummaryStrip, Table, Td, Th, ToggleC
 import { Dialog, Notice, apiFetch } from "@/components/ui/client";
 import { parseCanvasGradebook, type ParsedCanvasGradebook } from "@/lib/canvas/parse";
 import { parseScore } from "@/lib/gradebook/parse-score";
+import { RANGES, clamp, stripNegative } from "@/lib/ranges";
 import type { OfferingDetail } from "@/lib/obe/queries";
 import type { PloInfo } from "@/lib/obe/types";
 import { splitEvenly, type WeightValue } from "./PloWeightEditor";
@@ -27,12 +28,13 @@ interface MappingRow {
 interface Report {
   matches: { name: string; sisLoginId: string; sisUserId: string; userId: string | null; userName: string | null; matchedBy: string | null; enrolled: boolean }[];
   summary: { matched: number; unenrolled: number; unmatched: number };
-  assessments: { key: string; title: string; action: "create" | "update" }[];
-  written?: { assessmentsCreated: number; assessmentsUpdated: number; gradesWritten: number; enrolled: number; blankCells: number };
+  assessments: { key: string; title: string; action: "create" | "update"; changes: ("ploWeights" | "gradeWeight" | "maxPoints")[] }[];
+  checks: { excusedWithGrade: number; aboveMax: number };
+  written?: { assessmentsCreated: number; assessmentsUpdated: number; gradesWritten: number; gradesCleared: number; enrolled: number; blankCells: number };
   transactional?: boolean;
 }
 
-type RowError = "maxPoints" | "noPlo" | "weightZero" | "weightTotal";
+type RowError = "maxPoints" | "gradeWeight" | "noPlo" | "weightZero" | "weightTotal";
 
 export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; onClose: () => void; detail: OfferingDetail }) {
   const t = useTranslations("importer");
@@ -43,6 +45,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
   const [rows, setRows] = useState<MappingRow[]>([]);
   const [report, setReport] = useState<Report | null>(null);
   const [enrollUnenrolled, setEnrollUnenrolled] = useState(false);
+  const [clearExcused, setClearExcused] = useState(false);
   const [attentionOnly, setAttentionOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"check" | "write" | null>(null);
@@ -55,6 +58,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
     setRows([]);
     setReport(null);
     setEnrollUnenrolled(false);
+    setClearExcused(false);
     setAttentionOnly(false);
     setError(null);
   }
@@ -72,11 +76,13 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
       const result = parseCanvasGradebook(await file.text());
       if (!result.assignments.length) throw new Error(t("errors.noColumns"));
       const existing = new Map(detail.assessments.filter((a) => a.canvasId).map((a) => [a.canvasId!, a]));
+      // A column the lecturer made by hand (no Canvas ID) with the same title is updated, not duplicated.
+      const manualByTitle = new Map(detail.assessments.filter((a) => !a.canvasId).map((a) => [a.title.trim().toLowerCase(), a]));
       setFileName(file.name);
       setParsed(result);
       setRows(
         result.assignments.map((a) => {
-          const prev = a.canvasId ? existing.get(a.canvasId) : undefined;
+          const prev = (a.canvasId ? existing.get(a.canvasId) : undefined) ?? manualByTitle.get(a.title.trim().toLowerCase());
           return {
             key: a.key,
             title: a.title,
@@ -98,7 +104,9 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
   const included = rows.filter((r) => r.include);
   const rowError = (r: MappingRow): RowError | null => {
     const max = parseScore(r.maxPoints);
-    if (max === null || !(max > 0)) return "maxPoints";
+    if (max === null || Number.isNaN(max) || max < RANGES.maxPoints.min || max > RANGES.maxPoints.max) return "maxPoints";
+    const share = parseScore(r.gradeWeight || "0");
+    if (share === null || Number.isNaN(share) || share < RANGES.percent.min || share > RANGES.percent.max) return "gradeWeight";
     if (!r.weights.length) return "noPlo";
     if (r.weights.some((w) => !(w.weight > 0))) return "weightZero";
     if (Math.abs(r.weights.reduce((s, w) => s + w.weight, 0) - 100) > 0.01) return "weightTotal";
@@ -112,6 +120,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
     return {
       dryRun,
       enrollUnenrolled,
+      clearExcused,
       assessments: included.map((r) => ({
         key: r.key,
         title: r.title.trim(),
@@ -126,6 +135,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
         sisUserId: s.sisUserId,
         sisLoginId: s.sisLoginId,
         scores: Object.fromEntries(included.map((r) => [r.key, s.scores[r.key] ?? null])),
+        excused: s.excused.filter((k) => included.some((r) => r.key === k)),
       })),
     };
   }
@@ -295,7 +305,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
                       {r.include && (
                         <>
                           <PloMultiSelect plos={detail.plos} value={r.weights} highlight={detail.coursePloNumbers} onChange={(weights) => update(r.key, { weights })} />
-                          {err && err !== "maxPoints" && (
+                          {err && err !== "maxPoints" && err !== "gradeWeight" && (
                             <div className="mt-1 text-xs font-medium text-risk">
                               {t(`rowErrors.${err}`, { total: Math.round(r.weights.reduce((s, w) => s + w.weight, 0) * 100) / 100 })}
                             </div>
@@ -308,6 +318,8 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
                         value={r.gradeWeight}
                         onChange={(e) => update(r.key, { gradeWeight: e.target.value })}
                         className="ml-auto h-8 w-20"
+                        max={RANGES.percent.max}
+                        invalid={err === "gradeWeight"}
                         disabled={!r.include}
                         aria-label={t("weightFor", { title: r.title })}
                       />
@@ -340,6 +352,28 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
             </label>
           )}
           {report.summary.unmatched > 0 && <Notice tone="info">{t("unmatchedHelp")}</Notice>}
+          {report.assessments.some((a) => a.changes.length > 0) && (
+            <Notice tone="warn">
+              <p className="font-medium">{t("checks.changesTitle")}</p>
+              <ul className="mt-1 list-inside list-disc">
+                {report.assessments
+                  .filter((a) => a.changes.length > 0)
+                  .map((a) => (
+                    <li key={a.key}>{t("checks.changesItem", { title: a.title, fields: a.changes.map((c) => t(`checks.fields.${c}`)).join(", ") })}</li>
+                  ))}
+              </ul>
+            </Notice>
+          )}
+          {report.checks.aboveMax > 0 && <Notice tone="warn">{t("checks.aboveMax", { count: report.checks.aboveMax })}</Notice>}
+          {report.checks.excusedWithGrade > 0 && (
+            <Notice tone="warn">
+              <p>{t("checks.excused", { count: report.checks.excusedWithGrade })}</p>
+              <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
+                <input type="checkbox" className="size-4 accent-brand" checked={clearExcused} onChange={(e) => setClearExcused(e.target.checked)} />
+                {t("checks.clearExcused", { count: report.checks.excusedWithGrade })}
+              </label>
+            </Notice>
+          )}
           {busy === "write" && (
             <div role="status" className="space-y-1.5">
               <p className="text-sm font-medium">{t("writing", { count: cellsToWrite })}</p>
@@ -394,7 +428,12 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
             items={[
               { label: t("result.created"), value: report.written.assessmentsCreated },
               { label: t("result.updated"), value: report.written.assessmentsUpdated },
-              { label: t("result.grades"), value: report.written.gradesWritten, tone: "ok" },
+              {
+                label: t("result.grades"),
+                value: report.written.gradesWritten,
+                tone: "ok",
+                hint: report.written.gradesCleared ? t("result.cleared", { count: report.written.gradesCleared }) : undefined,
+              },
               {
                 label: t("result.blank"),
                 value: report.written.blankCells,
@@ -576,8 +615,10 @@ function PloMultiSelect({
                 aria-label={tw("weightFor", { plo: byId.get(v.plo)?.code ?? "" })}
                 value={Number.isFinite(v.weight) ? v.weight : ""}
                 onChange={(e) => {
-                  const n = parseScore(e.target.value);
-                  onChange(value.map((w) => (w.plo === v.plo ? { ...w, weight: n === null ? NaN : n } : w)));
+                  // A PLO weight is 0–100% and never negative.
+                  const n = parseScore(stripNegative(e.target.value));
+                  const weight = n === null || Number.isNaN(n) ? NaN : clamp(n, RANGES.percent);
+                  onChange(value.map((w) => (w.plo === v.plo ? { ...w, weight } : w)));
                 }}
                 className="h-6 w-14 rounded border border-border-input bg-surface px-1 text-right tabular"
               />

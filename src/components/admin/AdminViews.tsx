@@ -11,6 +11,7 @@ import { useUrlState } from "@/lib/hooks/useUrlState";
 import { offeringPeriodLabel } from "@/lib/obe/semesters";
 import type { CourseRow, CurriculumRow, DepartmentRow, FacultyRow, OfferingRow, PloRow, UserRow } from "@/lib/admin/data";
 import { ResourceSection, type FieldDef } from "./ResourceSection";
+import { RANGES } from "@/lib/ranges";
 
 const opt = <T extends { _id: string }>(rows: T[], label: (r: T) => string) => rows.map((r) => ({ value: r._id, label: label(r) }));
 const nameMap = <T extends { _id: string }>(rows: T[], label: (r: T) => string) => new Map(rows.map((r) => [r._id, label(r)]));
@@ -91,9 +92,9 @@ export function CurriculumAdmin({
         fields={[
           { name: "name", label: t("name"), required: true, wide: true },
           { name: "department", label: t("department"), type: "select", required: true, options: opt(departments, (d) => `${d.code} · ${d.name}`) },
-          { name: "year", label: t("year"), type: "number", required: true },
-          { name: "totalSks", label: t("totalSks"), type: "number", required: true },
-          { name: "defaultThreshold", label: t("defaultTarget"), type: "number", required: true },
+          { name: "year", label: t("year"), type: "number", required: true, range: RANGES.year, integer: true },
+          { name: "totalSks", label: t("totalSks"), type: "number", required: true, range: RANGES.totalSks, integer: true },
+          { name: "defaultThreshold", label: t("defaultTarget"), type: "number", required: true, range: RANGES.percent },
           { name: "isActive", label: t("active"), type: "checkbox" },
         ]}
       />
@@ -122,7 +123,7 @@ export function CurriculumAdmin({
         ]}
         fields={[
           { name: "curriculum", label: t("curriculum"), type: "select", required: true, options: opt(curricula, (c) => c.name) },
-          { name: "number", label: t("number"), type: "number", required: true },
+          { name: "number", label: t("number"), type: "number", required: true, range: RANGES.ploNumber, integer: true },
           { name: "shortLabel", label: t("shortLabel"), required: true, wide: true },
           { name: "description", label: t("description"), type: "textarea", required: true },
         ]}
@@ -184,8 +185,8 @@ export function CoursesAdmin({ courses, curricula, plos }: { courses: CourseRow[
         { name: "code", label: t("code"), required: true, placeholder: "COMP1401" },
         { name: "curriculum", label: t("curriculum"), type: "select", required: true, options: opt(curricula, (c) => c.name) },
         { name: "title", label: t("courseTitle"), required: true, wide: true },
-        { name: "sks", label: t("sks"), type: "number", required: true },
-        { name: "semester", label: t("recommendedSemester"), type: "number", required: true },
+        { name: "sks", label: t("sks"), type: "number", required: true, range: RANGES.sks, integer: true },
+        { name: "semester", label: t("recommendedSemester"), type: "number", required: true, range: RANGES.semester, integer: true },
         { name: "plos", label: t("mapped"), type: "multiselect", options: [...plos].sort((a, b) => a.number - b.number).map((p) => ({ value: p._id, label: `${p.code} · ${p.shortLabel}` })) },
       ]}
     />
@@ -224,7 +225,7 @@ export function OfferingsAdmin({
         addLabel={t("add")}
         itemName={(r) => `${courseCode.get(r.course) ?? ""} ${offeringPeriodLabel(r.academicYear, r.term)} ${r.section}`}
         rows={rows}
-        defaults={{ academicYear: new Date().getFullYear(), term: "odd", section: "A", threshold: 70, lecturers: [] }}
+        defaults={{ academicYear: new Date().getFullYear(), term: "odd", section: "A", threshold: "", lecturers: [] }}
         toolbar={
           <ToggleChip checked={unassignedOnly} onChange={setUnassignedOnly}>
             {t("unassignedOnly", { count: offerings.filter((o) => o.lecturers.length === 0).length })}
@@ -250,10 +251,11 @@ export function OfferingsAdmin({
         )}
         fields={[
           { name: "course", label: t("course"), type: "select", required: true, options: opt(courses, (c) => `${c.code} · ${c.title}`), wide: true },
-          { name: "academicYear", label: t("academicYear"), type: "number", required: true, hint: t("academicYearHint") },
+          { name: "academicYear", label: t("academicYear"), type: "number", required: true, hint: t("academicYearHint"), range: RANGES.year, integer: true },
           { name: "term", label: t("term"), type: "select", required: true, options: [{ value: "odd", label: t("odd") }, { value: "even", label: t("even") }] },
           { name: "section", label: t("section"), required: true },
-          { name: "threshold", label: t("threshold"), type: "number", required: true },
+          // Left blank on a new class: it takes the curriculum's default target (UC-02).
+          { name: "threshold", label: t("threshold"), type: "number", range: RANGES.percent, placeholder: t("thresholdDefault"), hint: t("thresholdHint") },
           { name: "lecturers", label: t("lecturers"), type: "multiselect", options: opt(lecturers, (u) => u.name) },
         ]}
       />
@@ -489,9 +491,10 @@ export function UsersAdmin({ users, departments, curricula }: { users: UserRow[]
           { name: "department", label: t("department"), type: "select", options: opt(departments, (d) => `${d.code} · ${d.name}`) },
           { name: "isActive", label: t("accountActive"), type: "checkbox" },
           { name: "staffId", label: t("staffId"), when: isStaff },
-          { name: "studentId", label: t("studentId"), when: isStudent },
-          { name: "cohortYear", label: t("cohortYear"), type: "number", when: isStudent },
-          { name: "curriculum", label: t("curriculum"), type: "select", options: opt(curricula, (c) => c.name), when: isStudent },
+          // UC-01: a student needs a student number (NIM), an entry year and a curriculum.
+          { name: "studentId", label: t("studentId"), when: isStudent, required: true },
+          { name: "cohortYear", label: t("cohortYear"), type: "number", when: isStudent, required: true, range: RANGES.year, integer: true },
+          { name: "curriculum", label: t("curriculum"), type: "select", options: opt(curricula, (c) => c.name), when: isStudent, required: true },
           { name: "advisor", label: t("advisor"), type: "select", options: opt(lecturers, (u) => u.name), when: isStudent },
         ] satisfies FieldDef[]}
       />

@@ -4,10 +4,11 @@ import { Assessment, Enrollment, Grade, Plo, User, CourseOffering, Course, Types
 import { recomputeOffering } from "@/lib/obe/recompute";
 import { HttpError } from "@/lib/auth/rbac";
 import type { CanvasImportPayload } from "@/lib/validators";
-import { diffGrades, type AuditInput, type GradeWrite } from "@/lib/audit/diff";
+import { diffFields, diffGrades, type AssessmentSnapshot, type AuditInput, type GradeWrite } from "@/lib/audit/diff";
 import { newBatchId, recordAudit } from "@/lib/audit/record";
 import { runInTransaction } from "@/lib/transaction";
 import { normalizeLogin } from "./parse";
+import { MAX_SCORE_FACTOR } from "@/lib/gradebook/parse-score";
 
 export interface StudentMatch {
   name: string;
@@ -22,8 +23,19 @@ export interface StudentMatch {
 export interface ImportReport {
   matches: StudentMatch[];
   summary: { matched: number; unenrolled: number; unmatched: number };
-  assessments: { key: string; title: string; action: "create" | "update" }[];
-  written?: { assessmentsCreated: number; assessmentsUpdated: number; gradesWritten: number; enrolled: number; blankCells: number };
+  /**
+   * `changes`: for an existing assessment, which of its stored settings this import would replace
+   * (a re-import can undo a faculty head's PLO-weight correction, so the dry run says so).
+   */
+  assessments: { key: string; title: string; action: "create" | "update"; changes: ("ploWeights" | "gradeWeight" | "maxPoints")[] }[];
+  /** Things the lecturer should look at before confirming. */
+  checks: {
+    /** Cells marked EX in Canvas whose student already has a grade here (kept unless clearExcused). */
+    excusedWithGrade: number;
+    /** Scores above the max points but within the bonus cap (extra credit, or a wrong scale). */
+    aboveMax: number;
+  };
+  written?: { assessmentsCreated: number; assessmentsUpdated: number; gradesWritten: number; gradesCleared: number; enrolled: number; blankCells: number };
   transactional?: boolean;
 }
 
@@ -58,8 +70,14 @@ export async function matchStudents(offeringId: string, rows: CanvasImportPayloa
 }
 
 async function findExistingAssessment(offeringId: string, a: CanvasImportPayload["assessments"][number], session?: ClientSession) {
-  const filter = a.canvasId ? { offering: offeringId, canvasId: a.canvasId } : { offering: offeringId, title: a.title };
-  return Assessment.findOne(filter, null, session ? { session } : {});
+  const opts = session ? { session } : {};
+  if (a.canvasId) {
+    const byCanvasId = await Assessment.findOne({ offering: offeringId, canvasId: a.canvasId }, null, opts);
+    if (byCanvasId) return byCanvasId;
+    // A column the lecturer already created by hand (no Canvas ID yet) is adopted, not duplicated.
+    return Assessment.findOne({ offering: offeringId, title: a.title, canvasId: { $not: { $type: "string" } } }, null, opts);
+  }
+  return Assessment.findOne({ offering: offeringId, title: a.title }, null, opts);
 }
 
 export async function runCanvasImport(
@@ -81,23 +99,71 @@ export async function runCanvasImport(
     if (Math.abs(total - 100) > 0.01) throw new HttpError(400, `PLO weights of "${a.title}" must total 100% (got ${total}%)`);
   }
 
+  // Scores far above max points are almost always a wrong scale or a typo: stop before anything is written.
+  const maxByKey = new Map(payload.assessments.map((a) => [a.key, a.maxPoints]));
+  const tooHigh: string[] = [];
+  for (const row of payload.students) {
+    for (const [key, score] of Object.entries(row.scores)) {
+      const max = maxByKey.get(key);
+      if (max !== undefined && score !== null && score > max * MAX_SCORE_FACTOR) tooHigh.push(`${row.name} – ${key}: ${score}/${max}`);
+    }
+  }
+  if (tooHigh.length) {
+    throw new HttpError(400, `${tooHigh.length} score(s) are far above the max points, e.g. ${tooHigh.slice(0, 3).join("; ")}`);
+  }
+
   const matches = await matchStudents(offeringId, payload.students);
   const summary = {
     matched: matches.filter((m) => m.userId && m.enrolled).length,
     unenrolled: matches.filter((m) => m.userId && !m.enrolled).length,
     unmatched: matches.filter((m) => !m.userId).length,
   };
+  const snap = (x: { title: string; maxPoints: number; gradeWeight?: number; ploWeights: { plo: unknown; weight: number }[] }): AssessmentSnapshot => ({
+    title: x.title,
+    maxPoints: x.maxPoints,
+    gradeWeight: x.gradeWeight ?? 0,
+    // Sorted, so the same mapping in another order is not reported as a change.
+    ploWeights: x.ploWeights.map((w) => ({ plo: String(w.plo), weight: w.weight })).sort((p, q) => p.plo.localeCompare(q.plo)),
+  });
+
+  const existingByKey = new Map<string, Awaited<ReturnType<typeof findExistingAssessment>>>();
   const assessmentsPreview: ImportReport["assessments"] = [];
   for (const a of payload.assessments) {
-    assessmentsPreview.push({ key: a.key, title: a.title, action: (await findExistingAssessment(offeringId, a)) ? "update" : "create" });
+    const existing = await findExistingAssessment(offeringId, a);
+    existingByKey.set(a.key, existing);
+    const changes: ImportReport["assessments"][number]["changes"] = [];
+    if (existing) {
+      const diff = diffFields(snap(existing), snap(a));
+      for (const f of ["ploWeights", "gradeWeight", "maxPoints"] as const) if (diff && f in diff.after) changes.push(f);
+    }
+    assessmentsPreview.push({ key: a.key, title: a.title, action: existing ? "update" : "create", changes });
   }
-  if (payload.dryRun) return { matches, summary, assessments: assessmentsPreview };
+
+  // Dry-run checks: excused cells that would leave an old grade in place, and scores above max.
+  const importable = (i: number) => Boolean(matches[i].userId && (matches[i].enrolled || payload.enrollUnenrolled));
+  const existingIds = [...existingByKey.values()].filter(Boolean).map((e) => e!._id);
+  const storedGrades = existingIds.length
+    ? await Grade.find({ offering: offering._id, assessment: { $in: existingIds } }, "assessment student").lean()
+    : [];
+  const graded = new Set(storedGrades.map((g) => `${g.student}:${g.assessment}`));
+  const checks: ImportReport["checks"] = { excusedWithGrade: 0, aboveMax: 0 };
+  payload.students.forEach((row, i) => {
+    if (!importable(i)) return;
+    for (const a of payload.assessments) {
+      const score = row.scores[a.key];
+      if (score !== null && score !== undefined && score > a.maxPoints) checks.aboveMax++;
+      const existing = existingByKey.get(a.key);
+      if (existing && row.excused.includes(a.key) && graded.has(`${matches[i].userId}:${existing._id}`)) checks.excusedWithGrade++;
+    }
+  });
+  if (payload.dryRun) return { matches, summary, assessments: assessmentsPreview, checks };
 
   const write = async (session?: ClientSession) => {
     const opts = session ? { session } : {};
-    const written = { assessmentsCreated: 0, assessmentsUpdated: 0, gradesWritten: 0, enrolled: 0, blankCells: 0 };
+    const written = { assessmentsCreated: 0, assessmentsUpdated: 0, gradesWritten: 0, gradesCleared: 0, enrolled: 0, blankCells: 0 };
 
     const assessmentIdByKey = new Map<string, Types.ObjectId>();
+    const assessmentAudit: AuditInput[] = [];
     for (const a of payload.assessments) {
       const fields = {
         title: a.title,
@@ -109,6 +175,9 @@ export async function runCanvasImport(
       };
       const existing = await findExistingAssessment(offeringId, a, session);
       if (existing) {
+        // Re-imports can change weights a faculty head corrected: make that visible in the history.
+        const changed = diffFields(snap(existing), snap(a));
+        if (changed) assessmentAudit.push({ action: "assessment.update", assessment: String(existing._id), assessmentTitle: a.title, ...changed });
         existing.set(fields);
         await existing.save(opts);
         assessmentIdByKey.set(a.key, existing._id);
@@ -116,6 +185,7 @@ export async function runCanvasImport(
       } else {
         const [created] = await Assessment.create([{ offering: offering._id, ...fields }], opts);
         assessmentIdByKey.set(a.key, created._id);
+        assessmentAudit.push({ action: "assessment.create", assessment: String(created._id), assessmentTitle: a.title, after: snap(a) });
         written.assessmentsCreated++;
       }
     }
@@ -129,14 +199,18 @@ export async function runCanvasImport(
     const writes: GradeWrite[] = [];
     payload.students.forEach((row, i) => {
       const m = matches[i];
-      if (!m.userId || (!m.enrolled && !payload.enrollUnenrolled)) return;
+      if (!importable(i)) return;
       for (const a of payload.assessments) {
+        const assessment = String(assessmentIdByKey.get(a.key)!);
         const score = row.scores[a.key];
-        if (score === null || score === undefined) {
-          written.blankCells++; // blank / excused cells never overwrite existing grades
-          continue;
+        if (score !== null && score !== undefined) {
+          writes.push({ assessment, student: m.userId!, score });
+        } else if (payload.clearExcused && row.excused.includes(a.key)) {
+          // Confirmed in the dry run: an excused assessment no longer counts for this student.
+          writes.push({ assessment, student: m.userId!, score: null });
+        } else {
+          written.blankCells++; // blank, "-" and (unless confirmed) EX cells never overwrite a grade
         }
-        writes.push({ assessment: String(assessmentIdByKey.get(a.key)!), student: m.userId, score });
       }
     });
 
@@ -145,23 +219,23 @@ export async function runCanvasImport(
     const current = new Map(stored.map((g) => [`${g.student}:${g.assessment}`, g.score]));
     const titleByKeyId = new Map(payload.assessments.map((a) => [String(assessmentIdByKey.get(a.key)), a.title]));
     const changes = diffGrades(current, writes, (aid) => titleByKeyId.get(aid));
-    const ops = changes.map((c) => ({
-      updateOne: {
-        filter: { assessment: new Types.ObjectId(c.assessment), student: new Types.ObjectId(c.student) },
-        update: { $set: { score: c.after as number, offering: offering._id } },
-        upsert: true,
-      },
-    }));
+    const ops = changes.map((c) => {
+      const filter = { assessment: new Types.ObjectId(c.assessment), student: new Types.ObjectId(c.student) };
+      return c.action === "grade.clear"
+        ? { deleteOne: { filter } }
+        : { updateOne: { filter, update: { $set: { score: c.after as number, offering: offering._id } }, upsert: true } };
+    });
     if (ops.length) await Grade.bulkWrite(ops, opts);
-    written.gradesWritten = ops.length;
+    written.gradesCleared = changes.filter((c) => c.action === "grade.clear").length;
+    written.gradesWritten = ops.length - written.gradesCleared;
 
     const summaryEntry: AuditInput = { action: "canvas.import", after: { ...written, assessments: payload.assessments.map((a) => a.title) } };
-    await recordAudit([summaryEntry, ...changes], { offering: offering._id, actor, source: "canvas", batch: newBatchId() }, session);
+    await recordAudit([summaryEntry, ...assessmentAudit, ...changes], { offering: offering._id, actor, source: "canvas", batch: newBatchId() }, session);
 
     await recomputeOffering(offering._id, session);
     return written;
   };
 
   const { result: written, transactional } = await runInTransaction(write);
-  return { matches, summary, assessments: assessmentsPreview, written, transactional };
+  return { matches, summary, assessments: assessmentsPreview, checks, written, transactional };
 }

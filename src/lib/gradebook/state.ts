@@ -79,6 +79,22 @@ export function rebase(
   return { values: nextValues, baseline: { ...server } };
 }
 
+/** Blank cells of one assessment (for the given students), i.e. work not graded yet. */
+export function blankCells(values: Record<string, string>, assessmentId: string, studentIds: string[]): string[] {
+  return studentIds.map((s) => cellKey(s, assessmentId)).filter((k) => (values[k] ?? "").trim() === "");
+}
+
+/**
+ * "Count blanks as 0": every blank cell of the assessment becomes "0". Attainment only counts graded
+ * work, so until then a student who never handed it in is judged on the rest (proposal §1.3 step 3).
+ */
+export function fillBlanks(values: Record<string, string>, assessmentId: string, studentIds: string[]): { next: Record<string, string>; changed: string[] } {
+  const changed = blankCells(values, assessmentId, studentIds);
+  const next = { ...values };
+  for (const k of changed) next[k] = "0";
+  return { next, changed };
+}
+
 /** Live course grade for one student from the cells as typed (invalid cells are ignored). */
 export function previewCourseGrade(
   studentId: string,

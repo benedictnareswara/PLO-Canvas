@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, ClipboardList, User } from "lucide-react";
 import { Button, NumberInput, Select, cn } from "@/components/ui";
 import { SegmentedControl } from "@/components/ui/client";
 import { cellKey } from "@/lib/gradebook/paste";
-import { MAX_SCORE_FACTOR } from "@/lib/gradebook/parse-score";
+import { MAX_SCORE_FACTOR, parseScore } from "@/lib/gradebook/parse-score";
 import type { OfferingAssessmentView } from "@/lib/obe/queries";
 import type { StudentSummary } from "@/lib/obe/types";
 import type { GradebookState } from "./useGradebookState";
@@ -21,11 +21,15 @@ export function MobileGrader({
   assessments,
   state,
   canEdit,
+  onCountBlanksAsZero,
+  blanksByAssessment,
 }: {
   students: StudentSummary[];
   assessments: OfferingAssessmentView[];
   state: GradebookState;
   canEdit: boolean;
+  onCountBlanksAsZero?: (assessmentId: string) => void;
+  blanksByAssessment?: Map<string, number>;
 }) {
   const t = useTranslations("gradebook");
   const [mode, setMode] = useState<"assessment" | "student">("assessment");
@@ -60,6 +64,11 @@ export function MobileGrader({
               {t(`errors.${error}`, { max: a.maxPoints * MAX_SCORE_FACTOR })}
             </span>
           )}
+          {!error && (parseScore(state.values[key] ?? "") ?? 0) > a.maxPoints && (
+            <span id={`${id}-err`} className="mt-0.5 block text-xs font-medium text-warn">
+              {t("aboveMax", { max: a.maxPoints })}
+            </span>
+          )}
         </label>
         <div className="flex items-center gap-1.5">
           <div className="relative">
@@ -73,7 +82,7 @@ export function MobileGrader({
               enterKeyHint={isLast ? "done" : "next"}
               readOnly={!canEdit}
               invalid={!!error}
-              aria-describedby={error ? `${id}-err` : undefined}
+              aria-describedby={error || (parseScore(state.values[key] ?? "") ?? 0) > a.maxPoints ? `${id}-err` : undefined}
               className={cn("h-11 w-24 text-base", dirty && !error && "border-warn")}
             />
           </div>
@@ -108,6 +117,11 @@ export function MobileGrader({
               ))}
             </Select>
           </label>
+          {canEdit && onCountBlanksAsZero && (blanksByAssessment?.get(assessment.id) ?? 0) > 0 && (
+            <Button variant="secondary" className="h-11 w-full" onClick={() => onCountBlanksAsZero(assessment.id)}>
+              {t("blanksFillOne", { count: blanksByAssessment?.get(assessment.id) ?? 0 })}
+            </Button>
+          )}
           <div ref={listRef} className="overflow-hidden rounded-xl border border-border bg-surface">
             {students.map((s, i) => {
               const grade = state.preview(s.id);

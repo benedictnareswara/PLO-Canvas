@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Badge, Button, NumberInput, cn } from "@/components/ui";
 import { parseScore } from "@/lib/gradebook/parse-score";
+import { RANGES, clamp } from "@/lib/ranges";
 import type { PloInfo } from "@/lib/obe/types";
 
 export interface WeightValue {
@@ -50,7 +51,9 @@ export function PloWeightEditor({
     else onChange(value.filter((v) => v.plo !== plo));
   }
   function setWeight(plo: string, weight: number) {
-    onChange(value.map((v) => (v.plo === plo ? { ...v, weight } : v)));
+    // A PLO weight is a share of the assessment: 0–100%, never negative.
+    const w = Number.isNaN(weight) ? weight : clamp(weight, RANGES.percent);
+    onChange(value.map((v) => (v.plo === plo ? { ...v, weight: w } : v)));
   }
 
   // Course PLOs first: they're the ones the curriculum expects this course to assess.
@@ -95,6 +98,7 @@ export function PloWeightEditor({
                     aria-label={t("weightFor", { plo: p.code })}
                     className="h-8 w-16 px-2"
                     value={Number.isFinite(weight) ? String(weight) : ""}
+                    max={RANGES.percent.max}
                     onChange={(e) => {
                       const n = parseScore(e.target.value);
                       setWeight(p.id, n === null ? NaN : n);

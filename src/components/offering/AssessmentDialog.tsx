@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button, Field, Input, NumberInput } from "@/components/ui";
 import { Dialog, apiFetch } from "@/components/ui/client";
 import { parseScore } from "@/lib/gradebook/parse-score";
+import { RANGES } from "@/lib/ranges";
 import type { OfferingAssessmentView, OfferingDetail } from "@/lib/obe/queries";
 import { PloWeightEditor, type WeightValue } from "./PloWeightEditor";
 
@@ -19,6 +20,7 @@ export function AssessmentDialog({
   detail,
   assessment,
   presetPlo,
+  mappingOnly = false,
   onClose,
   onSaved,
 }: {
@@ -26,6 +28,8 @@ export function AssessmentDialog({
   assessment: OfferingAssessmentView | null;
   /** PLO to pre-select at 100% (from "Add an assessment for PLO 9"). */
   presetPlo?: string;
+  /** Faculty head review (FR-26, UC-08): only the PLO weights can be changed. */
+  mappingOnly?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -50,9 +54,12 @@ export function AssessmentDialog({
   const gw = parseScore(gradeWeight || "0");
   const errors: Partial<Record<FieldName, string>> = {};
   if (!title.trim()) errors.title = t("errors.title");
-  if (max === null || Number.isNaN(max) || !(max > 0)) errors.maxPoints = t("errors.maxPoints");
-  if (gw === null || Number.isNaN(gw) || gw < 0 || gw > 100) errors.gradeWeight = t("errors.gradeWeight");
+  if (max === null || Number.isNaN(max) || max < RANGES.maxPoints.min || max > RANGES.maxPoints.max) {
+    errors.maxPoints = t("errors.maxPoints", { max: RANGES.maxPoints.max });
+  }
+  if (gw === null || Number.isNaN(gw) || gw < RANGES.percent.min || gw > RANGES.percent.max) errors.gradeWeight = t("errors.gradeWeight");
   if (weights.some((w) => !(w.weight > 0) || w.weight > 100)) errors.weights = t("errors.weights");
+  else if (Math.abs(weights.reduce((s, w) => s + w.weight, 0) - 100) >= 0.01) errors.weights = t("errors.weightsTotal");
 
   const show = (f: FieldName) => (attempted || touched.has(f) ? errors[f] : undefined);
   const touch = (f: FieldName) => setTouched((s) => new Set(s).add(f));
@@ -74,7 +81,7 @@ export function AssessmentDialog({
     try {
       await apiFetch(`/api/offerings/${detail.id}/assessments${assessment ? `/${assessment.id}` : ""}`, {
         method: assessment ? "PATCH" : "POST",
-        body: { title: title.trim(), maxPoints: max, gradeWeight: gw, ploWeights: weights },
+        body: mappingOnly ? { ploWeights: weights } : { title: title.trim(), maxPoints: max, gradeWeight: gw, ploWeights: weights },
       });
       toast.success(assessment ? t("updated", { title: title.trim() }) : t("created", { title: title.trim() }), { description: t("recalculated") });
       onSaved();
@@ -94,8 +101,8 @@ export function AssessmentDialog({
       dirty={dirty && !saving}
       size="lg"
       variant="sheet"
-      title={assessment ? t("editTitle") : t("newTitle")}
-      description={t("description")}
+      title={mappingOnly ? t("mappingTitle", { title: assessment?.title ?? "" }) : assessment ? t("editTitle") : t("newTitle")}
+      description={mappingOnly ? t("mappingDescription") : t("description")}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -134,6 +141,7 @@ export function AssessmentDialog({
               onChange={(e) => setTitle(e.target.value)}
               onBlur={() => touch("title")}
               placeholder={t("titlePlaceholder")}
+              readOnly={mappingOnly}
               invalid={!!show("title")}
               aria-describedby={show("title") ? `${fieldIds.title}-error` : undefined}
               data-autofocus
@@ -145,6 +153,7 @@ export function AssessmentDialog({
               value={maxPoints}
               onChange={(e) => setMaxPoints(e.target.value)}
               onBlur={() => touch("maxPoints")}
+              readOnly={mappingOnly}
               invalid={!!show("maxPoints")}
               aria-describedby={show("maxPoints") ? `${fieldIds.maxPoints}-error` : undefined}
             />
@@ -155,6 +164,8 @@ export function AssessmentDialog({
               value={gradeWeight}
               onChange={(e) => setGradeWeight(e.target.value)}
               onBlur={() => touch("gradeWeight")}
+              readOnly={mappingOnly}
+              max={RANGES.percent.max}
               invalid={!!show("gradeWeight")}
               aria-describedby={show("gradeWeight") ? `${fieldIds.gradeWeight}-error` : undefined}
             />
@@ -171,6 +182,7 @@ export function AssessmentDialog({
               touch("weights");
             }}
             highlight={detail.coursePloNumbers}
+            requireTotal100
             invalid={!!show("weights")}
           />
           {show("weights") && <p className="mt-1.5 text-xs font-medium text-risk">{show("weights")}</p>}

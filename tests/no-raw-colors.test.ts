@@ -29,7 +29,8 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe("no raw colours in components", () => {
-  const files = sourceFiles(SRC).filter((f) => !ALLOWED_FILES.has(path.relative(SRC, f)));
+  // Forward slashes, so the allow-list also matches on Windows (path.relative uses "\\" there).
+  const files = sourceFiles(SRC).filter((f) => !ALLOWED_FILES.has(path.relative(SRC, f).split(path.sep).join("/")));
 
   it("finds source files", () => {
     expect(files.length).toBeGreaterThan(20);

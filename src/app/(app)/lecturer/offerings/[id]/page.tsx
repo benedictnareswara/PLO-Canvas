@@ -20,7 +20,13 @@ export default async function OfferingPage({ params }: Props) {
   const { id } = await params;
   const user = await requirePageUser("lecturer", "faculty_head");
   if (!(await canAccessOffering(user, id, "read"))) notFound();
-  const [detail, canEdit, t] = await Promise.all([getOfferingDetail(id), canAccessOffering(user, id, "write"), getTranslations()]);
+  const [detail, canEdit, canEditMapping, t] = await Promise.all([
+    getOfferingDetail(id),
+    canAccessOffering(user, id, "write"),
+    // FR-26 / UC-08: a faculty head reviewing a department class may correct its PLO weights.
+    canAccessOffering(user, id, "mapping"),
+    getTranslations(),
+  ]);
   if (!detail) notFound();
 
   return (
@@ -37,12 +43,12 @@ export default async function OfferingPage({ params }: Props) {
             <span>{detail.lecturers.map((l) => l.name).join(", ")}</span>
             <span aria-hidden>·</span>
             <span>{t("offering.target", { value: detail.threshold })}</span>
-            {!canEdit && <Badge tone="info">{t("offering.readOnly")}</Badge>}
+            {!canEdit && <Badge tone="info">{canEditMapping ? t("offering.mappingReview") : t("offering.readOnly")}</Badge>}
           </span>
         }
         actions={<OfferingActions detail={detail} canEdit={canEdit} />}
       />
-      <OfferingWorkspace detail={detail} canEdit={canEdit} />
+      <OfferingWorkspace detail={detail} canEdit={canEdit} canEditMapping={canEditMapping} />
     </>
   );
 }

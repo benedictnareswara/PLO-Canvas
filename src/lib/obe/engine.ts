@@ -24,15 +24,27 @@ export function scorePercentage(score: number, maxPoints: number): number {
 }
 
 /**
- * (2) Course-level PLO attainment for one student:
- *   PLO_c,k = Σ_a ScorePct_a × w_a,k
- * where the weights w_a,k of PLO k must sum to 100% across the course.
+ * Weight of one assessment's PLO mapping: effective weight = share of course grade × PLO weight
+ * (proposal §1.3, step 2). The share (`gradeWeight`) only takes part when the course has shares
+ * configured at all; if no assessment has a share, every assessment counts with share 1, so
+ * courses that only use PLO weights keep working.
+ */
+function shareOf<K extends string | number>(a: AssessmentInput<K>, useShares: boolean): number {
+  return useShares ? Math.max(0, a.gradeWeight ?? 0) : 1;
+}
+
+function sharesConfigured<K extends string | number>(assessments: AssessmentInput<K>[]): boolean {
+  return assessments.some((a) => (a.gradeWeight ?? 0) > 0);
+}
+
+/**
+ * (2) Course-level PLO attainment for one student (proposal §1.3, steps 2 and 3):
+ *   effective weight_a,k = share_a × PLO weight_a,k
+ *   PLO_c,k = Σ_a (effective weight_a,k × ScorePct_a) / Σ_a effective weight_a,k
  *
- * Lecturers enter weights per assessment (e.g. "60% PLO 4 / 40% PLO 7"), so the
- * weights of a PLO are normalized over the *graded* assessments that map to it:
- *   PLO_c,k = Σ_a ScorePct_a × w_a,k / Σ_a w_a,k
- * This is identical to the spec formula whenever the weights already sum to 100,
- * and it skips ungraded assessments so in-progress courses are not penalized.
+ * Only *graded* assessments take part, in both the numerator and the denominator, so an
+ * in-progress course is judged on what has been assessed so far and is not penalized.
+ * An assessment without a share counts as 0 once any assessment in the course has a share.
  *
  * @param scores assessmentId → raw score (missing/undefined = not graded)
  * @returns PLO key → attainment (0–100); PLOs with no graded evidence are omitted
@@ -42,21 +54,22 @@ export function coursePloAttainment<K extends string | number>(
   scores: Map<string, number | undefined> | Record<string, number | undefined>,
 ): Map<K, number> {
   const get = (id: string) => (scores instanceof Map ? scores.get(id) : scores[id]);
+  const useShares = sharesConfigured(assessments);
   const acc = new Map<K, { sum: number; weight: number }>();
-
   for (const a of assessments) {
     const score = get(a.id);
     if (score === undefined || score === null || Number.isNaN(score)) continue;
     const pct = scorePercentage(score, a.maxPoints);
+    const share = shareOf(a, useShares);
     for (const { plo, weight } of a.ploWeights) {
-      if (!(weight > 0)) continue;
+      const eff = share * weight;
+      if (!(eff > 0)) continue;
       const cur = acc.get(plo) ?? { sum: 0, weight: 0 };
-      cur.sum += pct * weight;
-      cur.weight += weight;
+      cur.sum += pct * eff;
+      cur.weight += eff;
       acc.set(plo, cur);
     }
   }
-
   const out = new Map<K, number>();
   for (const [plo, { sum, weight }] of acc) {
     if (weight > 0) out.set(plo, sum / weight);
@@ -65,24 +78,29 @@ export function coursePloAttainment<K extends string | number>(
 }
 
 /**
- * Effective (normalized) weight of each assessment per PLO, i.e. w_a,k such that
- * Σ_a w_a,k = 100 for every PLO k. Used to show lecturers the real contribution.
+ * Effective weight of each assessment per PLO, scaled so that Σ_a w_a,k = 100 for every PLO k
+ * (share × PLO weight, then normalized). This is what the Assessments tab shows lecturers.
  */
 export function effectivePloWeights<K extends string | number>(
   assessments: AssessmentInput<K>[],
 ): Map<K, Map<string, number>> {
+  const useShares = sharesConfigured(assessments);
+  const raw = (a: AssessmentInput<K>, weight: number) => shareOf(a, useShares) * weight;
   const totals = new Map<K, number>();
   for (const a of assessments)
-    for (const { plo, weight } of a.ploWeights)
-      if (weight > 0) totals.set(plo, (totals.get(plo) ?? 0) + weight);
+    for (const { plo, weight } of a.ploWeights) {
+      const eff = raw(a, weight);
+      if (eff > 0) totals.set(plo, (totals.get(plo) ?? 0) + eff);
+    }
 
   const out = new Map<K, Map<string, number>>();
   for (const a of assessments) {
     for (const { plo, weight } of a.ploWeights) {
+      const eff = raw(a, weight);
       const total = totals.get(plo);
-      if (!(weight > 0) || !total) continue;
+      if (!(eff > 0) || !total) continue;
       if (!out.has(plo)) out.set(plo, new Map());
-      out.get(plo)!.set(a.id, (weight / total) * 100);
+      out.get(plo)!.set(a.id, (eff / total) * 100);
     }
   }
   return out;

@@ -266,7 +266,8 @@
       "saved": "Target set to {value}%",
       "reset": "Reset to {value}%"
     },
-    "printReport": "Print report"
+    "printReport": "Print report",
+    "mappingReview": "PLO mapping review"
   },
   "gradebook": {
     "student": "Student",
@@ -323,7 +324,14 @@
     "previousStudent": "Previous student",
     "nextStudent": "Next student",
     "studentPosition": "Student {index} of {total}",
-    "historyHint": "<kbd>{history}</kbd> or right-click a cell shows its history"
+    "historyHint": "<kbd>{history}</kbd> or right-click a cell shows its history",
+    "aboveMax": "Above the maximum of {max}. Allowed as extra credit; check the score isn't on another scale.",
+    "blanksMenu": "Count blank scores as 0",
+    "blanksButton": "Count blanks as 0",
+    "blanksCount": "{count, plural, =0 {no blanks} one {# blank} other {# blanks}}",
+    "blanksFilled": "{count, plural, one {# blank score} other {# blank scores}} in “{title}” set to 0",
+    "blanksFilledHint": "Missing work now counts as 0. Review, then save; each change is recorded in the history.",
+    "blanksFillOne": "Count {count, plural, one {# blank} other {# blanks}} as 0"
   },
   "weights": {
     "coursePlo": "course PLO",
@@ -337,13 +345,13 @@
     "add": "Add assessment",
     "addForPlo": "Add an assessment for {plo}",
     "unmeasured": "The curriculum maps {list} to this course, but no assessment measures {count, plural, one {it} other {them}} yet.",
-    "weightTotal": "Grade weights total {total}%",
-    "weightNormalized": "weights are scaled to 100% when computing the course grade",
+    "weightTotal": "Shares of the course grade total {total}%",
+    "weightNormalized": "shares are scaled to 100% when computing",
     "emptyTitle": "No assessments yet",
     "emptyBody": "Assessments are what PLO attainment is measured from. Add one, or import a Canvas gradebook.",
     "colTitle": "Assessment",
     "colMax": "Max points",
-    "colWeight": "Grade weight",
+    "colWeight": "Share of grade",
     "colPlos": "PLO weights",
     "colSource": "Source",
     "colActions": "Actions",
@@ -360,18 +368,18 @@
     "deleted": "Deleted “{title}”",
     "recalculated": "PLO attainment was recalculated.",
     "matrixTitle": "Effective PLO weight matrix",
-    "matrixDescription": "Each column is scaled to 100%. This is w(a,k) in PLO(c,k) = Σ ScorePct(a) × w(a,k).",
+    "matrixDescription": "Effective weight = share of the course grade × PLO weight, with each column scaled to 100%. A PLO's course attainment is Σ(effective weight × score %) over the graded assessments.",
     "total": "Total",
     "dialog": {
       "newTitle": "New assessment",
       "editTitle": "Edit assessment",
-      "description": "Weights say how much this assessment contributes to each PLO. For each PLO, weights are scaled across the course's assessments.",
+      "description": "An assessment has two weights. Its share of the course grade says how much it counts in the course; its PLO weights split it across PLOs and must total 100%. The two are multiplied into the effective weight.",
       "title": "Title",
       "titlePlaceholder": "e.g. Midterm Exam (UTS)",
       "maxPoints": "Max points",
-      "gradeWeight": "Grade weight %",
+      "gradeWeight": "Share of grade (%)",
       "mapping": "PLO mapping and weights",
-      "mappingHint": "Course PLOs are listed first.",
+      "mappingHint": "Course PLOs are listed first. The weights must total 100%.",
       "cancel": "Cancel",
       "save": "Save assessment",
       "summaryTitle": "There's a problem",
@@ -381,11 +389,19 @@
       "recalculated": "PLO attainment was recalculated.",
       "errors": {
         "title": "Enter a title",
-        "maxPoints": "Max points must be a number greater than 0",
-        "gradeWeight": "Grade weight must be a number from 0 to 100",
-        "weights": "Every selected PLO needs a weight greater than 0%"
-      }
-    }
+        "maxPoints": "Max points must be a number greater than 0 and at most {max}",
+        "gradeWeight": "Share of grade must be a number from 0 to 100",
+        "weights": "Every selected PLO needs a weight greater than 0%",
+        "weightsTotal": "Each assessment’s PLO weights must total 100%"
+      },
+      "mappingTitle": "PLO weights of “{title}”",
+      "mappingDescription": "Correct the PLOs this assessment measures and their weights (total 100%). The title, max points and share of the grade stay as the lecturer set them. The change is recorded in the class history."
+    },
+    "reviewNotice": "You can review this class's PLO mapping and correct the weights of an assessment. Each change is recorded in the class history and attainment is recalculated. Grades and the other assessment settings stay with the class's lecturers.",
+    "outsideCourse": "{count, plural, one {# assessment is} other {# assessments are}} mapped to a PLO the course doesn't list (course PLOs: {list}). Check that the mapping is intended.",
+    "notCoursePlo": "Not one of this course's PLOs",
+    "editMapping": "Edit PLO weights",
+    "editMappingNamed": "Edit the PLO weights of {title}"
   },
   "importer": {
     "title": "Import Canvas gradebook",
@@ -419,7 +435,7 @@
     "colMax": "Max pts",
     "colGraded": "Graded",
     "colMapping": "PLO mapping and weights",
-    "colWeight": "Grade wt %",
+    "colWeight": "Share of grade %",
     "importNamed": "Import {title}",
     "titleFor": "Title for {title}",
     "maxFor": "Max points for {title}",
@@ -464,14 +480,28 @@
       "updated": "Assessments updated",
       "grades": "Grades written",
       "blank": "Blank or excused cells skipped",
-      "enrolled": "{count, plural, one {# student enrolled} other {# students enrolled}}"
+      "enrolled": "{count, plural, one {# student enrolled} other {# students enrolled}}",
+      "cleared": "{count, plural, one {# excused grade removed} other {# excused grades removed}}"
     },
     "warnings": {
       "csvRow": "CSV row {row}: {message}",
       "noCanvasId": "Column “{column}” has no Canvas ID, so it will be matched by its title.",
       "noSisColumn": "No “SIS Login ID” or “SIS User ID” column was found, so students can't be matched automatically.",
       "noPointsPossible": "No “Points Possible” row was found. Enter the max points for each assignment yourself.",
-      "noStudents": "No student rows were found."
+      "noStudents": "No student rows were found.",
+      "negativeScores": "{count, plural, one {# cell has} other {# cells have}} a negative score. Scores can't be negative, so {count, plural, one {it is} other {they are}} skipped."
+    },
+    "checks": {
+      "changesTitle": "This import changes the settings of existing assessments:",
+      "changesItem": "{title}: {fields}",
+      "fields": {
+        "ploWeights": "PLO weights",
+        "gradeWeight": "share of grade",
+        "maxPoints": "max points"
+      },
+      "aboveMax": "{count, plural, one {# score is} other {# scores are}} above the assignment's max points (up to 150% is allowed as extra credit). Check that the file uses points, not percentages.",
+      "excused": "{count, plural, one {# cell is} other {# cells are}} marked EX (excused) in Canvas but already {count, plural, one {has a grade} other {have grades}} here. By default the existing grade is kept.",
+      "clearExcused": "Remove {count, plural, one {this grade} other {these # grades}}, so excused work isn't counted (recorded in the history)"
     }
   },
   "history": {
@@ -718,7 +748,10 @@
         "choose": "Choose an option for {field}",
         "email": "Enter an email address like name@sampoerna.ac.id",
         "number": "{field} must be a number",
-        "password": "Passwords need at least 8 characters"
+        "password": "Passwords need at least 8 characters",
+        "range": "{field} must be from {min} to {max}",
+        "rangeInteger": "{field} must be a whole number from {min} to {max}",
+        "integer": "{field} must be a whole number"
       }
     },
     "pages": {
@@ -815,7 +848,9 @@
       "odd": "Odd (Ganjil)",
       "even": "Even (Genap)",
       "threshold": "Passing threshold (%)",
-      "unassignedOnly": "Without lecturer ({count})"
+      "unassignedOnly": "Without lecturer ({count})",
+      "thresholdDefault": "Curriculum default",
+      "thresholdHint": "Leave blank to use the curriculum's default target."
     },
     "roster": {
       "title": "Class roster",

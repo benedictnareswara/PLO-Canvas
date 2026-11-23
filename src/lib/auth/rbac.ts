@@ -95,13 +95,16 @@ async function departmentOfOffering(offeringId: string): Promise<string | null> 
   return curriculum ? String(curriculum.department) : null;
 }
 
-export type AccessMode = "read" | "write";
+export type AccessMode = "read" | "write" | "mapping";
 
 /**
  * Offering access:
  *  - assigned lecturers: read + write
  *  - superadmin: read + write
- *  - faculty head of the offering's department: read only
+ *  - faculty head of the offering's department: read, plus "mapping": review and edit the PLO
+ *    weights of its assessments (FR-26, UC-08). Grades, other assessment fields, the threshold and
+ *    imports stay with the class's lecturers.
+ * "write" implies "mapping".
  */
 export async function canAccessOffering(user: CurrentUser, offeringId: string, mode: AccessMode): Promise<boolean> {
   if (!/^[a-f0-9]{24}$/i.test(offeringId)) return false;
@@ -109,7 +112,7 @@ export async function canAccessOffering(user: CurrentUser, offeringId: string, m
   const offering = await CourseOffering.findById(offeringId).select("lecturers").lean();
   if (!offering) return false;
   if (hasRole(user, "lecturer", "faculty_head") && offering.lecturers.some((l) => String(l) === user.id)) return true;
-  if (mode === "read" && hasRole(user, "faculty_head")) {
+  if ((mode === "read" || mode === "mapping") && hasRole(user, "faculty_head")) {
     return (await departmentOfOffering(offeringId)) === user.department;
   }
   return false;

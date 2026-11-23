@@ -64,6 +64,7 @@ export function SettingsTab({ detail }: { detail: OfferingDetail }) {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 invalid={!valid}
+                max={100}
                 aria-describedby="threshold-preview"
                 className="w-20"
               />

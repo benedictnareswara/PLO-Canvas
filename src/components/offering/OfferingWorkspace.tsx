@@ -16,7 +16,7 @@ import { HistoryTab } from "./tabs/HistoryTab";
 import { RadarTab } from "./tabs/RadarTab";
 import { SettingsTab } from "./tabs/SettingsTab";
 
-export function OfferingWorkspace({ detail, canEdit }: { detail: OfferingDetail; canEdit: boolean }) {
+export function OfferingWorkspace({ detail, canEdit, canEditMapping = canEdit }: { detail: OfferingDetail; canEdit: boolean; canEditMapping?: boolean }) {
   const t = useTranslations("offering.tabs");
   return (
     <Tabs
@@ -32,7 +32,7 @@ export function OfferingWorkspace({ detail, canEdit }: { detail: OfferingDetail;
               {t("assessments")} <span className="ml-1 text-xs text-muted tabular">{detail.assessments.length}</span>
             </>
           ),
-          content: <AssessmentsTab detail={detail} canEdit={canEdit} />,
+          content: <AssessmentsTab detail={detail} canEdit={canEdit} canEditMapping={canEditMapping} />,
         },
         { key: "history", label: t("history"), content: <HistoryTab detail={detail} /> },
         ...(canEdit ? [{ key: "settings", label: t("settings"), content: <SettingsTab detail={detail} /> }] : []),

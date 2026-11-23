@@ -26,10 +26,12 @@ export interface CanvasStudentRow {
   sisLoginId: string;
   section: string;
   scores: Record<string, number | null>;
+  /** Keys of the cells marked EX (excused). Their score is null like a blank, but they are kept apart. */
+  excused: string[];
 }
 
 export interface ParseWarning {
-  code: "csvRow" | "noCanvasId" | "noSisColumn" | "noPointsPossible" | "noStudents";
+  code: "csvRow" | "noCanvasId" | "noSisColumn" | "noPointsPossible" | "noStudents" | "negativeScores";
   params?: Record<string, string | number>;
 }
 
@@ -41,7 +43,9 @@ export interface ParsedCanvasGradebook {
   warnings: ParseWarning[];
 }
 
-const IDENTITY_COLUMNS: Record<string, keyof Omit<CanvasStudentRow, "scores"> | null> = {
+type IdentityField = keyof Omit<CanvasStudentRow, "scores" | "excused">;
+
+const IDENTITY_COLUMNS: Record<string, IdentityField | null> = {
   student: "name",
   id: "canvasUserId",
   "sis user id": "sisUserId",
@@ -57,10 +61,16 @@ const COMPUTED_HEADER = /\b(current|final|unposted)\b.*\b(score|points|grade)\b/
 
 const isTestStudent = (name: string) => /^(student,\s*test|test student)$/i.test(name.trim());
 
-/** Parses one gradebook cell. Blank, "-", "EX" (excused) and unknown text → null (no grade). */
+/** Canvas marks an excused assignment with "EX": it is left out of that student's grade. */
+export const isExcusedCell = (raw: string | undefined) => /^ex(cused)?$/i.test((raw ?? "").trim());
+
+/** A cell holding a negative number. Scores can't be negative, so these are skipped and reported. */
+const isNegativeCell = (raw: string | undefined) => /^-\s*\d/.test((raw ?? "").trim());
+
+/** Parses one gradebook cell. Blank, "-", "EX" (excused), negative numbers and unknown text → null (no grade). */
 export function parseScoreCell(raw: string | undefined, maxPoints: number | null): number | null {
   const v = (raw ?? "").trim();
-  if (!v || v === "-" || /^ex(cused)?$/i.test(v)) return null;
+  if (!v || v === "-" || isExcusedCell(v)) return null;
   if (/^(complete|pass)$/i.test(v)) return maxPoints ?? null;
   if (/^(incomplete|fail)$/i.test(v)) return 0;
   const n = Number(v.replace(/,/g, ""));
@@ -74,7 +84,7 @@ export function parseCanvasGradebook(csvText: string): ParsedCanvasGradebook {
   if (data.length < 2) throw new Error("The file has no data rows. Is this a Canvas gradebook export?");
 
   const header = data[0].map((h) => h.trim());
-  const identityIdx = new Map<number, keyof Omit<CanvasStudentRow, "scores"> | null>();
+  const identityIdx = new Map<number, IdentityField | null>();
   const assignmentIdx: { idx: number; key: string; title: string; canvasId: string | null }[] = [];
   const skippedColumns: string[] = [];
 
@@ -121,17 +131,22 @@ export function parseCanvasGradebook(csvText: string): ParsedCanvasGradebook {
     gradedCount: 0,
   }));
 
+  let negativeCells = 0;
   const students = studentRows.map((row) => {
-    const student: CanvasStudentRow = { name: "", canvasUserId: "", sisUserId: "", sisLoginId: "", section: "", scores: {} };
+    const student: CanvasStudentRow = { name: "", canvasUserId: "", sisUserId: "", sisLoginId: "", section: "", scores: {}, excused: [] };
     for (const [idx, field] of identityIdx) if (field) student[field] = (row[idx] ?? "").trim();
     assignmentIdx.forEach((a, i) => {
-      const score = parseScoreCell(row[a.idx], assignments[i].maxPoints);
+      const raw = row[a.idx];
+      const score = parseScoreCell(raw, assignments[i].maxPoints);
       student.scores[a.key] = score;
       if (score !== null) assignments[i].gradedCount++;
+      if (isExcusedCell(raw)) student.excused.push(a.key);
+      if (isNegativeCell(raw)) negativeCells++;
     });
     return student;
   });
 
+  if (negativeCells) warnings.push({ code: "negativeScores", params: { count: negativeCells } });
   if (!maxPoints.size) warnings.push({ code: "noPointsPossible" });
   if (!students.length) warnings.push({ code: "noStudents" });
 

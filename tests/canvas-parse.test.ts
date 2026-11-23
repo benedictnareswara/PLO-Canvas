@@ -35,6 +35,21 @@ describe("parseCanvasGradebook", () => {
     expect(bunga.scores).toEqual({ "Proposal (50101)": null, "Literature Review (50102)": 72.5 });
   });
 
+  it("keeps EX (excused) cells apart from blanks", () => {
+    const [andi, bunga] = parsed.students;
+    expect(andi.excused).toEqual(["Literature Review (50102)"]);
+    expect(bunga.excused).toEqual([]);
+  });
+
+  it("skips negative scores and warns about them", () => {
+    const res = parseCanvasGradebook(`Student,ID,SIS User ID,SIS Login ID,Section,Quiz (1)
+    Points Possible,,,,,10.00
+"A, B",1,2023001,a@sampoerna.ac.id,S,-4
+`);
+    expect(res.students[0].scores).toEqual({ "Quiz (1)": null });
+    expect(res.warnings).toContainEqual({ code: "negativeScores", params: { count: 1 } });
+  });
+
   it("rejects files without a Student column", () => {
     expect(() => parseCanvasGradebook("a,b\n1,2\n")).toThrow(/Student/);
   });

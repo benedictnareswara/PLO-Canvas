@@ -11,9 +11,13 @@ import { effectivePloWeights } from "@/lib/obe/engine";
 import type { OfferingAssessmentView, OfferingDetail } from "@/lib/obe/queries";
 import { AssessmentDialog } from "../AssessmentDialog";
 
-type Editing = { assessment: OfferingAssessmentView | null; presetPlo?: string };
+type Editing = { assessment: OfferingAssessmentView | null; presetPlo?: string; mappingOnly?: boolean };
 
-export function AssessmentsTab({ detail, canEdit }: { detail: OfferingDetail; canEdit: boolean }) {
+/**
+ * `canEdit`: the class's lecturers (every field). `canEditMapping`: also a faculty head of the
+ * department, who may review and correct the PLO weights only (FR-26, UC-08).
+ */
+export function AssessmentsTab({ detail, canEdit, canEditMapping = canEdit }: { detail: OfferingDetail; canEdit: boolean; canEditMapping?: boolean }) {
   const t = useTranslations("assessments");
   const router = useRouter();
   const confirm = useConfirm();
@@ -21,11 +25,16 @@ export function AssessmentsTab({ detail, canEdit }: { detail: OfferingDetail; ca
   const [error, setError] = useState<string | null>(null);
   const ploById = new Map(detail.plos.map((p) => [p.id, p]));
   const ploByNumber = new Map(detail.plos.map((p) => [p.number, p]));
+  const mappingOnly = !canEdit && canEditMapping;
+  const showActions = canEdit || canEditMapping;
+  // A mapped PLO the course doesn't list is allowed, but it is flagged so a review catches it.
+  const outsideCourse = (n: number) => detail.coursePloNumbers.length > 0 && !detail.coursePloNumbers.includes(n);
+  const offCourse = detail.assessments.filter((a) => a.ploWeights.some((w) => outsideCourse(w.number)));
 
   const effective = useMemo(
     () =>
       effectivePloWeights(
-        detail.assessments.map((a) => ({ id: a.id, maxPoints: a.maxPoints, ploWeights: a.ploWeights.map((w) => ({ plo: w.number, weight: w.weight })) })),
+        detail.assessments.map((a) => ({ id: a.id, maxPoints: a.maxPoints, gradeWeight: a.gradeWeight, ploWeights: a.ploWeights.map((w) => ({ plo: w.number, weight: w.weight })) })),
       ),
     [detail.assessments],
   );
@@ -68,6 +77,15 @@ export function AssessmentsTab({ detail, canEdit }: { detail: OfferingDetail; ca
           }
         >
           {t("unmeasured", { count: unmeasured.length, list: unmeasured.map((n) => ploByNumber.get(n)?.code ?? n).join(", ") })}
+        </Notice>
+      )}
+      {mappingOnly && detail.assessments.length > 0 && <Notice tone="info">{t("reviewNotice")}</Notice>}
+      {offCourse.length > 0 && (
+        <Notice tone="warn">
+          {t("outsideCourse", {
+            count: offCourse.length,
+            list: detail.coursePloNumbers.map((n) => ploByNumber.get(n)?.code ?? `PLO ${n}`).join(", "),
+          })}
         </Notice>
       )}
       {error && <Notice tone="error">{error}</Notice>}
@@ -117,7 +135,7 @@ export function AssessmentsTab({ detail, canEdit }: { detail: OfferingDetail; ca
                 <Th className="text-right">{t("colWeight")}</Th>
                 <Th>{t("colPlos")}</Th>
                 <Th>{t("colSource")}</Th>
-                {canEdit && (
+                {showActions && (
                   <Th>
                     <span className="sr-only">{t("colActions")}</span>
                   </Th>
@@ -136,8 +154,13 @@ export function AssessmentsTab({ detail, canEdit }: { detail: OfferingDetail; ca
                       {[...a.ploWeights]
                         .sort((x, y) => x.number - y.number)
                         .map((w) => (
-                          <Badge key={w.plo} tone="info" title={ploById.get(w.plo)?.description}>
+                          <Badge
+                            key={w.plo}
+                            tone={outsideCourse(w.number) ? "warn" : "info"}
+                            title={outsideCourse(w.number) ? t("notCoursePlo") : ploById.get(w.plo)?.description}
+                          >
                             {ploById.get(w.plo)?.code ?? `PLO ${w.number}`} · {w.weight}%
+                            {outsideCourse(w.number) && <span className="sr-only"> ({t("notCoursePlo")})</span>}
                           </Badge>
                         ))}
                     </div>
@@ -145,6 +168,15 @@ export function AssessmentsTab({ detail, canEdit }: { detail: OfferingDetail; ca
                   <Td>
                     <Badge tone={a.source === "canvas" ? "brand" : "neutral"}>{a.source === "canvas" ? `Canvas ${a.canvasId ?? ""}` : t("manual")}</Badge>
                   </Td>
+                  {mappingOnly && (
+                    <Td className="text-right whitespace-nowrap">
+                      <Tooltip content={t("editMapping")}>
+                        <Button size="icon-sm" variant="ghost" onClick={() => setEditing({ assessment: a, mappingOnly: true })} aria-label={t("editMappingNamed", { title: a.title })}>
+                          <Pencil />
+                        </Button>
+                      </Tooltip>
+                    </Td>
+                  )}
                   {canEdit && (
                     <Td className="text-right whitespace-nowrap">
                       <Tooltip content={t("edit")}>
@@ -217,6 +249,7 @@ export function AssessmentsTab({ detail, canEdit }: { detail: OfferingDetail; ca
           detail={detail}
           assessment={editing.assessment}
           presetPlo={editing.presetPlo}
+          mappingOnly={editing.mappingOnly}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);

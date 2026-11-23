@@ -26,6 +26,9 @@ export type FieldDef = {
   when?: (values: Record<string, unknown>) => boolean;
   /** Omit from the request when empty (e.g. password on edit). */
   optional?: boolean;
+  /** Number fields: allowed range (inclusive) and whether only whole numbers are allowed. */
+  range?: { min: number; max: number };
+  integer?: boolean;
 };
 
 export interface Column<T> {
@@ -96,6 +99,15 @@ export function ResourceForm({
     if (f.required && empty) errors[f.name] = t(f.type === "multiselect" || f.type === "select" ? "errors.choose" : "errors.required", { field: f.label });
     else if (!empty && f.type === "email" && !EMAIL.test(String(v))) errors[f.name] = t("errors.email");
     else if (!empty && f.type === "number" && Number.isNaN(parseScore(String(v)) ?? NaN)) errors[f.name] = t("errors.number", { field: f.label });
+    else if (!empty && f.type === "number" && (f.range || f.integer)) {
+      const n = parseScore(String(v)) as number;
+      const outside = f.range && (n < f.range.min || n > f.range.max);
+      if (outside || (f.integer && !Number.isInteger(n))) {
+        errors[f.name] = f.range
+          ? t(f.integer ? "errors.rangeInteger" : "errors.range", { field: f.label, min: f.range.min, max: f.range.max })
+          : t("errors.integer", { field: f.label });
+      }
+    }
     else if (!empty && f.type === "password" && String(v).length < 8) errors[f.name] = t("errors.password");
   }
   const show = (name: string) => (attempted || touched.has(name) ? errors[name] : undefined);
@@ -223,7 +235,14 @@ export function ResourceForm({
                   ))}
                 </Select>
               ) : f.type === "number" ? (
-                <NumberInput {...common} className="text-left" value={String(values[f.name] ?? "")} placeholder={f.placeholder} onChange={(e) => set(f.name, e.target.value)} />
+                <NumberInput
+                  {...common}
+                  className="text-left"
+                  value={String(values[f.name] ?? "")}
+                  placeholder={f.placeholder}
+                  max={f.range?.max}
+                  onChange={(e) => set(f.name, e.target.value)}
+                />
               ) : (
                 <Input
                   {...common}
