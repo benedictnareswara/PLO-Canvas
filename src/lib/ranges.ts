@@ -16,9 +16,12 @@ export const RANGES = {
   totalSks: { min: 0, max: 400 },
   /** Recommended / student semester (proposal UC-03: 1 to 14). */
   semester: { min: 1, max: 14 },
-  /** PLO numbers (proposal §5.3 and Figure 19: 1 to 10). */
-  ploNumber: { min: 1, max: 10 },
+  /** PLO numbers: a curriculum can define up to 50 PLOs (the CS 2024 curriculum uses 10). */
+  ploNumber: { min: 1, max: 50 },
 } as const;
+
+/** Student number (NIM): digits only, so it can't be negative or contain other characters. */
+export const NIM_PATTERN = /^\d{1,20}$/;
 
 export type RangeName = keyof typeof RANGES;
 

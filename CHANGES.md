@@ -13,7 +13,7 @@ range checks were added to the models.
 | **Student accounts need a NIM, entry year and curriculum**; an advisor must be a lecturer. | UC-01 steps 2 and 5 | `validators.ts`, `resources.ts`, `AdminViews.tsx` |
 | **A new class takes the curriculum's default target** when none is given; only lecturers can be assigned. | UC-02 step 4 | `resources.ts`, `AdminViews.tsx` |
 | **Deactivated curricula aren't offered for new classes.** | UC-03 7a | `resources.ts` |
-| **PLO numbers are 1–10.** | §5.3, Figure 19 | `ranges.ts`, `validators.ts`, model |
+| **PLO numbers are 1–50** (a curriculum can have up to 50 PLOs; CS 2024 uses 10). | §5.3 | `ranges.ts`, `validators.ts`, model |
 | Assessments can only map to PLOs of the class's curriculum (manual create/edit, as the import already did). | UC-05 | `src/lib/obe/plo-scope.ts`, assessment routes |
 | Seed data scaled to 100% per assessment. **Re-run `npm run seed`** and re-check the README's at-risk cases. | FR-08 | `scripts/seed.ts` |
 | The dialog and matrix text explain the two weights (share vs PLO weight). | tester's "most confusing thing" | `messages/*.json` |
@@ -30,7 +30,8 @@ One table of limits, `src/lib/ranges.ts`, is used by the forms, the zod validato
 | Curriculum year, class academic year, entry year | 1990–2100, whole numbers |
 | SKS / total SKS | 0–24 / 0–400, whole numbers |
 | Semester | 1–14, whole numbers |
-| PLO number | 1–10, whole numbers |
+| PLO number | 1–50, whole numbers |
+| Student number (NIM) | digits only (no minus sign), up to 20 |
 
 - `NumberInput` drops a minus sign as it is typed or pasted. With `max`, it brings larger values down to the max (percent fields).
 - The gradebook cell editor also drops minus signs. A pasted negative is still marked invalid and can't be saved.

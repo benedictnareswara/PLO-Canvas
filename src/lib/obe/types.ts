@@ -8,7 +8,7 @@ export interface PloInfo {
   description: string;
 }
 
-/** PLO number (1–10) → attainment %, or null when there is no evidence yet. */
+/** PLO number (1–50) → attainment %, or null when there is no evidence yet. */
 export type PloValues = Record<number, number | null>;
 
 /** One course-level PLO attainment row (PLO_c,k for one student). */

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ROLES, TERMS } from "@/models";
-import { RANGES } from "@/lib/ranges";
+import { NIM_PATTERN, RANGES } from "@/lib/ranges";
 
 const { percent, maxPoints, year, sks, totalSks, semester, ploNumber } = RANGES;
 /** A percentage from 0 to 100. */
@@ -129,7 +129,13 @@ const userFields = z.object({
   roles: z.array(z.enum(ROLES)).min(1),
   password: z.string().min(8).max(200),
   department: objectId.nullable().optional(),
-  studentId: z.string().trim().max(40).nullable().optional(),
+  // Empty is allowed here (it means "no NIM", e.g. staff); a student must have one (see below).
+  studentId: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || NIM_PATTERN.test(v), "A student number (NIM) may contain digits only (up to 20)")
+    .nullable()
+    .optional(),
   cohortYear: calendarYear().nullable().optional(),
   curriculum: objectId.nullable().optional(),
   advisor: objectId.nullable().optional(),

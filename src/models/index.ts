@@ -1,6 +1,6 @@
 import mongoose, { Schema, model, models, type Model, Types } from "mongoose";
 import { LOCALES, type Locale } from "@/i18n/config";
-import { RANGES } from "@/lib/ranges";
+import { NIM_PATTERN, RANGES } from "@/lib/ranges";
 
 const { ObjectId } = Schema.Types;
 // Range checks only (no structural change): the same limits as the forms and API validators.
@@ -79,7 +79,7 @@ const userSchema = new Schema<UserDoc>(
     roles: { type: [{ type: String, enum: ROLES }], required: true },
     department: { type: ObjectId, ref: "Department" },
     // Student-only fields
-    studentId: { type: String, trim: true, sparse: true, unique: true },
+    studentId: { type: String, trim: true, sparse: true, unique: true, match: NIM_PATTERN },
     cohortYear: { type: Number, min: year.min, max: year.max },
     curriculum: { type: ObjectId, ref: "Curriculum" },
     advisor: { type: ObjectId, ref: "User" },

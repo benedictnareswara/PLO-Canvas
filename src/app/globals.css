@@ -51,10 +51,11 @@
   /* Text on a solid ok/risk/warn fill: those fills turn light in dark mode, so the text turns dark. */
   --solid-fg: light-dark(oklch(99% 0 0), oklch(18% 0.02 260));
 
-  /* Charts: Okabe-Ito derived (blue, orange, bluish green), re-tuned per scheme for ≥3:1 strokes. */
+  /* Charts: Okabe-Ito derived (blue, orange, bluish green, reddish purple), re-tuned per scheme for ≥3:1 strokes. */
   --chart-1: light-dark(oklch(52% 0.15 250), oklch(72% 0.13 245));
   --chart-2: light-dark(oklch(64% 0.17 50), oklch(76% 0.15 60));
   --chart-3: light-dark(oklch(56% 0.12 165), oklch(76% 0.13 165));
+  --chart-4: light-dark(oklch(52% 0.16 345), oklch(74% 0.14 345));
   --chart-grid: light-dark(oklch(89% 0.008 258), oklch(33% 0.014 258));
   --chart-axis: light-dark(oklch(38% 0.02 260), oklch(82% 0.012 258));
   --chart-tick: light-dark(oklch(53% 0.016 260), oklch(68% 0.014 258));

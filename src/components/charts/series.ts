@@ -1,12 +1,13 @@
 /**
  * Radar series styles. Each series differs by colour (Okabe-Ito derived, tuned per theme in
  * globals.css), by line dash and by marker shape, so series stay distinguishable without colour
- * (WCAG 1.4.1) and in greyscale print. A radar overlay is capped at three series.
+ * (WCAG 1.4.1) and in greyscale print. A radar overlay is capped at four series.
  */
 export const SERIES = [
   { color: "var(--chart-1)", dash: undefined, marker: "circle" },
   { color: "var(--chart-2)", dash: "7 3", marker: "square" },
   { color: "var(--chart-3)", dash: "2 3", marker: "triangle" },
+  { color: "var(--chart-4)", dash: "9 3 2 3", marker: "diamond" },
 ] as const;
 
 export type MarkerShape = (typeof SERIES)[number]["marker"];

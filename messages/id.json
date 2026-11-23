@@ -751,7 +751,8 @@
         "password": "Kata sandi minimal 8 karakter",
         "range": "{field} harus bernilai {min} sampai {max}",
         "rangeInteger": "{field} harus berupa bilangan bulat {min} sampai {max}",
-        "integer": "{field} harus berupa bilangan bulat"
+        "integer": "{field} harus berupa bilangan bulat",
+        "digits": "{field} hanya boleh berisi angka"
       }
     },
     "pages": {

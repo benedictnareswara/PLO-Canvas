@@ -6,6 +6,7 @@ import { atRiskPlos, summarizeCohorts, unpackSums } from "@/lib/obe/aggregate";
 import { isAtRisk } from "@/lib/obe/engine";
 import { PERIOD_FILTERS, type PeriodFilter } from "@/lib/obe/semesters";
 import { formatPct } from "@/components/AtRiskBadge";
+import { SERIES } from "@/components/charts/series";
 import { ReportRadar } from "@/components/reports/ReportRadar";
 import { ReportSection, ReportShell, ReportTable } from "@/components/reports/ReportShell";
 
@@ -15,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /** Department cohort report: cohort means per PLO and the students who need intervention. */
-export default async function CohortReport({ searchParams }: { searchParams: Promise<{ period?: string; threshold?: string }> }) {
+export default async function CohortReport({ searchParams }: { searchParams: Promise<{ period?: string; threshold?: string; cohorts?: string }> }) {
   const user = await requirePageUser("faculty_head", "superadmin");
   const sp = await searchParams;
   const t = await getTranslations("reports");
@@ -26,6 +27,9 @@ export default async function CohortReport({ searchParams }: { searchParams: Pro
   const threshold = Number.isFinite(asked) && asked >= 0 && asked <= 100 && sp.threshold ? asked : data.threshold;
   const cohorts = summarizeCohorts(data.students, unpackSums(data.sums), data.plos, threshold, period);
   const atRisk = cohorts.flatMap((c) => c.students).filter((s) => s.atRisk.length).sort((a, b) => b.atRisk.length - a.atRisk.length);
+  // Same cohorts as the dashboard's chips (?cohorts=2024,2025 or none), else the latest four.
+  const picked = sp.cohorts === "none" ? [] : sp.cohorts?.split(",").map(Number).filter(Number.isFinite);
+  const radarCohorts = (picked ? cohorts.filter((c) => picked.includes(c.year)) : cohorts).slice(-SERIES.length);
   const periodLabel = period === "all" ? tp("allLong") : period.startsWith("y") ? tp("yearLong", { n: period.slice(1) }) : tp("semesterN", { n: period.slice(1) });
 
   return (
@@ -39,12 +43,12 @@ export default async function CohortReport({ searchParams }: { searchParams: Pro
         <p className="text-sm">{t("cohort.summaryText", { students: data.students.length, cohorts: cohorts.length, atRisk: atRisk.length, target: threshold })}</p>
       </ReportSection>
 
-      {cohorts.length > 0 && (
+      {radarCohorts.length > 0 && (
         <ReportSection title={t("cohort.radar")}>
           <ReportRadar
             plos={data.plos}
             threshold={threshold}
-            series={cohorts.slice(-3).map((c) => ({ key: `c${c.year}`, label: `${t("classOf", { year: c.year })} (n=${c.students.length})`, values: c.mean }))}
+            series={radarCohorts.map((c) => ({ key: `c${c.year}`, label: `${t("classOf", { year: c.year })} (n=${c.students.length})`, values: c.mean }))}
           />
         </ReportSection>
       )}

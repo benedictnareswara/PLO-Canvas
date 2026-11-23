@@ -39,6 +39,7 @@ interface Datum {
 function Marker({ shape, x, y, r, color }: { shape: MarkerShape; x: number; y: number; r: number; color: string }) {
   const stroke = { fill: color, stroke: "var(--surface)", strokeWidth: 1.5 };
   if (shape === "square") return <rect x={x - r} y={y - r} width={r * 2} height={r * 2} {...stroke} />;
+  if (shape === "diamond") return <polygon points={`${x},${y - r * 1.3} ${x + r * 1.3},${y} ${x},${y + r * 1.3} ${x - r * 1.3},${y}`} {...stroke} />;
   if (shape === "triangle") return <polygon points={`${x},${y - r * 1.2} ${x + r * 1.1},${y + r * 0.8} ${x - r * 1.1},${y + r * 0.8}`} {...stroke} />;
   return <circle cx={x} cy={y} r={r} {...stroke} />;
 }

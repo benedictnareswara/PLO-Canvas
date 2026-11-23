@@ -13,7 +13,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "db:up": "docker compose up -d --wait"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",

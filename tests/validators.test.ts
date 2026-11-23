@@ -21,7 +21,9 @@ describe("validators: ranges and proposal rules", () => {
     expect(assessmentSchema.safeParse({ ...assessment, gradeWeight: -1 }).success).toBe(false);
     expect(assessmentSchema.safeParse({ ...assessment, gradeWeight: 101 }).success).toBe(false);
     expect(gradesSchema.safeParse({ grades: [{ student: id(1), assessment: id(2), score: -1 }] }).success).toBe(false);
-    expect(ploSchema.safeParse({ curriculum: id(1), number: 11, shortLabel: "x", description: "y" }).success).toBe(false);
+    expect(ploSchema.safeParse({ curriculum: id(1), number: 51, shortLabel: "x", description: "y" }).success).toBe(false);
+    expect(ploSchema.safeParse({ curriculum: id(1), number: 0, shortLabel: "x", description: "y" }).success).toBe(false);
+    expect(ploSchema.safeParse({ curriculum: id(1), number: 11, shortLabel: "x", description: "y" }).success).toBe(true);
     expect(curriculumSchema.safeParse({ name: "CS", year: 2024, totalSks: -1, department: id(1) }).success).toBe(false);
   });
 
@@ -37,5 +39,12 @@ describe("validators: ranges and proposal rules", () => {
     expect(userCreateSchema.safeParse(base).success).toBe(false);
     expect(userCreateSchema.safeParse({ ...base, studentId: "2026001", cohortYear: 2026, curriculum: id(3) }).success).toBe(true);
     expect(userCreateSchema.safeParse({ ...base, roles: ["lecturer"] }).success).toBe(true);
+  });
+
+  it("allows digits only in a NIM, so it can't be negative", () => {
+    const student = { email: "s@sampoerna.ac.id", name: "S", roles: ["student"], password: "Password123!", cohortYear: 2026, curriculum: id(3) };
+    expect(userCreateSchema.safeParse({ ...student, studentId: "-2026001" }).success).toBe(false);
+    expect(userCreateSchema.safeParse({ ...student, studentId: "2026-001" }).success).toBe(false);
+    expect(userCreateSchema.safeParse({ ...student, studentId: "2026001" }).success).toBe(true);
   });
 });

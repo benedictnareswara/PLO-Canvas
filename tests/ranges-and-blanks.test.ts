@@ -17,7 +17,7 @@ describe("number ranges", () => {
   });
 
   it("matches the proposal's limits", () => {
-    expect(RANGES.ploNumber).toEqual({ min: 1, max: 10 });
+    expect(RANGES.ploNumber).toEqual({ min: 1, max: 50 });
     expect(RANGES.semester).toEqual({ min: 1, max: 14 });
     expect(RANGES.maxPoints.min).toBeGreaterThan(0);
   });

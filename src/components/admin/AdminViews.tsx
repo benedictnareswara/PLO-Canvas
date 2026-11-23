@@ -492,7 +492,7 @@ export function UsersAdmin({ users, departments, curricula }: { users: UserRow[]
           { name: "isActive", label: t("accountActive"), type: "checkbox" },
           { name: "staffId", label: t("staffId"), when: isStaff },
           // UC-01: a student needs a student number (NIM), an entry year and a curriculum.
-          { name: "studentId", label: t("studentId"), when: isStudent, required: true },
+          { name: "studentId", label: t("studentId"), when: isStudent, required: true, digits: true },
           { name: "cohortYear", label: t("cohortYear"), type: "number", when: isStudent, required: true, range: RANGES.year, integer: true },
           { name: "curriculum", label: t("curriculum"), type: "select", options: opt(curricula, (c) => c.name), when: isStudent, required: true },
           { name: "advisor", label: t("advisor"), type: "select", options: opt(lecturers, (u) => u.name), when: isStudent },

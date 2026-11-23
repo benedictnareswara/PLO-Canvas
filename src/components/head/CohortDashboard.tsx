@@ -11,26 +11,35 @@ import { Printer } from "lucide-react";
 import { ButtonLink, Card, CardBody, CardHeader, SummaryStrip, Table, Td, Th, ToggleChip } from "@/components/ui";
 import { Tooltip } from "@/components/ui/client";
 import { downloadCsv, safeFilename, type ExportColumn } from "@/lib/export/csv";
-import { urlList, useUrlState } from "@/lib/hooks/useUrlState";
+import { urlSelection, useUrlState } from "@/lib/hooks/useUrlState";
 import { atRiskPlos, summarizeCohorts, unpackSums } from "@/lib/obe/aggregate";
 import type { StudentsWithRows } from "@/lib/obe/queries";
 import type { PloInfo } from "@/lib/obe/types";
 
-/** Cohort comparison: one radar polygon per graduation cohort (up to three overlaid). */
+/**
+ * Cohort comparison: one radar polygon per intake cohort, up to four overlaid (SERIES.length).
+ * Every cohort can be unticked; the chart then says to pick one.
+ */
 export function CohortDashboard({ data }: { data: StudentsWithRows }) {
   const t = useTranslations("analytics.cohort");
   const { period, setPeriod } = useAnalyticsFilters(data.threshold);
   const sums = useMemo(() => unpackSums(data.sums), [data.sums]);
   const cohorts = useMemo(() => summarizeCohorts(data.students, sums, data.plos, data.threshold, period), [data, sums, period]);
   const defaultCohorts = useMemo(() => cohorts.slice(-SERIES.length).map((c) => String(c.year)), [cohorts]);
-  const [selectedRaw, setSelected] = useUrlState<string[]>("cohorts", defaultCohorts, urlList);
-  const selected = selectedRaw.map(Number).filter((y) => cohorts.some((c) => c.year === y));
-  const shown = cohorts.filter((c) => selected.includes(c.year)).slice(0, SERIES.length);
+  const [selectedRaw, setSelected] = useUrlState<string[]>("cohorts", defaultCohorts, urlSelection);
+  const selected = selectedRaw
+    .map(Number)
+    .filter((y) => cohorts.some((c) => c.year === y))
+    .slice(0, SERIES.length);
+  const shown = cohorts.filter((c) => selected.includes(c.year));
 
   function toggle(year: number, on: boolean) {
-    const next = on ? [...selected, year].sort() : selected.filter((y) => y !== year);
+    if (on && selected.length >= SERIES.length) return;
+    const next = on ? [...selected, year].sort((a, b) => a - b) : selected.filter((y) => y !== year);
     setSelected(next.map(String));
   }
+  /** Students with any attainment in the chosen period (the radar's n). */
+  const withData = (c: (typeof cohorts)[number]) => c.students.filter((s) => Object.values(s.values).some((v) => v !== null)).length;
 
   const studentsAtRisk = cohorts.flatMap((c) => c.students).filter((s) => s.atRisk.length).length;
   const ploCode = (n: number) => data.plos.find((p) => p.number === n)?.code ?? `PLO ${n}`;
@@ -49,7 +58,7 @@ export function CohortDashboard({ data }: { data: StudentsWithRows }) {
     <div className="space-y-6">
       <FilterBar>
         <PeriodPicker value={period} onChange={setPeriod} />
-        <ButtonLink href={`/reports/cohort?period=${period}`} className="ml-auto">
+        <ButtonLink href={`/reports/cohort?period=${period}&cohorts=${urlSelection.serialize(selected.map(String))}`} className="ml-auto">
           <Printer aria-hidden /> {t("printReport")}
         </ButtonLink>
       </FilterBar>
@@ -102,7 +111,7 @@ export function CohortDashboard({ data }: { data: StudentsWithRows }) {
               plos={data.plos}
               threshold={data.threshold}
               height={440}
-              series={shown.map((c) => ({ key: `c${c.year}`, label: t("seriesLabel", { year: c.year, n: c.students.length }), values: c.mean }))}
+              series={shown.map((c) => ({ key: `c${c.year}`, label: t("seriesLabel", { year: c.year, n: withData(c) }), values: c.mean }))}
             />
           ) : (
             <p className="py-16 text-center text-sm text-muted">{t("pickCohort")}</p>

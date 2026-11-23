@@ -751,7 +751,8 @@
         "password": "Passwords need at least 8 characters",
         "range": "{field} must be from {min} to {max}",
         "rangeInteger": "{field} must be a whole number from {min} to {max}",
-        "integer": "{field} must be a whole number"
+        "integer": "{field} must be a whole number",
+        "digits": "{field} may contain digits only"
       }
     },
     "pages": {

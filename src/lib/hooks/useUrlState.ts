@@ -76,3 +76,12 @@ export const urlList = {
   parse: (raw: string) => raw.split(",").filter(Boolean),
   serialize: (list: string[]) => list.join(","),
 };
+
+/**
+ * A list where "nothing selected" is a real choice, distinct from "use the default". An empty
+ * list is written as `none`, because an empty value would drop the key and bring the default back.
+ */
+export const urlSelection = {
+  parse: (raw: string) => (raw === "none" ? [] : raw.split(",").filter(Boolean)),
+  serialize: (list: string[]) => (list.length ? list.join(",") : "none"),
+};

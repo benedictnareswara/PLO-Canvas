@@ -25,7 +25,7 @@ const TEXT: [string, string][] = [
 
 const UI: [string, string][] = [
   ...SURFACES.map((bg): [string, string] => ["border-input", bg]),
-  ...["chart-1", "chart-2", "chart-3", "chart-target"].map((c): [string, string] => [c, "surface"]),
+  ...["chart-1", "chart-2", "chart-3", "chart-4", "chart-target"].map((c): [string, string] => [c, "surface"]),
 ];
 
 describe("design token contrast", () => {

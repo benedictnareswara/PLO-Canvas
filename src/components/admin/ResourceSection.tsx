@@ -29,6 +29,8 @@ export type FieldDef = {
   /** Number fields: allowed range (inclusive) and whether only whole numbers are allowed. */
   range?: { min: number; max: number };
   integer?: boolean;
+  /** Text fields holding a number code (e.g. NIM): only digits can be typed, so no minus sign. */
+  digits?: boolean;
 };
 
 export interface Column<T> {
@@ -108,6 +110,7 @@ export function ResourceForm({
           : t("errors.integer", { field: f.label });
       }
     }
+    else if (!empty && f.digits && !/^\d+$/.test(String(v).trim())) errors[f.name] = t("errors.digits", { field: f.label });
     else if (!empty && f.type === "password" && String(v).length < 8) errors[f.name] = t("errors.password");
   }
   const show = (name: string) => (attempted || touched.has(name) ? errors[name] : undefined);
@@ -250,7 +253,9 @@ export function ResourceForm({
                   autoComplete={f.type === "password" ? "new-password" : f.type === "email" ? "off" : undefined}
                   value={String(values[f.name] ?? "")}
                   placeholder={f.placeholder}
-                  onChange={(e) => set(f.name, e.target.value)}
+                  inputMode={f.digits ? "numeric" : undefined}
+                  // Digit-only codes drop anything else as it is typed or pasted (e.g. "-").
+                  onChange={(e) => set(f.name, f.digits ? e.target.value.replace(/\D/g, "") : e.target.value)}
                 />
               )}
             </Field>
