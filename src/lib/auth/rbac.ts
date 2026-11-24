@@ -32,6 +32,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   await connectDB();
   const user = await User.findById(session.sub).lean();
   if (!user || user.isActive === false) return null;
+  // A password change ends every session issued before it (to the second, like the token's iat).
+  if (user.passwordChangedAt && (session.iat ?? 0) < Math.floor(new Date(user.passwordChangedAt).getTime() / 1000)) return null;
   return {
     id: String(user._id),
     email: user.email,

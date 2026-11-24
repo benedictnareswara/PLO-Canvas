@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ROLES, TERMS } from "@/models";
 import { NIM_PATTERN, RANGES } from "@/lib/ranges";
+import { LOCALES } from "@/i18n/config";
 
 const { percent, maxPoints, year, sks, totalSks, semester, ploNumber } = RANGES;
 /** A percentage from 0 to 100. */
@@ -152,5 +153,12 @@ export const userCreateSchema = userFields.superRefine((u, ctx) => {
 });
 
 export const userUpdateSchema = userFields.partial().extend({ password: z.string().min(8).max(200).optional() });
+
+/** The signed-in user's own settings (PATCH /api/me). */
+export const preferencesSchema = z.object({ locale: z.enum(LOCALES) }).strict();
+export const passwordChangeSchema = z
+  .object({ currentPassword: z.string().min(1), newPassword: z.string().min(8).max(200) })
+  .strict()
+  .refine((v) => v.newPassword !== v.currentPassword, { path: ["newPassword"], message: "Choose a password different from the current one" });
 
 export const bulkAdvisorSchema = z.object({ students: z.array(objectId).min(1), advisor: objectId.nullable() });

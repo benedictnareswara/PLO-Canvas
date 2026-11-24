@@ -90,7 +90,7 @@
   },
   "prefs": {
     "title": "Preferences",
-    "description": "These settings apply to this browser. Language is also saved to your account.",
+    "description": "Theme applies to this browser. Language and password are saved to your account.",
     "theme": "Theme",
     "themeSystem": "System",
     "themeSystemCurrent": "System (currently {mode})",
@@ -99,7 +99,17 @@
     "light": "light",
     "dark": "dark",
     "language": "Language",
-    "saved": "Preferences saved"
+    "saved": "Preferences saved",
+    "password": "Password",
+    "passwordCurrent": "Current password",
+    "passwordNew": "New password",
+    "passwordHint": "At least 8 characters. You stay signed in here; other devices are signed out.",
+    "passwordSubmit": "Change password",
+    "passwordChanged": "Password changed",
+    "passwordCurrentWrong": "That isn't your current password.",
+    "passwordTooShort": "Use at least 8 characters.",
+    "passwordSame": "Choose a password different from the current one.",
+    "passwordFailed": "The password wasn't changed. Try again."
   },
   "confirm": {
     "discardTitle": "Discard unsaved changes?",
@@ -139,7 +149,8 @@
     "point2": "Student, class and cohort spider charts",
     "point3": "At-risk detection for academic advising",
     "footer": "Calculations follow DIKTI, LAM INFOKOM and IABEE conventions.",
-    "expired": "Your session ended. Sign in again to continue."
+    "expired": "Your session ended. Sign in again to continue.",
+    "tooMany": "Too many failed sign-ins for this email. Wait 15 minutes and try again."
   },
   "table": {
     "sortAscending": "Sorted ascending",

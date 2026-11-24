@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assessmentSchema, curriculumSchema, gradesSchema, offeringSchema, ploMappingSchema, ploSchema, userCreateSchema } from "@/lib/validators";
+import { assessmentSchema, curriculumSchema, gradesSchema, offeringSchema, passwordChangeSchema, ploMappingSchema, ploSchema, preferencesSchema, userCreateSchema } from "@/lib/validators";
 
 const id = (n: number) => n.toString(16).padStart(24, "0");
 
@@ -46,5 +46,22 @@ describe("validators: ranges and proposal rules", () => {
     expect(userCreateSchema.safeParse({ ...student, studentId: "-2026001" }).success).toBe(false);
     expect(userCreateSchema.safeParse({ ...student, studentId: "2026-001" }).success).toBe(false);
     expect(userCreateSchema.safeParse({ ...student, studentId: "2026001" }).success).toBe(true);
+  });
+});
+
+describe("own account settings (PATCH /api/me)", () => {
+  it("accepts a language change", () => {
+    expect(preferencesSchema.parse({ locale: "id" })).toEqual({ locale: "id" });
+    expect(() => preferencesSchema.parse({ locale: "fr" })).toThrow();
+  });
+
+  it("needs the current password and a new one of at least 8 characters", () => {
+    expect(passwordChangeSchema.parse({ currentPassword: "old-secret", newPassword: "new-secret-1" })).toBeTruthy();
+    expect(() => passwordChangeSchema.parse({ currentPassword: "", newPassword: "new-secret-1" })).toThrow();
+    expect(() => passwordChangeSchema.parse({ currentPassword: "old-secret", newPassword: "short" })).toThrow();
+  });
+
+  it("refuses the same password again", () => {
+    expect(() => passwordChangeSchema.parse({ currentPassword: "same-secret", newPassword: "same-secret" })).toThrow();
   });
 });

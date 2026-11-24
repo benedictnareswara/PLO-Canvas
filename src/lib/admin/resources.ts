@@ -186,7 +186,7 @@ export const RESOURCES: Record<string, ResourceConfig> = {
       // UC-01 / FR-07: an academic advisor is a lecturer.
       const advisor = (rest as Record<string, unknown>).advisor;
       if (advisor) await assertLecturers([advisor], "The academic advisor must be a lecturer");
-      return password ? { ...rest, passwordHash: await hashPassword(password) } : rest;
+      return password ? { ...rest, passwordHash: await hashPassword(password), passwordChangedAt: new Date() } : rest;
     },
     dependents: (id) =>
       Promise.all([

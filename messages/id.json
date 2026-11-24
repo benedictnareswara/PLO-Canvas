@@ -90,7 +90,7 @@
   },
   "prefs": {
     "title": "Preferensi",
-    "description": "Pengaturan ini berlaku untuk peramban ini. Bahasa juga disimpan ke akun Anda.",
+    "description": "Tema berlaku untuk peramban ini. Bahasa dan kata sandi disimpan di akun Anda.",
     "theme": "Tema",
     "themeSystem": "Sistem",
     "themeSystemCurrent": "Sistem (saat ini {mode})",
@@ -99,7 +99,17 @@
     "light": "terang",
     "dark": "gelap",
     "language": "Bahasa",
-    "saved": "Preferensi tersimpan"
+    "saved": "Preferensi tersimpan",
+    "password": "Kata sandi",
+    "passwordCurrent": "Kata sandi saat ini",
+    "passwordNew": "Kata sandi baru",
+    "passwordHint": "Minimal 8 karakter. Anda tetap masuk di sini; perangkat lain akan keluar.",
+    "passwordSubmit": "Ganti kata sandi",
+    "passwordChanged": "Kata sandi berhasil diganti",
+    "passwordCurrentWrong": "Kata sandi saat ini salah.",
+    "passwordTooShort": "Gunakan minimal 8 karakter.",
+    "passwordSame": "Pilih kata sandi yang berbeda dari kata sandi saat ini.",
+    "passwordFailed": "Kata sandi belum diganti. Coba lagi."
   },
   "confirm": {
     "discardTitle": "Buang perubahan yang belum disimpan?",
@@ -139,7 +149,8 @@
     "point2": "Diagram jaring mahasiswa, kelas, dan angkatan",
     "point3": "Deteksi mahasiswa berisiko untuk perwalian",
     "footer": "Perhitungan mengikuti ketentuan DIKTI, LAM INFOKOM, dan IABEE.",
-    "expired": "Sesi Anda telah berakhir. Masuk lagi untuk melanjutkan."
+    "expired": "Sesi Anda telah berakhir. Masuk lagi untuk melanjutkan.",
+    "tooMany": "Terlalu banyak percobaan masuk yang gagal untuk email ini. Tunggu 15 menit lalu coba lagi."
   },
   "table": {
     "sortAscending": "Diurutkan naik",

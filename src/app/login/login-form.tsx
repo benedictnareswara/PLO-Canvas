@@ -31,7 +31,7 @@ export function LoginForm() {
         body: JSON.stringify({ email: form.get("email"), password: form.get("password") }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(res.status === 401 || res.status === 400 ? t("login.invalid") : (data.error ?? t("errors.network")));
+      if (!res.ok) throw new Error(res.status === 401 || res.status === 400 ? t("login.invalid") : res.status === 429 ? t("login.tooMany") : (data.error ?? t("errors.network")));
       router.replace(next && next.startsWith("/") && !next.startsWith("//") ? next : data.redirect);
       router.refresh();
     } catch (err) {

@@ -9,6 +9,8 @@ export interface SessionPayload {
   email: string;
   name: string;
   roles: Role[];
+  /** Issued-at, in seconds (set on verified tokens). */
+  iat?: number;
 }
 
 function secretKey(): Uint8Array {
@@ -38,6 +40,7 @@ export async function verifySession(token: string | undefined): Promise<SessionP
       email: String(payload.email ?? ""),
       name: String(payload.name ?? ""),
       roles: (payload.roles as Role[]) ?? [],
+      iat: payload.iat,
     };
   } catch {
     return null;

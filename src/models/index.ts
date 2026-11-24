@@ -88,6 +88,8 @@ const userSchema = new Schema<UserDoc>(
     isActive: { type: Boolean, default: true },
     // UI language. Unset until the user picks one; sign-in then adopts the browser's cookie.
     locale: { type: String, enum: LOCALES },
+    // Set when the password changes; sessions issued before it are no longer accepted.
+    passwordChangedAt: { type: Date },
   },
   { timestamps: true },
 );
@@ -271,6 +273,7 @@ export interface UserDoc extends Timestamps {
   staffId?: string | null;
   isActive: boolean;
   locale?: Locale | null;
+  passwordChangedAt?: Date | null;
 }
 export interface OfferingDoc extends Timestamps {
   course: Id;
