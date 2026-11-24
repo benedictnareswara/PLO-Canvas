@@ -103,7 +103,8 @@ export function CardHeader({
 }) {
   return (
     <div className={cn("flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-b border-border px-5 py-4", className)}>
-      <div className="min-w-0 flex-1 basis-64">
+      {/* Small basis so the title and actions share a row in half-width cards too. */}
+      <div className="min-w-0 flex-1 basis-40">
         <h2 id={id} className="text-[0.9375rem] font-semibold leading-6">
           {title}
         </h2>

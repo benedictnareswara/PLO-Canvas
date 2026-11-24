@@ -45,6 +45,7 @@ export function CurriculumAdmin({
           itemName={(r) => r.code}
           rows={faculties}
           pageSize={10}
+          stackOnNarrow={false}
           columns={[
             { id: "code", header: t("code"), value: (r) => r.code, primary: true, cell: (r) => <span className="font-medium">{r.code}</span> },
             { id: "name", header: t("name"), value: (r) => r.name, cell: (r) => r.name },
@@ -61,6 +62,7 @@ export function CurriculumAdmin({
           itemName={(r) => r.code}
           rows={departments}
           pageSize={10}
+          stackOnNarrow={false}
           columns={[
             { id: "code", header: t("code"), value: (r) => r.code, primary: true, cell: (r) => <span className="font-medium">{r.code}</span> },
             { id: "name", header: t("name"), value: (r) => r.name, cell: (r) => r.name },

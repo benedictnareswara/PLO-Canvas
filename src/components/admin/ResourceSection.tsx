@@ -279,6 +279,7 @@ export function ResourceSection<T extends Row>({
   defaults = {},
   extraActions,
   toolbar,
+  stackOnNarrow = true,
   rowActions,
   addLabel,
   selection,
@@ -296,6 +297,8 @@ export function ResourceSection<T extends Row>({
   defaults?: Record<string, unknown>;
   extraActions?: ReactNode;
   toolbar?: ReactNode;
+  /** Stacked cards in narrow containers (default). Off for short, few-column lists that fit as a table. */
+  stackOnNarrow?: boolean;
   rowActions?: (row: T) => ReactNode;
   addLabel: string;
   selection?: { selected: Set<string>; onChange: React.Dispatch<React.SetStateAction<Set<string>>> };
@@ -412,6 +415,7 @@ export function ResourceSection<T extends Row>({
         // A short list (one faculty, a department or two) reads at a glance: no search, sort menu or export.
         searchable={!short}
         sortMenu={!short}
+        stackOnNarrow={stackOnNarrow}
         pageSize={pageSize}
         urlKey={`${resource}-`}
         getRowId={(r) => r._id}
