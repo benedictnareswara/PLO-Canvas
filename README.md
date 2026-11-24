@@ -142,6 +142,8 @@ To try a Canvas import, follow [docs/canvas-import.md](docs/canvas-import.md).
 | `docker compose stop` | Stop everything (keeps your data) |
 | `docker compose down -v` | Remove the containers, the database **and all its data** |
 
+GitHub runs `npm run check`, and the Docker setup with `npm run smoke`, on every pull request ([`.github/workflows/check.yml`](.github/workflows/check.yml)).
+
 ---
 
 ## 5. Environment variables

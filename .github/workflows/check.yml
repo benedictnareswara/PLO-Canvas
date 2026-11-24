@@ -1,0 +1,48 @@
+# Runs on every pull request and every push to main (proposal NFR-08: every merged change passes
+# type checking, linting, unit tests and a production build).
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Types, lint, tests, build, audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+
+  docker:
+    name: Docker setup and role smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Throwaway values for this run only.
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else
+      MONGODB_URI: mongodb://localhost:27017/plo_canvas?replicaSet=rs0&directConnection=true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      # The same commands the README gives the client.
+      - run: docker compose up -d --build --wait
+      - run: docker compose exec -T app npm run seed
+      - run: npm run smoke
+      - if: failure()
+        run: docker compose logs app
