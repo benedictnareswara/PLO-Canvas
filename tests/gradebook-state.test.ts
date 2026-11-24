@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSavePayload, dirtyKeys, invalidCells, previewCourseGrade, rebase, valuesFromGrades } from "@/lib/gradebook/state";
+import { buildSavePayload, dirtyKeys, invalidCells, previewCourseGrade, rebase, typeIntoCell, valuesFromGrades } from "@/lib/gradebook/state";
 
 const assessments = [
   { id: "a1", maxPoints: 100, gradeWeight: 40 },
@@ -46,5 +46,23 @@ describe("gradebook state", () => {
     expect(previewCourseGrade("s2", assessments, baseline)).toEqual({ pct: 0.4 * 70 + 0.6 * 50, letter: "C" });
     // invalid cells are ignored rather than crashing the preview
     expect(previewCourseGrade("s2", assessments, { ...baseline, "s2:a2": "abc" }).pct).toBe(70);
+  });
+});
+
+describe("typeIntoCell (fast typing)", () => {
+  it("starts an editor with the first character", () => {
+    expect(typeIntoCell(null, "s1:a1", "8")).toEqual({ key: "s1:a1", text: "8", mode: "replace" });
+  });
+
+  it("appends keys that arrive before the editor renders, so 85 stays 85", () => {
+    let ed = typeIntoCell(null, "s1:a1", "8");
+    ed = typeIntoCell(ed, "s1:a1", "5");
+    expect(ed.text).toBe("85");
+    expect(typeIntoCell(ed, "s1:a1", ",").text).toBe("85,");
+  });
+
+  it("starts over on a different cell", () => {
+    const ed = typeIntoCell(typeIntoCell(null, "s1:a1", "8"), "s2:a1", "7");
+    expect(ed).toEqual({ key: "s2:a1", text: "7", mode: "replace" });
   });
 });

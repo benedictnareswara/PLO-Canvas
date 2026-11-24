@@ -529,6 +529,9 @@ function PloMultiSelect({
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        // preventDefault too: the native <dialog> reacts to Escape's default action (its cancel
+        // event), not to bubbling, so stopping propagation alone still asked to discard the import.
+        e.preventDefault();
         e.stopPropagation();
         setOpen(false);
         buttonRef.current?.focus();

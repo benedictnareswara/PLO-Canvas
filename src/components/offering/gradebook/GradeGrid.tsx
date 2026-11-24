@@ -10,15 +10,11 @@ import type { OfferingAssessmentView } from "@/lib/obe/queries";
 import type { PloInfo, StudentSummary } from "@/lib/obe/types";
 import { MAX_SCORE_FACTOR, parseScore, type ScoreError } from "@/lib/gradebook/parse-score";
 import { stripNegative } from "@/lib/ranges";
+import { typeIntoCell, type CellEdit } from "@/lib/gradebook/state";
 import type { GradebookState } from "./useGradebookState";
 import { CellHistory } from "./CellHistory";
 
-interface Editing {
-  key: string;
-  text: string;
-  /** "replace": started by typing (arrows commit and move); "edit": Enter/F2/double-click (arrows move the caret). */
-  mode: "replace" | "edit";
-}
+type Editing = CellEdit;
 
 const STARTS_EDIT = /^[0-9.,]$/;
 const PAGE = 10;
@@ -89,7 +85,11 @@ export function GradeGrid({
 
   function startEdit(mode: Editing["mode"], text?: string) {
     if (!canEdit || !activeKey) return;
-    setEditing({ key: activeKey, text: text ?? state.values[activeKey] ?? "", mode });
+    // Functional updates: a key that arrives before the editor has rendered extends the pending
+    // edit instead of replacing it (see typeIntoCell).
+    const key = activeKey;
+    if (mode === "replace" && text !== undefined) setEditing((ed) => typeIntoCell(ed, key, text));
+    else setEditing((ed) => ed ?? { key, text: text ?? state.values[key] ?? "", mode });
   }
 
   function onGridKeyDown(e: React.KeyboardEvent) {

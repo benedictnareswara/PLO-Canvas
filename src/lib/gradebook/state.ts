@@ -2,6 +2,24 @@ import { courseGrade, letterGrade } from "@/lib/obe/engine";
 import { cellKey } from "./paste";
 import { formatScoreInput, parseScore, validateScore, type ScoreError } from "./parse-score";
 
+/** An open cell editor in the gradebook grid. */
+export interface CellEdit {
+  key: string;
+  text: string;
+  /** "replace": started by typing (arrows commit and move); "edit": Enter/F2/double-click (arrows move the caret). */
+  mode: "replace" | "edit";
+}
+
+/**
+ * A character typed on a cell. With no editor open it starts one holding that character. Keys can
+ * arrive faster than the editor renders (fast typing, a slow machine): a key for the cell whose
+ * editor is already pending is appended, so typing "85" never becomes "5".
+ */
+export function typeIntoCell(editing: CellEdit | null, key: string, char: string): CellEdit {
+  if (editing && editing.key === key) return { ...editing, text: editing.text + char };
+  return { key, text: char, mode: "replace" };
+}
+
 export interface GradebookAssessment {
   id: string;
   maxPoints: number;
