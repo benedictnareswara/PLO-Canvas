@@ -40,7 +40,6 @@ export function StudentProfile({ data, audience }: { data: StudentProfileData; a
   return (
     <div className="space-y-6">
       <SummaryStrip
-        className="mb-0"
         items={[
           { label: t("cohort"), value: student.cohortYear ? t("classOf", { year: student.cohortYear }) : "—", hint: `NIM ${student.studentId ?? "—"}` },
           { label: t("courses"), value: graded.length, hint: t("sksAssessed", { sks: completedSks }) },

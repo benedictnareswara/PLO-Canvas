@@ -20,13 +20,14 @@ export function MiniPloBars({
   const description = values.map((v) => `${v.code} ${v.value === null ? noData : `${v.value.toFixed(1)}%`}`).join(", ");
   return (
     <div role="img" aria-label={`${label}: ${description}`} className="relative flex h-12 items-end gap-1.5">
-      <span aria-hidden className="absolute inset-x-0 border-t border-dashed border-foreground/40" style={{ bottom: `${threshold}%` }} />
+      <span aria-hidden className="absolute inset-x-0 z-10 border-t border-dashed border-foreground/50" style={{ bottom: `${threshold}%` }} />
       {values.map((v) => (
         <span key={v.code} aria-hidden className="flex h-full w-5 flex-col items-center justify-end" title={`${v.code}: ${v.value === null ? noData : `${v.value.toFixed(1)}%`}`}>
           <span
             className={cn(
-              "w-full rounded-t-sm",
-              v.value === null ? "h-0.5 bg-border-strong" : isAtRisk(v.value, threshold) ? "bg-risk" : "bg-ok",
+              "w-full rounded-t-[3px]",
+              // Only the exception is saturated (Von Restorff): on-target bars stay a quiet tint.
+              v.value === null ? "h-0.5 bg-border-strong" : isAtRisk(v.value, threshold) ? "bg-risk" : "bg-[color-mix(in_oklab,var(--ok)_45%,var(--surface))]",
             )}
             style={v.value === null ? undefined : { height: `${Math.max(4, v.value)}%` }}
           />

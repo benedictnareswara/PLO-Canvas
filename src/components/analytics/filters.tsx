@@ -99,5 +99,5 @@ export function ThresholdWhatIf({ value, saved, onChange }: { value: number; sav
 
 /** One filter bar per page: a single surface above the content it filters. */
 export function FilterBar({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-e1", className)}>{children}</div>;
+  return <div className={cn("mb-6 flex flex-wrap items-center gap-x-6 gap-y-3", className)}>{children}</div>;
 }

@@ -336,7 +336,6 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
       {step === 2 && report && (
         <div className="space-y-4">
           <SummaryStrip
-            className="mb-0"
             items={[
               { label: t("summary.assessments"), value: `${detail.assessments.length} → ${detail.assessments.length + created}`, hint: t("summary.assessmentsHint", { created, updated }) },
               { label: t("summary.matched"), value: report.summary.matched, tone: "ok" },
@@ -424,7 +423,6 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
         <div className="space-y-4">
           <Notice tone="ok">{report.transactional ? t("doneTransactional") : t("done")}</Notice>
           <SummaryStrip
-            className="mb-0"
             items={[
               { label: t("result.created"), value: report.written.assessmentsCreated },
               { label: t("result.updated"), value: report.written.assessmentsUpdated },

@@ -16,6 +16,7 @@ const TEXT: [string, string][] = [
   ...["brand", "ok", "risk", "warn", "info"].map((t): [string, string] => [t, `${t}-soft`]),
   ["brand-fg", "brand"],
   ["brand-fg", "brand-hover"],
+  ["brand-panel-fg", "brand-panel"],
   ["solid-fg", "ok"],
   ["solid-fg", "risk"],
   ["solid-fg", "warn"],

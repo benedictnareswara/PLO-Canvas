@@ -46,7 +46,6 @@ export function RadarTab({ detail, canEdit }: { detail: OfferingDetail; canEdit:
   return (
     <div className="space-y-6">
       <SummaryStrip
-        className="mb-0"
         items={[
           { label: t("enrolled"), value: students.length },
           {

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
-import { Check, GraduationCap } from "lucide-react";
+import Image from "next/image";
+import { Check } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { LoginForm } from "./login-form";
 
@@ -17,16 +19,31 @@ export default async function LoginPage() {
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      {/* A quiet explanatory panel: what the tool does, in plain words. No imagery or gradients. */}
-      <aside className="hidden flex-col justify-between border-r border-border bg-surface px-12 py-10 lg:flex">
-        <Brand appName={t("common.appName")} subtitle={subtitle} />
-        <div className="max-w-md">
-          <h2 className="text-2xl font-semibold tracking-tight">{t("login.heroTitle")}</h2>
-          <p className="mt-3 text-sm text-muted">{t("login.heroBody")}</p>
+      {/* Brand field in Sampoerna navy: the starburst is cropped off the corner as texture, so the
+          panel carries the identity without competing with the sign-in form. */}
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-brand-panel px-12 py-10 text-brand-panel-fg lg:flex">
+        <Image
+          src="/brand/su-mark-on-brand.png"
+          alt=""
+          width={640}
+          height={786}
+          priority
+          className="pointer-events-none absolute -right-40 -bottom-48 w-[36rem] max-w-none opacity-20 select-none"
+        />
+        <div className="relative flex items-center gap-3">
+          <Image src="/brand/su-mark-on-brand.png" alt="" width={640} height={786} className="h-10 w-auto" />
+          <div>
+            <div className="text-base leading-tight font-semibold">{t("common.appName")}</div>
+            <div className="text-xs opacity-80">{subtitle}</div>
+          </div>
+        </div>
+        <div className="relative max-w-md">
+          <h2 className="text-[2rem] leading-tight font-semibold">{t("login.heroTitle")}</h2>
+          <p className="mt-4 text-[0.9375rem] opacity-85">{t("login.heroBody")}</p>
           <ul className="mt-8 space-y-3 text-sm">
             {points.map((p) => (
               <li key={p} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-panel-fg/15">
                   <Check className="size-3" aria-hidden />
                 </span>
                 {p}
@@ -34,7 +51,7 @@ export default async function LoginPage() {
             ))}
           </ul>
         </div>
-        <p className="text-xs text-muted">{t("login.footer")}</p>
+        <p className="relative text-xs opacity-75">{t("login.footer")}</p>
       </aside>
 
       <main className="flex flex-col px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-8">
@@ -43,31 +60,21 @@ export default async function LoginPage() {
         </div>
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-sm">
-            <div className="mb-8 lg:hidden">
-              <Brand appName={t("common.appName")} subtitle={subtitle} />
+            <div className="mb-10 flex items-center gap-3 lg:hidden">
+              <BrandMark className="h-10" />
+              <div>
+                <div className="text-base leading-tight font-semibold">{t("common.appName")}</div>
+                <div className="text-xs text-muted">{subtitle}</div>
+              </div>
             </div>
-            <h1 className="text-xl font-semibold tracking-tight">{t("login.title")}</h1>
-            <p className="mt-1 mb-6 text-sm text-muted">{t("login.subtitle")}</p>
+            <h1 className="text-2xl font-semibold">{t("login.title")}</h1>
+            <p className="mt-1.5 mb-8 text-sm text-muted">{t("login.subtitle")}</p>
             <Suspense>
               <LoginForm />
             </Suspense>
           </div>
         </div>
       </main>
-    </div>
-  );
-}
-
-function Brand({ appName, subtitle }: { appName: string; subtitle: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex size-10 items-center justify-center rounded-lg bg-brand text-brand-fg">
-        <GraduationCap className="size-5" aria-hidden />
-      </div>
-      <div>
-        <div className="text-base leading-tight font-semibold">{appName}</div>
-        <div className="text-xs text-muted">{subtitle}</div>
-      </div>
     </div>
   );
 }

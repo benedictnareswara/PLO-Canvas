@@ -135,7 +135,7 @@ function ClassCard({ offering: o, plos, t }: { offering: OfferingListItem; plos:
   return (
     <Link
       href={`/lecturer/offerings/${o.id}`}
-      className="flex h-full flex-col rounded-xl border border-border bg-surface p-4 shadow-e1 transition-[border-color,box-shadow] duration-(--dur-2) hover:border-border-strong hover:shadow-e2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className="flex h-full flex-col rounded-xl border border-border bg-surface p-4 transition-[border-color,background-color] duration-(--dur-2) hover:border-border-strong hover:bg-[color-mix(in_oklab,var(--surface),var(--surface-2)_50%)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

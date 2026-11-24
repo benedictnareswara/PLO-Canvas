@@ -10,7 +10,6 @@ import {
   BookOpen,
   CalendarDays,
   ChevronsUpDown,
-  GraduationCap,
   Grid3x3,
   LayoutDashboard,
   Library,
@@ -23,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { Button, Kbd, cn } from "@/components/ui";
+import { BrandMark } from "@/components/BrandMark";
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/ui/client";
 import { PreferencesDialog } from "@/components/PreferencesDialog";
 import { useHotkeyLabel, useHotkeys } from "@/lib/hooks/useHotkeys";
@@ -131,7 +131,7 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
         {t("skipToContent")}
       </a>
 
-      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 border-r border-border bg-surface lg:block">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 border-r border-border bg-background lg:block">
         <SideNav user={user} sections={sections} pathname={pathname} onPreferences={openPrefs} onSearch={openPalette} onSignOut={logout} signingOut={signingOut} />
       </aside>
 
@@ -139,7 +139,7 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
         <Button variant="ghost" size="icon" onClick={() => drawerRef.current?.showModal()} aria-label={t("openMenu")} className="size-11">
           <MenuIcon className="size-5!" />
         </Button>
-        <span className="flex-1 py-3 text-sm font-semibold">{tc("appName")}</span>
+        <span className="flex flex-1 items-center gap-2 py-3 text-sm font-semibold"><BrandMark className="h-6" />{tc("appName")}</span>
         <Button variant="ghost" size="icon" onClick={openPalette} aria-label={t("searchShort")} className="size-11">
           <Search className="size-5!" />
         </Button>
@@ -169,7 +169,7 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
         </div>
       </dialog>
 
-      <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8">
+      <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 outline-none sm:px-6 lg:px-10 lg:py-9">
         <div className="mx-auto max-w-7xl">{children}</div>
       </main>
 
@@ -240,12 +240,10 @@ function SideNav({
 
   return (
     <nav aria-label={t("shell.mainNav")} className="flex h-full flex-col">
-      <div className="flex items-center gap-2.5 px-4 py-4">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-brand text-brand-fg">
-          <GraduationCap className="size-4" aria-hidden />
-        </div>
+      <div className="flex items-center gap-3 px-4 pt-5 pb-4">
+        <BrandMark className="h-9" />
         <div className="leading-tight">
-          <div className="text-sm font-semibold">{t("common.appName")}</div>
+          <div className="text-sm font-semibold tracking-tight">{t("common.appName")}</div>
           <div className="text-[0.6875rem] text-muted">{t("common.university")}</div>
         </div>
       </div>
@@ -254,7 +252,7 @@ function SideNav({
         <button
           type="button"
           onClick={onSearch}
-          className="flex h-9 w-full items-center gap-2 rounded-lg border border-border bg-surface-2/60 px-2.5 text-sm text-muted hover:border-border-strong hover:text-foreground focus-visible:outline-2 focus-visible:outline-brand pointer-coarse:h-11"
+          className="flex h-9 w-full items-center gap-2 rounded-lg border border-border bg-surface px-2.5 text-sm text-muted hover:border-border-strong hover:text-foreground focus-visible:outline-2 focus-visible:outline-brand pointer-coarse:h-11"
         >
           <Search className="size-4" aria-hidden />
           <span className="flex-1 text-left">{t("shell.searchPlaceholder")}</span>
@@ -280,9 +278,9 @@ function SideNav({
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm pointer-coarse:py-2.5",
+                    "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm pointer-coarse:py-2.5",
                     "transition-colors duration-(--dur-1) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
-                    active ? "bg-brand-soft font-medium text-brand" : "text-foreground hover:bg-surface-2",
+                    active ? "bg-surface font-medium text-brand shadow-e1 ring-1 ring-border" : "text-muted hover:bg-surface-2 hover:text-foreground",
                   )}
                 >
                   <Icon className="size-4 shrink-0" aria-hidden />

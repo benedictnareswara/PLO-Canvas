@@ -64,7 +64,6 @@ export function CohortDashboard({ data }: { data: StudentsWithRows }) {
       </FilterBar>
 
       <SummaryStrip
-        className="mb-0"
         items={[
           { label: t("students"), value: data.students.length, hint: t("cohorts", { count: cohorts.length }) },
           { label: t("needIntervention"), value: studentsAtRisk, tone: studentsAtRisk ? "risk" : "ok", hint: t("needInterventionHint", { target: data.threshold }) },

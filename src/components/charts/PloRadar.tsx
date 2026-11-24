@@ -172,7 +172,7 @@ export function PloRadar({
                   strokeDasharray={style.dash}
                   strokeOpacity={dim(s.key) ? 0.25 : 1}
                   fill={style.color}
-                  fillOpacity={dim(s.key) ? 0.03 : shown.length > 1 ? 0.1 : 0.2}
+                  fillOpacity={dim(s.key) ? 0.02 : shown.length > 1 ? 0.06 : 0.16}
                   dot={(props: { cx?: number; cy?: number; index?: number }) => (
                     <Marker key={`${s.key}-${props.index}`} shape={style.marker} x={props.cx ?? 0} y={props.cy ?? 0} r={dim(s.key) ? 2.5 : 3.5} color={style.color} />
                   )}

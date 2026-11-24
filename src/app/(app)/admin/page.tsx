@@ -46,6 +46,7 @@ export default async function AdminHome() {
     <>
       <PageHeader title={t("title")} description={t("description")} />
       <SummaryStrip
+        className="mb-6"
         items={[
           { label: t("curricula"), value: `${curricula} / ${plos}`, hint: t("curriculaHint") },
           { label: t("courses"), value: `${courses} / ${offerings}`, hint: t("coursesHint") },

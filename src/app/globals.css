@@ -30,15 +30,19 @@
   --foreground: light-dark(oklch(22% 0.02 262), oklch(94.5% 0.007 258));
   --muted: light-dark(oklch(49% 0.022 260), oklch(71% 0.018 258));
   --subtle: light-dark(oklch(53.5% 0.018 260), oklch(66% 0.016 258));
-  --border: light-dark(oklch(91.6% 0.008 258), oklch(29.5% 0.015 258));
+  --border: light-dark(oklch(92.8% 0.006 258), oklch(27.5% 0.013 258));
   --border-strong: light-dark(oklch(85% 0.012 258), oklch(37% 0.018 258));
   /* Form-control edges: the border is the only boundary of an input on a surface, so ≥3:1 (WCAG 1.4.11). */
   --border-input: light-dark(oklch(63.5% 0.014 258), oklch(54.5% 0.016 258));
 
-  --brand: light-dark(oklch(37% 0.095 260), oklch(74% 0.095 256));
-  --brand-hover: light-dark(oklch(32% 0.095 260), oklch(79% 0.09 256));
-  --brand-fg: light-dark(oklch(99% 0 0), oklch(19% 0.03 260));
-  --brand-soft: light-dark(oklch(95.2% 0.022 258), oklch(29% 0.045 258));
+  --brand: light-dark(oklch(35% 0.17 268), oklch(77% 0.11 272));
+  --brand-hover: light-dark(oklch(29% 0.17 268), oklch(82% 0.1 272));
+  --brand-fg: light-dark(oklch(99% 0 0), oklch(19% 0.05 270));
+  --brand-soft: light-dark(oklch(95.2% 0.03 270), oklch(29% 0.07 272));
+  /* Large brand field (login panel): stays deep Sampoerna navy in both schemes rather than turning
+     into the light dark-mode accent, which would glare as a half-screen fill. */
+  --brand-panel: light-dark(oklch(35% 0.17 268), oklch(27% 0.12 270));
+  --brand-panel-fg: light-dark(oklch(99% 0 0), oklch(97% 0.01 270));
 
   --ok: light-dark(oklch(47% 0.12 150), oklch(76% 0.13 152));
   --ok-soft: light-dark(oklch(95.8% 0.035 150), oklch(28% 0.045 152));
@@ -110,6 +114,8 @@
   --color-brand-hover: var(--brand-hover);
   --color-brand-fg: var(--brand-fg);
   --color-brand-soft: var(--brand-soft);
+  --color-brand-panel: var(--brand-panel);
+  --color-brand-panel-fg: var(--brand-panel-fg);
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
   --color-risk: var(--risk);
@@ -162,6 +168,28 @@ h2,
 h3,
 th {
   text-wrap: balance;
+}
+
+/* Geist runs slightly loose at display sizes; tighten headings only, never body text. */
+h1 {
+  letter-spacing: -0.022em;
+}
+h2,
+h3 {
+  letter-spacing: -0.011em;
+}
+
+/* Native <select> with a token-coloured chevron (the OS arrow differs per platform and ignores
+   dark mode). Two gradient triangles, so no image and nothing to recolour per theme. */
+.ui-select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 15px) 52%,
+    calc(100% - 10.5px) 52%;
+  background-size: 4.5px 4.5px;
+  background-repeat: no-repeat;
 }
 
 p {

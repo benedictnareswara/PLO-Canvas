@@ -13,10 +13,10 @@ export function cn(...inputs: ClassValue[]) {
 /* -------------------------------- Button -------------------------------- */
 
 const buttonVariants = {
-  primary: "bg-brand text-brand-fg shadow-e1 hover:bg-brand-hover",
-  secondary: "bg-surface text-foreground border border-border shadow-e1 hover:bg-surface-2 hover:border-border-strong",
+  primary: "bg-brand text-brand-fg hover:bg-brand-hover",
+  secondary: "bg-surface text-foreground border border-border-strong hover:bg-surface-2",
   ghost: "text-foreground hover:bg-surface-2",
-  danger: "bg-risk text-solid-fg shadow-e1 hover:bg-[color-mix(in_oklab,var(--risk),var(--foreground)_12%)]",
+  danger: "bg-risk text-solid-fg hover:bg-[color-mix(in_oklab,var(--risk),var(--foreground)_12%)]",
   "danger-ghost": "text-risk hover:bg-risk-soft",
 };
 
@@ -85,7 +85,7 @@ export function ButtonLink({
 /* --------------------------------- Card --------------------------------- */
 
 export function Card({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("rounded-xl border border-border bg-surface shadow-e1", className)} {...props} />;
+  return <div className={cn("rounded-xl border border-border bg-surface", className)} {...props} />;
 }
 
 export function CardHeader({
@@ -121,12 +121,12 @@ export function CardBody({ className, ...props }: ComponentProps<"div">) {
 /* --------------------------------- Badge -------------------------------- */
 
 const badgeTones = {
-  neutral: "bg-surface-2 text-muted border-border",
-  ok: "bg-ok-soft text-ok border-[color-mix(in_oklab,var(--ok)_22%,transparent)]",
-  risk: "bg-risk-soft text-risk border-[color-mix(in_oklab,var(--risk)_25%,transparent)]",
-  warn: "bg-warn-soft text-warn border-[color-mix(in_oklab,var(--warn)_25%,transparent)]",
-  brand: "bg-brand-soft text-brand border-[color-mix(in_oklab,var(--brand)_20%,transparent)]",
-  info: "bg-info-soft text-info border-[color-mix(in_oklab,var(--info)_22%,transparent)]",
+  neutral: "bg-surface-2 text-muted",
+  ok: "bg-ok-soft text-ok",
+  risk: "bg-risk-soft text-risk",
+  warn: "bg-warn-soft text-warn",
+  brand: "bg-brand-soft text-brand",
+  info: "bg-info-soft text-info",
 };
 
 export type BadgeTone = keyof typeof badgeTones;
@@ -135,7 +135,7 @@ export function Badge({ tone = "neutral", className, ...props }: ComponentProps<
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-px text-xs font-medium leading-5 [&_svg]:size-3",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium leading-4 [&_svg]:size-3",
         badgeTones[tone],
         className,
       )}
@@ -147,7 +147,7 @@ export function Badge({ tone = "neutral", className, ...props }: ComponentProps<
 /* --------------------------------- Forms -------------------------------- */
 
 export const inputClass = cn(
-  "h-9 w-full min-w-0 rounded-lg border border-border-input bg-surface px-3 text-sm shadow-e1 outline-none",
+  "h-9 w-full min-w-0 rounded-lg border border-border-input bg-surface px-3 text-sm outline-none",
   "placeholder:text-subtle",
   "transition-[border-color,box-shadow] duration-(--dur-1)",
   "hover:border-foreground/40",
@@ -218,7 +218,7 @@ export function ToggleChip({
       className={cn(
         "inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border-input bg-surface px-3 text-sm font-medium whitespace-nowrap text-muted select-none",
         "transition-[background-color,border-color,color] duration-(--dur-1) hover:text-foreground",
-        "has-checked:border-brand/40 has-checked:bg-brand-soft has-checked:text-brand",
+        "has-checked:border-border-strong has-checked:bg-surface-2 has-checked:text-foreground",
         "has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand",
         "has-disabled:cursor-not-allowed has-disabled:opacity-50 pointer-coarse:h-10",
         className,
@@ -237,7 +237,7 @@ export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
 }
 
 export function Select({ className, ...props }: ComponentProps<"select">) {
-  return <select className={cn(inputClass, "w-auto cursor-pointer pr-8 pl-2.5", className)} {...props} />;
+  return <select className={cn(inputClass, "ui-select w-auto cursor-pointer appearance-none pr-8 pl-3", className)} {...props} />;
 }
 
 export function Label({ className, ...props }: ComponentProps<"label">) {
@@ -307,7 +307,7 @@ export function Th({ className, ...props }: ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "border-b border-border bg-surface-2 px-3 py-2 text-left text-xs font-medium text-muted",
+        "border-b border-border bg-surface px-3 py-2.5 text-left text-xs font-medium text-muted",
         "first:pl-5 last:pr-5",
         className,
       )}
@@ -334,11 +334,11 @@ export function PageHeader({
   eyebrow?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
       <div className="min-w-0 flex-1 basis-80">
         {eyebrow && <div className="mb-1 text-xs font-medium text-muted">{eyebrow}</div>}
-        <h1 className="text-xl font-semibold tracking-tight text-pretty sm:text-2xl">{title}</h1>
-        {description && <div className="mt-1.5 max-w-3xl text-sm text-muted">{description}</div>}
+        <h1 className="text-2xl font-semibold text-pretty sm:text-[2rem] sm:leading-tight">{title}</h1>
+        {description && <div className="mt-2 max-w-3xl text-[0.9375rem] text-muted">{description}</div>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -427,7 +427,7 @@ export interface SummaryItem {
  */
 export function SummaryStrip({ items, className }: { items: SummaryItem[]; className?: string }) {
   return (
-    <Card className={cn("mb-6 grid grid-cols-2 overflow-hidden", items.length >= 4 ? "lg:grid-cols-4" : "sm:grid-cols-3", className)}>
+    <Card className={cn("grid grid-cols-2 overflow-hidden", items.length >= 4 ? "lg:grid-cols-4" : "sm:grid-cols-3", className)}>
       {items.map((item, i) => (
         <div
           key={i}
