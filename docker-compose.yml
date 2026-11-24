@@ -1,9 +1,11 @@
+# `docker compose up -d --build` starts everything: the database and the app on http://localhost:3000.
+# For development with `npm run dev`, start only the database: `docker compose up -d --wait mongo`.
 services:
   mongo:
     image: mongo:7
     container_name: plo-canvas-mongo
     # Single-node replica set: required for multi-document transactions
-    # (used by the Canvas CSV import).
+    # (every save, import and delete runs in one).
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
@@ -17,6 +19,24 @@ services:
       timeout: 10s
       retries: 20
       start_period: 5s
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: plo-canvas-app
+    ports:
+      - "3000:3000"
+    environment:
+      # Inside Docker the database is reached by its service name.
+      MONGODB_URI: mongodb://mongo:27017/plo_canvas?replicaSet=rs0&directConnection=true
+      # From the .env file next to this one (README step 2). Not "required" here, so that
+      # `docker compose up mongo` for development works without it; the app checks it on start.
+      JWT_SECRET: ${JWT_SECRET:-}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   mongo-data:

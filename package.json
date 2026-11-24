@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "seed": "tsx scripts/seed.ts",
-    "db:up": "docker compose up -d --wait",
+    "db:up": "docker compose up -d --wait mongo",
     "check": "tsc --noEmit && eslint && vitest run && next build && npm audit --omit=dev --audit-level=high",
     "smoke": "tsx scripts/smoke.ts"
   },

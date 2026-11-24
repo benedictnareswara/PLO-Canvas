@@ -18,6 +18,9 @@ function secretKey(): Uint8Array {
   if (!secret || secret.length < 16) {
     throw new Error("JWT_SECRET is missing or too short (min 16 chars). See .env.example.");
   }
+  if (secret === "change-me-to-a-long-random-string" && process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET still has the example value. Set your own random string in .env (README step 2).");
+  }
   return new TextEncoder().encode(secret);
 }
 
@@ -50,7 +53,9 @@ export async function verifySession(token: string | undefined): Promise<SessionP
 export const sessionCookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  // Secure cookies need HTTPS. Follow the app's own address, so a production build served over
+  // plain http on a local machine (http://localhost:3000, a campus IP) can still sign in.
+  secure: (process.env.APP_URL ?? "").startsWith("https://"),
   path: "/",
   maxAge: SESSION_TTL_SECONDS,
 };
