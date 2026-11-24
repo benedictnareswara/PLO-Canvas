@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  assessedShare,
   cohortAggregate,
   courseGrade,
   coursePloAttainment,
   cumulativePloAttainment,
   effectivePloWeights,
   isAtRisk,
+  isFullyAssessed,
   letterGrade,
   scorePercentage,
 } from "@/lib/obe/engine";
@@ -158,5 +160,26 @@ describe("semesters", () => {
     expect(inPeriod(5, "y2")).toBe(false);
     expect(inPeriod(7, "all")).toBe(true);
     expect(inPeriod(3, "s3")).toBe(true);
+  });
+});
+
+describe("assessedShare (grade so far)", () => {
+  const a = [
+    { id: "q", maxPoints: 100, gradeWeight: 10, ploWeights: [] },
+    { id: "m", maxPoints: 100, gradeWeight: 30, ploWeights: [] },
+    { id: "f", maxPoints: 100, gradeWeight: 60, ploWeights: [] },
+  ];
+  it("is the graded share of the course grade", () => {
+    expect(assessedShare(a, {})).toBe(0);
+    expect(assessedShare(a, { q: 80, m: 70 })).toBe(40);
+    expect(isFullyAssessed(assessedShare(a, { q: 80, m: 70, f: 0 }))).toBe(true);
+    expect(isFullyAssessed(assessedShare(a, { q: 80, m: 70 }))).toBe(false);
+  });
+  it("counts assessments when no shares are set", () => {
+    const noShares = a.map((x) => ({ ...x, gradeWeight: 0 }));
+    expect(assessedShare(noShares, { q: 1 })).toBeCloseTo(33.33, 1);
+  });
+  it("is 0 for a course without assessments", () => {
+    expect(assessedShare([], {})).toBe(0);
   });
 });

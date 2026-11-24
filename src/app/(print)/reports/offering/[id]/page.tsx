@@ -39,6 +39,8 @@ export default async function OfferingReport({ params }: Props) {
     ),
   );
   const evidenced = plos.filter((p) => stats.has(p.number));
+  // Same rule as the class page: the course's own PLOs, and a radar only with 3 or more axes.
+  const radarPlos = plos.filter((p) => detail.coursePloNumbers.includes(p.number) || stats.has(p.number));
   const mean = Object.fromEntries(plos.map((p) => [p.number, stats.get(p.number)?.mean ?? null]));
   const ploCode = new Map(plos.map((p) => [p.id, p.code]));
 
@@ -46,6 +48,7 @@ export default async function OfferingReport({ params }: Props) {
     <ReportShell
       title={t("offering.title")}
       subtitle={`${detail.code} · ${detail.title} · ${detail.period} · ${detail.sks} SKS · ${detail.lecturers.map((l) => l.name).join(", ")} · ${t("target", { value: threshold })}`}
+      curriculum={detail.curriculumName}
       backHref={`/lecturer/offerings/${detail.id}`}
       generatedBy={user.name}
     >
@@ -60,9 +63,9 @@ export default async function OfferingReport({ params }: Props) {
         </p>
       </ReportSection>
 
-      {evidenced.length > 0 && (
+      {evidenced.length > 0 && radarPlos.length >= 3 && (
         <ReportSection title={t("offering.radar")}>
-          <ReportRadar plos={plos} threshold={threshold} series={[{ key: "mean", label: t("offering.classMean"), values: mean }]} />
+          <ReportRadar plos={radarPlos} threshold={threshold} series={[{ key: "mean", label: t("offering.classMean"), values: mean }]} />
         </ReportSection>
       )}
 

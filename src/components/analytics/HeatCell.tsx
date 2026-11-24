@@ -9,7 +9,10 @@ import { cn } from "@/components/ui";
  */
 export function heatStyle(value: number, threshold: number): React.CSSProperties {
   const risk = isAtRisk(value, threshold);
-  const strength = Math.round(6 + (Math.max(0, Math.min(100, value)) / 100) * 28);
+  // Shade by how far above the target a value is (target → light, 100% → strongest), so the
+  // differences that matter (69 vs 81, not 0 vs 100) are visible. Below target uses the risk tint.
+  const above = threshold >= 100 ? 1 : (Math.max(threshold, Math.min(100, value)) - threshold) / (100 - threshold);
+  const strength = Math.round(6 + above * 28);
   return { background: `color-mix(in oklab, var(${risk ? "--risk" : "--brand"}) ${risk ? 16 : strength}%, var(--surface))` };
 }
 

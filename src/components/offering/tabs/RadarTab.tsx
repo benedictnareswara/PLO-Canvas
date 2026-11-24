@@ -31,6 +31,10 @@ export function RadarTab({ detail, canEdit }: { detail: OfferingDetail; canEdit:
   const riskyPlos = evidenced.filter((p) => isAtRisk(stats.get(p.number)!.mean, threshold));
   const studentsAtRisk = students.filter((s) => Object.values(attainment[s.id] ?? {}).some((v) => isAtRisk(v, threshold)));
   const unmeasured = detail.coursePloNumbers.filter((n) => !stats.has(n));
+  // The class chart shows the course's own PLOs (plus any others it has evidence for), not all of
+  // the curriculum's. A radar needs at least 3 axes; with fewer, the table below says it all.
+  const radarPlos = plos.filter((p) => detail.coursePloNumbers.includes(p.number) || stats.has(p.number));
+  const showRadar = radarPlos.length >= 3;
 
   if (!detail.assessments.length) {
     return (
@@ -68,13 +72,15 @@ export function RadarTab({ detail, canEdit }: { detail: OfferingDetail; canEdit:
           },
         ]}
       />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <Card>
-          <CardHeader title={t("chartTitle")} description={t("chartDescription")} />
-          <CardBody>
-            <PloRadar plos={plos} threshold={threshold} series={[{ key: "mean", label: t("classMean"), values: mean }]} showTable={false} />
-          </CardBody>
-        </Card>
+      <div className={cn("grid gap-6", showRadar && "xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]")}>
+        {showRadar && (
+          <Card>
+            <CardHeader title={t("chartTitle")} description={t("chartDescription")} />
+            <CardBody>
+              <PloRadar plos={radarPlos} threshold={threshold} series={[{ key: "mean", label: t("classMean"), values: mean }]} showTable={false} />
+            </CardBody>
+          </Card>
+        )}
         <Card>
           <CardHeader title={t("distributionTitle")} description={t("distributionDescription")} />
           <Table label={t("distributionTitle")}>

@@ -128,6 +128,29 @@ export function courseGrade(
   );
 }
 
+/**
+ * Share of the course grade already assessed (0–100): Σ gradeWeight of graded assessments ÷
+ * Σ gradeWeight of all assessments. Without shares, graded count ÷ assessment count. A course
+ * grade with less than 100% assessed is a grade "so far", not a final one.
+ */
+export function assessedShare(
+  assessments: AssessmentInput<string | number>[],
+  scores: Map<string, number | undefined> | Record<string, number | undefined>,
+): number {
+  if (!assessments.length) return 0;
+  const get = (id: string) => (scores instanceof Map ? scores.get(id) : scores[id]);
+  const isGraded = (a: AssessmentInput<string | number>) => {
+    const s = get(a.id);
+    return s !== undefined && s !== null && !Number.isNaN(s);
+  };
+  const total = assessments.reduce((s, a) => s + (a.gradeWeight ?? 0), 0);
+  if (total <= 0) return (assessments.filter(isGraded).length / assessments.length) * 100;
+  return (assessments.filter(isGraded).reduce((s, a) => s + (a.gradeWeight ?? 0), 0) / total) * 100;
+}
+
+/** A course is complete for grading once (almost) its whole grade is assessed. */
+export const isFullyAssessed = (share: number) => share >= 99.95;
+
 /** Letter grade scale (minimum percentage for each letter). Adjust here if the registry changes it. */
 export const LETTER_SCALE: { letter: string; min: number }[] = [
   { letter: "A", min: 85 },

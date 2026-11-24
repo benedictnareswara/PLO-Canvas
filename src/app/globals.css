@@ -593,8 +593,9 @@ details.ui-collapse[open]::details-content {
 }
 
 @media print {
+  /* Paper is always light, even with the Dark theme chosen (the theme rules are more specific). */
   :root {
-    color-scheme: light;
+    color-scheme: light !important;
   }
   body {
     background: white;

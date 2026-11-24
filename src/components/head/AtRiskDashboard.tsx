@@ -78,7 +78,7 @@ export function AtRiskDashboard({ data }: { data: StudentsWithRows }) {
         <CardHeader
           title={t("matrixTitle")}
           description={t("matrixDescription")}
-          actions={<HeatLegend low="0%" high="100%" below={t("legendBelow", { threshold })} />}
+          actions={<HeatLegend low={`${threshold}%`} high="100%" below={t("legendBelow", { threshold })} />}
         />
         {phone ? (
           <div className="space-y-3 p-4">

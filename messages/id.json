@@ -513,7 +513,9 @@
       "aboveMax": "{count} nilai melebihi nilai maks tugasnya (hingga 150% diperbolehkan sebagai nilai tambahan). Pastikan berkas memakai poin, bukan persentase.",
       "excused": "{count} sel ditandai EX (dispensasi) di Canvas tetapi sudah memiliki nilai di sini. Secara bawaan nilai yang ada tetap disimpan.",
       "clearExcused": "Hapus {count} nilai tersebut agar tugas yang didispensasi tidak dihitung (dicatat di riwayat)"
-    }
+    },
+    "shareTotal": "Total porsi nilai mata kuliah {total}%",
+    "sharesMissing": "Penilaian lain di kelas ini sudah memiliki porsi ({total}% dari nilai), sehingga kolom impor dengan porsi 0 tidak akan dihitung untuk CPL mana pun. Isi porsi nilai untuk kolom yang diimpor."
   },
   "history": {
     "filterKind": "Jenis perubahan",
@@ -684,7 +686,8 @@
       "noData": "Belum ada data",
       "pickPlo": "CPL",
       "emptyTitle": "Tidak ada kelas pada periode ini",
-      "emptyBody": "Pilih tahun akademik atau semester lain."
+      "emptyBody": "Pilih tahun akademik atau semester lain.",
+      "legendTarget": "Target kelas"
     }
   },
   "profile": {
@@ -715,7 +718,8 @@
     "noAssessments": "Belum ada penilaian yang diterbitkan.",
     "notGraded": "Belum dinilai",
     "weight": "bobot {value}%",
-    "printTranscript": "Cetak transkrip"
+    "printTranscript": "Cetak transkrip",
+    "soFar": "sementara · {assessed}% nilai sudah dinilai"
   },
   "admin": {
     "actions": "Tindakan",
@@ -1001,6 +1005,8 @@
       "means": "Rata-rata angkatan per CPL",
       "students": "Mahasiswa yang memerlukan intervensi akademik",
       "none": "Tidak ada mahasiswa dengan CPL di bawah target pada periode ini."
-    }
+    },
+    "soFar": "sementara · {assessed}% dinilai",
+    "curriculum": "CPL {name}"
   }
 }

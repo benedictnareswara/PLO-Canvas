@@ -67,7 +67,7 @@ export function CourseMatrix({ offerings, plos }: { offerings: OfferingListItem[
           description={t("description")}
           actions={
             <>
-              <HeatLegend low="0%" high="100%" below={t("legendBelow")} />
+              <HeatLegend low={t("legendTarget")} high="100%" below={t("legendBelow")} />
               <ExportMenu
                 size="sm"
                 items={[

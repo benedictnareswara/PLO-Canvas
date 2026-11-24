@@ -513,7 +513,9 @@
       "aboveMax": "{count, plural, one {# score is} other {# scores are}} above the assignment's max points (up to 150% is allowed as extra credit). Check that the file uses points, not percentages.",
       "excused": "{count, plural, one {# cell is} other {# cells are}} marked EX (excused) in Canvas but already {count, plural, one {has a grade} other {have grades}} here. By default the existing grade is kept.",
       "clearExcused": "Remove {count, plural, one {this grade} other {these # grades}}, so excused work isn't counted (recorded in the history)"
-    }
+    },
+    "shareTotal": "Shares of the course grade total {total}%",
+    "sharesMissing": "The class's other assessments already have shares ({total}% of the grade), so an imported column with share 0 wouldn't count towards any PLO. Give the imported columns their share of the course grade."
   },
   "history": {
     "filterKind": "Type of change",
@@ -684,7 +686,8 @@
       "noData": "No data",
       "pickPlo": "PLO",
       "emptyTitle": "No classes in this period",
-      "emptyBody": "Choose another academic year or term."
+      "emptyBody": "Choose another academic year or term.",
+      "legendTarget": "Class target"
     }
   },
   "profile": {
@@ -715,7 +718,8 @@
     "noAssessments": "No assessments published yet.",
     "notGraded": "Not graded",
     "weight": "weight {value}%",
-    "printTranscript": "Print transcript"
+    "printTranscript": "Print transcript",
+    "soFar": "so far · {assessed}% of grade assessed"
   },
   "admin": {
     "actions": "Actions",
@@ -1001,6 +1005,8 @@
       "means": "Cohort means by PLO",
       "students": "Students needing academic intervention",
       "none": "No student has a PLO below target for this period."
-    }
+    },
+    "soFar": "so far · {assessed}% assessed",
+    "curriculum": "PLOs of {name}"
   }
 }

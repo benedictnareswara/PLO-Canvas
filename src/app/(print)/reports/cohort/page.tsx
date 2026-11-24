@@ -36,6 +36,7 @@ export default async function CohortReport({ searchParams }: { searchParams: Pro
     <ReportShell
       title={t("cohort.title")}
       subtitle={`${periodLabel} · ${t("target", { value: threshold })}${threshold !== data.threshold ? ` (${t("cohort.whatIf", { saved: data.threshold })})` : ""}`}
+      curriculum={data.curriculumName}
       backHref="/head"
       generatedBy={user.name}
     >

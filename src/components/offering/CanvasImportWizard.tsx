@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ArrowRight, Check, ChevronDown, FileUp } from "lucide-react";
-import { Badge, Button, Input, NumberInput, SummaryStrip, Table, Td, Th, ToggleChip, cn } from "@/components/ui";
+import { Badge, Button, Input, Meter, NumberInput, SummaryStrip, Table, Td, Th, ToggleChip, cn } from "@/components/ui";
 import { Dialog, Notice, apiFetch } from "@/components/ui/client";
 import { parseCanvasGradebook, type ParsedCanvasGradebook } from "@/lib/canvas/parse";
 import { parseScore } from "@/lib/gradebook/parse-score";
@@ -23,6 +23,8 @@ interface MappingRow {
   gradeWeight: string;
   weights: WeightValue[];
   existing: boolean;
+  /** The class assessment this column updates, if any. */
+  existingId: string | null;
 }
 
 interface Report {
@@ -93,6 +95,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
             gradeWeight: String(prev?.gradeWeight ?? 0),
             weights: prev?.ploWeights.map((w) => ({ plo: w.plo, weight: w.weight })) ?? [],
             existing: Boolean(prev),
+            existingId: prev?.id ?? null,
           };
         }),
       );
@@ -113,7 +116,15 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
     return null;
   };
   const needingAttention = included.filter((r) => rowError(r));
-  const mappingValid = included.length > 0 && needingAttention.length === 0;
+  // Shares of the course grade across the class after this import: assessments the file doesn't
+  // touch, plus the imported columns. If the class already uses shares and every imported column
+  // has 0, the engine would give the imported work no weight at all, so Review waits for shares.
+  const updatedIds = new Set(included.map((r) => r.existingId).filter(Boolean));
+  const otherShares = detail.assessments.filter((a) => !updatedIds.has(a.id)).reduce((s, a) => s + (a.gradeWeight ?? 0), 0);
+  const importedShares = included.reduce((s, r) => s + (parseScore(r.gradeWeight || "0") || 0), 0);
+  const shareTotal = Math.round((otherShares + importedShares) * 100) / 100;
+  const sharesMissing = included.length > 0 && otherShares > 0 && importedShares === 0;
+  const mappingValid = included.length > 0 && needingAttention.length === 0 && !sharesMissing;
   const visibleRows = attentionOnly ? rows.filter((r) => r.include && rowError(r)) : rows;
 
   function payload(dryRun: boolean) {
@@ -249,7 +260,12 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
               {t("needsAttention", { count: needingAttention.length })}
             </ToggleChip>
             <span className="text-xs text-muted">{t("includedCount", { count: included.length, total: rows.length })}</span>
+            <span className="ml-auto flex min-w-56 flex-col gap-1 text-xs">
+              <span className={cn("tabular", Math.abs(shareTotal - 100) > 0.01 ? "text-warn" : "text-muted")}>{t("shareTotal", { total: shareTotal })}</span>
+              <Meter value={shareTotal} target={100} tone={Math.abs(shareTotal - 100) > 0.01 ? "brand" : "ok"} label={t("shareTotal", { total: shareTotal })} />
+            </span>
           </div>
+          {sharesMissing && <Notice tone="warn">{t("sharesMissing", { total: otherShares })}</Notice>}
           <Table label={t("steps.map")}>
             <thead>
               <tr>

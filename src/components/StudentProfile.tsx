@@ -8,7 +8,7 @@ import { PloCell, formatPct } from "@/components/AtRiskBadge";
 import { PeriodPicker, useAnalyticsFilters } from "@/components/analytics/filters";
 import { Badge, Card, CardBody, CardHeader, Meter, SummaryStrip, cn } from "@/components/ui";
 import { atRiskPlos, cumulativeForStudent, rowsToSums, toPloValues } from "@/lib/obe/aggregate";
-import { isAtRisk } from "@/lib/obe/engine";
+import { isAtRisk, isFullyAssessed } from "@/lib/obe/engine";
 import { inPeriod } from "@/lib/obe/semesters";
 import type { StudentCourseView, StudentProfileData } from "@/lib/obe/queries";
 
@@ -153,7 +153,12 @@ function CourseCard({ course }: { course: StudentCourseView }) {
             <Badge>{t("inProgress")}</Badge>
           ) : (
             <span className="text-sm font-semibold tabular">
-              {formatPct(course.grade)} <span className="ml-1 rounded bg-brand-soft px-1.5 py-0.5 text-xs text-brand">{course.letter}</span>
+              {formatPct(course.grade)}{" "}
+              {isFullyAssessed(course.assessed) ? (
+                <span className="ml-1 rounded bg-brand-soft px-1.5 py-0.5 text-xs text-brand">{course.letter}</span>
+              ) : (
+                <span className="block text-xs font-normal text-muted">{t("soFar", { assessed: Math.round(course.assessed) })}</span>
+              )}
             </span>
           )}
         </div>

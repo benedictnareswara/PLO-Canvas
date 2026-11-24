@@ -12,7 +12,7 @@ import {
   User,
   Types,
 } from "@/models";
-import { DEFAULT_THRESHOLD, courseGrade, cumulativePloAttainment, letterGrade, scorePercentage } from "./engine";
+import { DEFAULT_THRESHOLD, assessedShare, isFullyAssessed, courseGrade, cumulativePloAttainment, letterGrade, scorePercentage } from "./engine";
 import { offeringPeriodLabel, studentSemester } from "./semesters";
 import type { AttainmentRow, AttainmentSum, PackedSums, PloInfo, PloValues, StudentSummary } from "./types";
 import { packSums } from "./aggregate";
@@ -113,6 +113,8 @@ export interface StudentCourseView {
   threshold: number;
   grade: number | null;
   letter: string;
+  /** Share of the course grade assessed so far (0–100); below 100 the grade is provisional. */
+  assessed: number;
   assessments: {
     id: string;
     title: string;
@@ -127,6 +129,7 @@ export interface StudentCourseView {
 
 export interface StudentProfileData {
   student: StudentSummary;
+  curriculumName: string | null;
   plos: PloInfo[];
   threshold: number;
   rows: AttainmentRow[];
@@ -165,7 +168,8 @@ export const getStudentProfile = cache(async (studentId: string): Promise<Studen
       gradeWeight: a.gradeWeight ?? 0,
       ploWeights: [],
     }));
-    const grade = courseGrade(inputs, Object.fromEntries(own.map((a) => [String(a._id), scoreOf.get(String(a._id))])));
+    const scores = Object.fromEntries(own.map((a) => [String(a._id), scoreOf.get(String(a._id))]));
+    const grade = courseGrade(inputs, scores);
     const ploMap = new Map(
       rows.filter((r) => r.offering === String(o._id)).map((r) => [r.ploNumber, r.value] as [number, number]),
     );
@@ -179,6 +183,7 @@ export const getStudentProfile = cache(async (studentId: string): Promise<Studen
       threshold: o.threshold ?? DEFAULT_THRESHOLD,
       grade,
       letter: letterGrade(grade),
+      assessed: assessedShare(inputs, scores),
       assessments: own.map((a) => {
         const score = scoreOf.get(String(a._id));
         return {
@@ -200,6 +205,7 @@ export const getStudentProfile = cache(async (studentId: string): Promise<Studen
 
   return {
     student: { ...toStudentSummary(student), advisorName: advisor?.name ?? null },
+    curriculumName: curriculum?.name ?? null,
     plos,
     threshold,
     rows,
@@ -230,6 +236,7 @@ export interface OfferingDetail {
   threshold: number;
   lecturers: { id: string; name: string }[];
   coursePloNumbers: number[];
+  curriculumName: string | null;
   plos: PloInfo[];
   assessments: OfferingAssessmentView[];
   students: StudentSummary[];
@@ -255,8 +262,9 @@ export const getOfferingDetail = cache(async (offeringId: string): Promise<Offer
     CourseAttainment.find({ offering: offering._id }).select("student ploNumber value").lean(),
   ]);
   if (!course) return null;
-  const [plos, students] = await Promise.all([
+  const [plos, curriculum, students] = await Promise.all([
     getPlos(course.curriculum),
+    Curriculum.findById(course.curriculum).select("name").lean(),
     User.find({ _id: { $in: enrollments.map((e) => e.student) } })
       .select("name email studentId cohortYear")
       .sort({ name: 1 })
@@ -284,8 +292,10 @@ export const getOfferingDetail = cache(async (offeringId: string): Promise<Offer
   }));
   const courseGrades: OfferingDetail["courseGrades"] = {};
   for (const s of students) {
-    const pct = courseGrade(inputs, gradeMatrix[String(s._id)] ?? {});
-    courseGrades[String(s._id)] = { pct, letter: letterGrade(pct) };
+    const scores = gradeMatrix[String(s._id)] ?? {};
+    const pct = courseGrade(inputs, scores);
+    // A letter only once the whole grade is assessed; until then the percentage is a grade so far.
+    courseGrades[String(s._id)] = { pct, letter: isFullyAssessed(assessedShare(inputs, scores)) ? letterGrade(pct) : "–" };
   }
 
   return {
@@ -299,6 +309,7 @@ export const getOfferingDetail = cache(async (offeringId: string): Promise<Offer
     threshold: offering.threshold ?? DEFAULT_THRESHOLD,
     lecturers: lecturers.map((l) => ({ id: String(l._id), name: l.name })),
     coursePloNumbers: course.plos.map((p) => ploNumberById.get(String(p)) ?? 0).filter(Boolean).sort((a, b) => a - b),
+    curriculumName: curriculum?.name ?? null,
     plos,
     assessments: assessments.map((a) => ({
       id: String(a._id),
@@ -422,6 +433,8 @@ export interface StudentsWithRows {
   sums: PackedSums;
   plos: PloInfo[];
   threshold: number;
+  /** "CS Curriculum 2024", for report headers. */
+  curriculumName: string | null;
 }
 
 export async function getStudentsWithRows(filter: { advisor?: string; departmentId?: string | null }): Promise<StudentsWithRows> {
@@ -436,5 +449,6 @@ export async function getStudentsWithRows(filter: { advisor?: string; department
     sums: packSums(await getAttainmentSums(students.map((s) => s._id))),
     plos,
     threshold: curriculum?.defaultThreshold ?? DEFAULT_THRESHOLD,
+    curriculumName: curriculum?.name ?? null,
   };
 }

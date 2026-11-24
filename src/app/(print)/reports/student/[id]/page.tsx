@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { isFullyAssessed } from "@/lib/obe/engine";
 import { canViewStudent, getCurrentUser, requirePageUser } from "@/lib/auth/rbac";
 import { getStudentProfile } from "@/lib/obe/queries";
 import { atRiskPlos, cumulativeForStudent, rowsToSums, toPloValues } from "@/lib/obe/aggregate";
@@ -37,6 +38,7 @@ export default async function StudentReport({ params }: Props) {
     <ReportShell
       title={t("student.title")}
       subtitle={`${student.name} · NIM ${student.studentId ?? "—"}${student.cohortYear ? ` · ${t("classOf", { year: student.cohortYear })}` : ""}${student.advisorName ? ` · ${t("student.advisor", { name: student.advisorName })}` : ""}`}
+      curriculum={data.curriculumName}
       backHref={backHref}
       generatedBy={user.name}
     >
@@ -98,8 +100,11 @@ export default async function StudentReport({ params }: Props) {
               </td>
               <td className="text-right tabular">{c.semester}</td>
               <td className="text-right tabular">{c.sks}</td>
-              <td className="text-right tabular">{c.grade === null ? t("inProgress") : formatPct(c.grade)}</td>
-              <td>{c.grade === null ? "—" : c.letter}</td>
+              <td className="text-right tabular">
+                {c.grade === null ? t("inProgress") : formatPct(c.grade)}
+                {c.grade !== null && !isFullyAssessed(c.assessed) && <div className="text-[0.625rem] text-muted">{t("soFar", { assessed: Math.round(c.assessed) })}</div>}
+              </td>
+              <td>{c.grade === null || !isFullyAssessed(c.assessed) ? "—" : c.letter}</td>
               <td className="tabular">
                 {Object.entries(c.plo)
                   .filter(([, v]) => v !== null)

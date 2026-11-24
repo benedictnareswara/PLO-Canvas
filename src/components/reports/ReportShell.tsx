@@ -11,12 +11,15 @@ import { PrintButton } from "./PrintButton";
 export async function ReportShell({
   title,
   subtitle,
+  curriculum,
   backHref,
   generatedBy,
   children,
 }: {
   title: string;
   subtitle: string;
+  /** The curriculum the PLOs come from (UC-12), e.g. "CS Curriculum 2024". */
+  curriculum?: string | null;
   backHref: string;
   generatedBy: string;
   children: ReactNode;
@@ -49,7 +52,8 @@ export async function ReportShell({
           </div>
         </header>
         <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-        <p className="mt-1 mb-6 text-sm text-muted">{subtitle}</p>
+        <p className="mt-1 text-sm text-muted">{subtitle}</p>
+        <p className="mt-0.5 mb-6 text-xs text-muted">{curriculum ? t("curriculum", { name: curriculum }) : null}</p>
         {children}
         <footer className="mt-8 border-t border-border pt-3 text-[0.6875rem] text-muted">{t("footer")}</footer>
       </main>
