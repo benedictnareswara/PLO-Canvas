@@ -484,8 +484,7 @@
       "enroll": "Akan didaftarkan dan diimpor",
       "skip": "Belum terdaftar, dilewati"
     },
-    "done": "Impor selesai. Capaian CPL kelas ini telah dihitung ulang.",
-    "doneTransactional": "Impor selesai dalam satu transaksi basis data. Capaian CPL kelas ini telah dihitung ulang.",
+    "done": "Impor selesai dalam satu transaksi basis data. Capaian CPL kelas ini telah dihitung ulang.",
     "result": {
       "created": "Penilaian dibuat",
       "updated": "Penilaian diperbarui",

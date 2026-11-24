@@ -36,7 +36,6 @@ export interface ImportReport {
     aboveMax: number;
   };
   written?: { assessmentsCreated: number; assessmentsUpdated: number; gradesWritten: number; gradesCleared: number; enrolled: number; blankCells: number };
-  transactional?: boolean;
 }
 
 /** Matches Canvas rows to users: SIS Login ID → email first, then SIS User ID → student ID (NIM). */
@@ -236,6 +235,6 @@ export async function runCanvasImport(
     return written;
   };
 
-  const { result: written, transactional } = await runInTransaction(write);
-  return { matches, summary, assessments: assessmentsPreview, checks, written, transactional };
+  const { result: written } = await runInTransaction(write);
+  return { matches, summary, assessments: assessmentsPreview, checks, written };
 }

@@ -22,8 +22,8 @@ export const POST = apiHandler<Ctx>(async (req, { params }) => {
       { offering: id, actor: user },
       session,
     );
+    await recomputeOffering(id, session);
     return String(created._id);
   });
-  await recomputeOffering(id);
   return NextResponse.json({ id: assessmentId }, { status: 201 });
 });

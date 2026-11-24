@@ -44,7 +44,7 @@ export const PUT = apiHandler<Ctx>(async (req, { params }) => {
   }
 
   try {
-    const { result: saved } = await runInTransaction(async (session) => {
+    const { result } = await runInTransaction(async (session) => {
       const stored = await Grade.find({ offering: id }, "assessment student score", session ? { session } : {}).lean();
       const current = new Map(stored.map((g) => [`${g.student}:${g.assessment}`, g.score]));
 
@@ -63,11 +63,12 @@ export const PUT = apiHandler<Ctx>(async (req, { params }) => {
       });
       if (ops.length) await Grade.bulkWrite(ops, session ? { session } : {});
       await recordAudit(changes, { offering: id, actor: user }, session);
-      return ops.length;
+      // Recalculated in the same transaction, so saved grades and attainment never disagree.
+      const recomputed = ops.length ? await recomputeOffering(id, session) : { students: 0, rows: 0 };
+      return { saved: ops.length, ...recomputed };
     });
 
-    const result = saved ? await recomputeOffering(id) : { students: 0, rows: 0 };
-    return NextResponse.json({ ok: true, saved, ...result });
+    return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     if (err instanceof ConflictError) {
       return NextResponse.json(

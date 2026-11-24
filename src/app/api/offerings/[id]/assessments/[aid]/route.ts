@@ -44,8 +44,8 @@ export const PATCH = apiHandler<Ctx>(async (req, { params }) => {
     if (changed) {
       await recordAudit([{ action: "assessment.update", assessment: aid, assessmentTitle: next.title, ...changed }], { offering: id, actor: user }, session);
     }
+    await recomputeOffering(id, session);
   });
-  await recomputeOffering(id);
   return NextResponse.json({ ok: true });
 });
 
@@ -66,7 +66,7 @@ export const DELETE = apiHandler<Ctx>(async (_req, { params }) => {
       { offering: id, actor: user },
       session,
     );
+    await recomputeOffering(id, session);
   });
-  await recomputeOffering(id);
   return NextResponse.json({ ok: true });
 });

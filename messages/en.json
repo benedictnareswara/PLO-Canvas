@@ -484,8 +484,7 @@
       "enroll": "Will enroll and import",
       "skip": "Not enrolled, skipped"
     },
-    "done": "Import complete. PLO attainment for this class was recalculated.",
-    "doneTransactional": "Import complete in a single database transaction. PLO attainment for this class was recalculated.",
+    "done": "Import complete in a single database transaction. PLO attainment for this class was recalculated.",
     "result": {
       "created": "Assessments created",
       "updated": "Assessments updated",

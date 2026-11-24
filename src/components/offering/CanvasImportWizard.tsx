@@ -33,7 +33,6 @@ interface Report {
   assessments: { key: string; title: string; action: "create" | "update"; changes: ("ploWeights" | "gradeWeight" | "maxPoints")[] }[];
   checks: { excusedWithGrade: number; aboveMax: number };
   written?: { assessmentsCreated: number; assessmentsUpdated: number; gradesWritten: number; gradesCleared: number; enrolled: number; blankCells: number };
-  transactional?: boolean;
 }
 
 type RowError = "maxPoints" | "gradeWeight" | "noPlo" | "weightZero" | "weightTotal";
@@ -437,7 +436,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
 
       {step === 3 && report?.written && (
         <div className="space-y-4">
-          <Notice tone="ok">{report.transactional ? t("doneTransactional") : t("done")}</Notice>
+          <Notice tone="ok">{t("done")}</Notice>
           <SummaryStrip
             items={[
               { label: t("result.created"), value: report.written.assessmentsCreated },

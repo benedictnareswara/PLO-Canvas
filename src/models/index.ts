@@ -198,6 +198,8 @@ export const AUDIT_ACTIONS = [
   "assessment.delete",
   "threshold.update",
   "canvas.import",
+  // Kept in the database as the record of a deleted class; there is no class page left to show it.
+  "offering.delete",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

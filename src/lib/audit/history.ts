@@ -42,6 +42,8 @@ const KIND_OF: Record<AuditAction, BatchKind> = {
   "assessment.update": "assessmentUpdate",
   "assessment.delete": "assessmentDelete",
   "threshold.update": "threshold",
+  // Never listed: a deleted class has no History tab. Mapped only to keep this table complete.
+  "offering.delete": "assessmentDelete",
 };
 
 /**

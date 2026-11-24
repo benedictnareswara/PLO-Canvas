@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiHandler, HttpError, requireApiUser } from "@/lib/auth/rbac";
 import { assertDeletable, getResource } from "@/lib/admin/resources";
 import { objectId } from "@/lib/validators";
+import { runInTransaction } from "@/lib/transaction";
 
 type Ctx = { params: Promise<{ resource: string; id: string }> };
 
@@ -39,8 +40,11 @@ export const DELETE = apiHandler<Ctx>(async (_req, { params }) => {
   if (resource === "users" && id === user.id) throw new HttpError(400, "You cannot delete your own account");
   const config = getResource(resource);
   await assertDeletable(config, id);
-  await config.beforeDelete?.(id);
-  const res = await config.model.deleteOne({ _id: id });
-  if (!res.deletedCount) throw new HttpError(404, "Not found");
+  // The record and everything it takes with it go together, or not at all.
+  await runInTransaction(async (session) => {
+    await config.beforeDelete?.(id, { session, actor: user });
+    const res = await config.model.deleteOne({ _id: id }, { session });
+    if (!res.deletedCount) throw new HttpError(404, "Not found");
+  });
   return NextResponse.json({ ok: true });
 });

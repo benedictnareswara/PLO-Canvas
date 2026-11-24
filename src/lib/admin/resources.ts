@@ -1,9 +1,10 @@
 import "server-only";
-import type { Model } from "mongoose";
+import type { ClientSession, Model } from "mongoose";
 import type { ZodType } from "zod";
 import { HttpError } from "@/lib/auth/rbac";
 import { hashPassword } from "@/lib/auth/password";
 import { recomputeOffering } from "@/lib/obe/recompute";
+import { recordAudit } from "@/lib/audit/record";
 import {
   courseSchema,
   curriculumSchema,
@@ -44,7 +45,8 @@ export interface ResourceConfig {
    * the others are removed with it. Shown in the delete confirmation before anything happens.
    */
   dependents?: (id: string) => Promise<Dependent[]>;
-  beforeDelete?: (id: string) => Promise<void>;
+  /** Runs in the delete's transaction, before the record itself is removed. */
+  beforeDelete?: (id: string, ctx: { session: ClientSession; actor: { id: string; name: string } }) => Promise<void>;
   afterWrite?: (id: string) => Promise<void>;
 }
 
@@ -163,14 +165,35 @@ export const RESOURCES: Record<string, ResourceConfig> = {
         dep("assessments", Assessment.countDocuments({ offering: id }), false),
         dep("grades", Grade.countDocuments({ offering: id }), false),
       ]),
-    beforeDelete: async (id) => {
-      // Cascade: an offering owns its enrollments, assessments, grades and attainment rows.
-      await Promise.all([
-        Enrollment.deleteMany({ offering: id }),
-        Assessment.deleteMany({ offering: id }),
-        Grade.deleteMany({ offering: id }),
-        CourseAttainment.deleteMany({ offering: id }),
+    beforeDelete: async (id, { session, actor }) => {
+      // Cascade: an offering owns its enrollments, assessments, grades and attainment rows. All of it
+      // goes in one transaction with the offering, and the deletion itself is recorded.
+      const offering = await CourseOffering.findById(id, "course academicYear term section", { session }).lean();
+      const course = offering ? await Course.findById(offering.course, "code", { session }).lean() : null;
+      const [enrollments, assessments, grades] = await Promise.all([
+        Enrollment.deleteMany({ offering: id }, { session }),
+        Assessment.deleteMany({ offering: id }, { session }),
+        Grade.deleteMany({ offering: id }, { session }),
+        CourseAttainment.deleteMany({ offering: id }, { session }),
       ]);
+      await recordAudit(
+        [
+          {
+            action: "offering.delete",
+            before: {
+              course: course?.code ?? null,
+              academicYear: offering?.academicYear ?? null,
+              term: offering?.term ?? null,
+              section: offering?.section ?? null,
+              enrollments: enrollments.deletedCount,
+              assessments: assessments.deletedCount,
+              grades: grades.deletedCount,
+            },
+          },
+        ],
+        { offering: id, actor },
+        session,
+      );
     },
     afterWrite: (id) => recomputeOffering(id).then(() => undefined),
   },
@@ -195,8 +218,8 @@ export const RESOURCES: Record<string, ResourceConfig> = {
         dep("advisees", User.countDocuments({ advisor: id }), false),
       ]),
     // Advisees of a deleted lecturer lose the dangling advisor link.
-    beforeDelete: async (id) => {
-      await User.updateMany({ advisor: id }, { $unset: { advisor: 1 } });
+    beforeDelete: async (id, { session }) => {
+      await User.updateMany({ advisor: id }, { $unset: { advisor: 1 } }, { session });
     },
     afterWrite: async (id) => {
       // Cohort year drives semester numbering, so refresh the student's attainment rows.
