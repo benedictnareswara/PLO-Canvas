@@ -1,0 +1,10 @@
+Student,ID,SIS User ID,SIS Login ID,Section,Problem Sets (70101),Midterm Exam (UTS) (70102),Algorithm Implementation Project (70103),Final Exam (UAS) (70104),Coding Challenge (70105),Current Score,Unposted Current Score,Final Score,Unposted Final Score
+    Points Possible,,,,,60.00,100.00,100.00,100.00,10.00,(read only),(read only),(read only),(read only)
+"Amalia, Qori",49201,2025001,student16@sampoerna.ac.id,COMP2424 Data Structures & Algorithms - A,55,90,88,,9,89.6,89.6,89.6,89.6
+"Pahlevi, Reza",49202,2025002,student17@sampoerna.ac.id,COMP2424 Data Structures & Algorithms - A,EX,48,52,,5,50.1,50.1,50.1,50.1
+"Anindita, Salsa",49203,2025003,student18,COMP2424 Data Structures & Algorithms - A,44,,75,,-4,74.0,74.0,74.0,74.0
+"Hidayat, Taufik",49204,2025004,,COMP2424 Data Structures & Algorithms - A,41,118,66,,7,82.4,82.4,82.4,82.4
+"Kalsum, Umi",49205,2025005,student20@sampoerna.ac.id,COMP2424 Data Structures & Algorithms - A,50,-,80,,8,82.7,82.7,82.7,82.7
+"Hartono, Valentino",49101,2026001,student21@sampoerna.ac.id,COMP2424 Data Structures & Algorithms - A,52,84,81,,10,84.9,84.9,84.9,84.9
+"Gunawan, Rina",49999,2025099,rina.gunawan@sampoerna.ac.id,COMP2424 Data Structures & Algorithms - A,45,70,68,,6,70.9,70.9,70.9,70.9
+"Student, Test",49000,,,COMP2424 Data Structures & Algorithms - A,0,0,0,0,0,0.0,0.0,0.0,0.0

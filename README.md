@@ -2,7 +2,7 @@
 
 A web app for **Outcome-Based Education (OBE)** at Sampoerna University. Lecturers enter grades by hand or import them from a Canvas gradebook CSV. Each assessment is mapped to **Program Learning Outcomes (PLOs)**, and the app shows how well students, classes and cohorts meet each PLO on spider (radar) charts.
 
-It comes with sample data for the **Computer Science 2024 curriculum** (10 PLOs, 28 courses, 25 students).
+It comes with sample data for the **Computer Science 2024 curriculum** (its 10 PLOs and the 51 courses of curriculum Table 7) and 25 made-up students.
 
 **Contents**
 

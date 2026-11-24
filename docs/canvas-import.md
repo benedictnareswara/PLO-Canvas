@@ -25,10 +25,12 @@ The sample covers every matching path:
 1. Sign in as `lecturer1@sampoerna.ac.id`. Open **My Classes → COMP4334 · Final Year Project 1 (2026/2027 Odd)** and click **Import Canvas CSV**.
 2. **Upload** the sample file. The wizard reports 4 assignment columns and 4 student rows. The "Points Possible" row supplies max points.
 3. **Map to PLOs**: tick the columns to import. For each one, use the PLO dropdown and enter weights that total 100%. For example:
-   - Project Proposal → PLO 7 = 60, PLO 9 = 40
-   - Literature Review → PLO 9 = 100
+   - Project Proposal → PLO 5 = 60, PLO 10 = 40
+   - Literature Review → PLO 5 = 100
    - Progress Presentation → PLO 10 = 100
-   - Supervisor Logbook → PLO 7 = 100
+   - Supervisor Logbook → PLO 5 = 100
+
+   COMP4334 supports PLO 5 and PLO 10 in curriculum Table 7, so the picker lists those first.
 
    You can also set each column's share of the course grade.
 4. **Review** is a server-side dry run. It shows 3 matched and enrolled students and 1 unmatched row (skipped), plus which assessments will be created or updated. Matched students who aren't enrolled can optionally be enrolled here.
@@ -40,8 +42,8 @@ Both files match the seeded data. Their scores are made up.
 
 | File | Sign in as → class | What it tests |
 |---|---|---|
-| [`samples/canvas-COMP4334-fyp1-class-of-2023.csv`](../samples/canvas-COMP4334-fyp1-class-of-2023.csv) | `lecturer1` → **COMP4334 (2026/2027 Odd)** | A full class: the 8 students of the Class of 2023 and 5 assignments. Includes an EX cell, a blank (not graded yet), a `-`, a score above max (21/20, accepted as extra credit, flagged in the dry run), 1 unmatched student and the Canvas Test Student. |
-| [`samples/canvas-COMP1401-reimport-edge-cases.csv`](../samples/canvas-COMP1401-reimport-edge-cases.csv) | `lecturer1` → **COMP1401 (2026/2027 Odd)**, Class of 2026 | **Re-import onto hand-made columns:** the four seeded assessments have the same titles, so they are updated, not duplicated, and the dry run lists any PLO-weight or share changes. Also covers: an **EX** cell where a grade already exists (offers *Remove these grades*); a **negative** cell (skipped, with a warning); a score **above max** (118/100); a `-` cell; a blank UAS column; a student from another cohort who isn't enrolled (offers *Enrol*); 1 unmatched row; and a new column ("Coding Challenge") to create. |
+| [`samples/canvas-COMP4334-fyp1-class-of-2023.csv`](../samples/canvas-COMP4334-fyp1-class-of-2023.csv) | `lecturer1` → **COMP4334 (2026/2027 Odd)** | A full class: the 8 students of cohort 2023 and 5 assignments. Includes an EX cell, a blank (not graded yet), a `-`, a score above max (21/20, accepted as extra credit, flagged in the dry run), 1 unmatched student and the Canvas Test Student. |
+| [`samples/canvas-COMP2424-reimport-edge-cases.csv`](../samples/canvas-COMP2424-reimport-edge-cases.csv) | `lecturer1` → **COMP2424 (2026/2027 Odd)**, cohort 2025 | **Re-import onto hand-made columns:** the four seeded assessments have the same titles, so they are updated, not duplicated, and the dry run lists any PLO-weight or share changes. Also covers: an **EX** cell where a grade already exists (offers *Remove these grades*); a **negative** cell (skipped, with a warning); a score **above max** (118/100); a `-` cell; a blank UAS column; a student from another cohort who isn't enrolled (offers *Enrol*); 1 unmatched row; and a new column ("Coding Challenge") to create. |
 
 Importing the same file again **updates** the existing assessments instead of duplicating them; a column you created by hand with the same title is adopted rather than duplicated. Blank, `-` and `EX` cells never overwrite existing grades.
 
