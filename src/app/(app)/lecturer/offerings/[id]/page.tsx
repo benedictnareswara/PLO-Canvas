@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { canAccessOffering, getCurrentUser, requirePageUser } from "@/lib/auth/rbac";
+import { canAccessOffering, getCurrentUser, hasRole, requirePageUser } from "@/lib/auth/rbac";
 import { getOfferingDetail } from "@/lib/obe/queries";
 import { Badge, Breadcrumbs, PageHeader } from "@/components/ui";
 import { OfferingActions, OfferingWorkspace } from "@/components/offering/OfferingWorkspace";
@@ -28,10 +28,13 @@ export default async function OfferingPage({ params }: Props) {
     getTranslations(),
   ]);
   if (!detail) notFound();
+  // A faculty head reviewing a department class they don't teach came from Course Attainment.
+  const teaches = detail.lecturers.some((l) => l.id === user.id);
+  const parent = teaches || !hasRole(user, "faculty_head") ? { href: "/lecturer", label: t("nav.myClasses") } : { href: "/head/courses", label: t("nav.courseAttainment") };
 
   return (
     <>
-      <Breadcrumbs label={t("shell.breadcrumb")} items={[{ href: "/lecturer", label: t("nav.myClasses") }, { label: detail.code }]} />
+      <Breadcrumbs label={t("shell.breadcrumb")} items={[parent, { label: detail.code }]} />
       <PageHeader
         title={`${detail.code} · ${detail.title}`}
         description={

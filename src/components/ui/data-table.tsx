@@ -79,6 +79,8 @@ export interface DataTableProps<T> {
   maxHeight?: string;
   /** Switch to stacked cards when the table's container is narrower than 40rem. */
   stackOnNarrow?: boolean;
+  /** On narrow containers, offer sorting as a menu (stacked cards have no column headers). */
+  sortMenu?: boolean;
   showDensity?: boolean;
   /** Row checkboxes for bulk actions (needs getRowId). `name` labels each row's checkbox. */
   selection?: { selected: Set<string>; onChange: Dispatch<SetStateAction<Set<string>>>; name: (row: T) => string };
@@ -129,6 +131,7 @@ export function DataTable<T>({
   stickyFirstColumn = false,
   maxHeight,
   stackOnNarrow = true,
+  sortMenu = true,
   showDensity = false,
   selection,
   className,
@@ -237,7 +240,7 @@ export function DataTable<T>({
     const c = table.getColumn(id)?.columnDef;
     return c?.meta?.label ?? (typeof c?.header === "string" ? c.header : id);
   };
-  const hasToolbar = searchable || toolbar || exportSlot || showDensity || (stackOnNarrow && sortable.length > 0);
+  const hasToolbar = searchable || toolbar || exportSlot || showDensity || (stackOnNarrow && sortMenu && sortable.length > 0);
 
   return (
     <div className={cn("ui-dt-wrap", className)}>
@@ -267,7 +270,7 @@ export function DataTable<T>({
             </div>
           )}
           {toolbar}
-          {stackOnNarrow && sortable.length > 0 && (
+          {stackOnNarrow && sortMenu && sortable.length > 0 && (
             <Select
               value={sortValue}
               onChange={(e) => setSortParam(e.target.value)}

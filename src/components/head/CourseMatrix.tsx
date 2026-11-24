@@ -20,7 +20,8 @@ import type { PloInfo } from "@/lib/obe/types";
 export function CourseMatrix({ offerings, plos }: { offerings: OfferingListItem[]; plos: PloInfo[] }) {
   const t = useTranslations("analytics.courses");
   const years = useMemo(() => [...new Set(offerings.map((o) => o.academicYear))].sort((a, b) => b - a), [offerings]);
-  const [year, setYear] = useUrlState("year", "all");
+  // Opens on the latest academic year (its classes are the ones still in progress); "All" stays one click away.
+  const [year, setYear] = useUrlState("year", years[0] ? String(years[0]) : "all");
   const [term, setTerm] = useUrlState<"all" | "odd" | "even">("term", "all");
   const [phonePlo, setPhonePlo] = useUrlState("plo", String(plos[0]?.number ?? 1));
   const phone = useMediaQuery("(width < 48rem)");
@@ -98,6 +99,7 @@ export function CourseMatrix({ offerings, plos }: { offerings: OfferingListItem[
                   <li key={o.id} className="flex items-center gap-3 px-3 py-2.5" style={v === null ? undefined : heatStyle(v, o.threshold)}>
                     <Link href={`/lecturer/offerings/${o.id}`} className="min-w-0 flex-1">
                       <span className="block truncate font-medium text-brand">{o.code}</span>
+                      <span className="block truncate text-xs">{o.title}</span>
                       <span className="block text-xs text-muted">
                         {o.period} · {t("targetShort", { value: o.threshold })}
                       </span>
@@ -132,6 +134,9 @@ export function CourseMatrix({ offerings, plos }: { offerings: OfferingListItem[
                       <Link href={`/lecturer/offerings/${o.id}`} className="font-medium text-brand underline-offset-2 hover:underline">
                         {o.code}
                       </Link>
+                      <div className="max-w-56 truncate text-xs" title={o.title}>
+                        {o.title}
+                      </div>
                       <div className="text-xs whitespace-nowrap text-muted">
                         {o.period} · {t("targetShort", { value: o.threshold })}
                       </div>

@@ -79,7 +79,9 @@ export function Dialog({
       }}
       aria-labelledby={mounted ? titleId : undefined}
       className={cn(
-        "ui-dialog m-auto max-h-[92vh] w-[calc(100vw-2rem)] rounded-xl border border-border bg-surface p-0 text-foreground shadow-e3",
+        // Anchored near the top, not centred, so the dialog doesn't jump when its content grows or
+        // shrinks (role toggles, wizard steps). Phone sheets keep their own bottom position.
+        "ui-dialog mx-auto mt-[6vh] mb-auto max-h-[88vh] w-[calc(100vw-2rem)] rounded-xl border border-border bg-surface p-0 text-foreground shadow-e3",
         variant === "sheet" && "ui-sheet",
         size === "sm" && "max-w-md",
         size === "md" && "max-w-lg",
@@ -88,7 +90,7 @@ export function Dialog({
       )}
     >
       {(open || mounted) && (
-        <div className="flex max-h-[92vh] flex-col">
+        <div className="flex max-h-[88vh] flex-col">
           <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
             <div className="min-w-0">
               <h2 id={titleId} className="text-base font-semibold leading-6">

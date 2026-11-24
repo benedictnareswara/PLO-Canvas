@@ -382,6 +382,7 @@ export function ResourceSection<T extends Row>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columns, rowActions, t]);
 
+  const short = rows.length < 10 && !toolbar;
   const exportColumns: ExportColumn<T>[] = columns.filter((c) => c.value).map((c) => ({ header: c.header, value: c.value! }));
   const file = safeFilename(resource);
 
@@ -408,7 +409,9 @@ export function ResourceSection<T extends Row>({
         data={rows}
         columns={tableColumns}
         label={title}
-        searchable
+        // A short list (one faculty, a department or two) reads at a glance: no search, sort menu or export.
+        searchable={!short}
+        sortMenu={!short}
         pageSize={pageSize}
         urlKey={`${resource}-`}
         getRowId={(r) => r._id}
@@ -416,13 +419,15 @@ export function ResourceSection<T extends Row>({
         toolbar={toolbar}
         empty={<p className="py-6 text-center text-sm text-muted">{t("empty")}</p>}
         exportSlot={
-          <ExportMenu
-            size="sm"
-            items={[
-              { key: "csv", label: "CSV", format: "csv", run: () => downloadCsv(`${file}.csv`, rows, exportColumns) },
-              { key: "xlsx", label: "Excel", format: "xlsx", run: async () => (await import("@/lib/export/xlsx")).downloadXlsx(`${file}.xlsx`, [{ name: title, rows, columns: exportColumns }]) },
-            ]}
-          />
+          short ? undefined : (
+            <ExportMenu
+              size="sm"
+              items={[
+                { key: "csv", label: "CSV", format: "csv", run: () => downloadCsv(`${file}.csv`, rows, exportColumns) },
+                { key: "xlsx", label: "Excel", format: "xlsx", run: async () => (await import("@/lib/export/xlsx")).downloadXlsx(`${file}.xlsx`, [{ name: title, rows, columns: exportColumns }]) },
+              ]}
+            />
+          )
         }
       />
       {editing && (

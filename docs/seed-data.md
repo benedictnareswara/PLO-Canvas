@@ -48,5 +48,5 @@
 `npm run seed -- --large` adds about 750 synthetic students in five cohorts for checking performance at realistic scale. Like the normal seed it drops the database it points at, so to keep your data, aim it at another database:
 
 ```bash
-MONGODB_URI="mongodb://localhost:27017/su_obe_large?replicaSet=rs0&directConnection=true" npm run seed -- --large
+MONGODB_URI="mongodb://localhost:27017/plo_canvas_large?replicaSet=rs0&directConnection=true" npm run seed -- --large
 ```

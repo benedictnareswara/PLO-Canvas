@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "OBE Gradebook",
+    "appName": "PLO-Canvas",
     "university": "Sampoerna University",
     "registry": "Academic Registry",
     "save": "Save",
@@ -324,8 +324,6 @@
     "clearSearch": "Clear search",
     "missingOnly": "Missing scores only",
     "showing": "{shown} of {total}",
-    "exportCsv": "Grades (CSV)",
-    "exportXlsx": "Full workbook (Excel)",
     "keyboardHint": "Arrow keys move · type to edit · <kbd>{save}</kbd> saves · <kbd>{paste}</kbd> pastes from a spreadsheet · <kbd>{undo}</kbd> undoes",
     "gradeBy": "Grade by",
     "byAssessment": "By assessment",
@@ -514,7 +512,8 @@
       "clearExcused": "Remove {count, plural, one {this grade} other {these # grades}}, so excused work isn't counted (recorded in the history)"
     },
     "shareTotal": "Shares of the course grade total {total}%",
-    "sharesMissing": "The class's other assessments already have shares ({total}% of the grade), so an imported column with share 0 wouldn't count towards any PLO. Give the imported columns their share of the course grade."
+    "sharesMissing": "The class's other assessments already have shares ({total}% of the grade), so an imported column with share 0 wouldn't count towards any PLO. Give the imported columns their share of the course grade.",
+    "aboveMaxIn": "Above max in {list}"
   },
   "history": {
     "filterKind": "Type of change",
@@ -781,7 +780,7 @@
     },
     "overview": {
       "title": "System administration",
-      "description": "Configure the institutional structure, curriculum and users of the OBE gradebook.",
+      "description": "Configure the institutional structure, curriculum and users of PLO-Canvas.",
       "curricula": "Curricula / PLOs",
       "curriculaHint": "Outcome frameworks",
       "courses": "Courses / offerings",
@@ -943,7 +942,7 @@
     "print": "Print / Save as PDF",
     "printTranscript": "Print transcript",
     "university": "Sampoerna University",
-    "registry": "Academic Registry · OBE Gradebook",
+    "registry": "Academic Registry · PLO-Canvas",
     "generatedAt": "Generated {date}",
     "generatedBy": "by {name}",
     "footer": "Attainment is SKS-weighted course-level PLO attainment, calculated according to DIKTI, LAM INFOKOM and IABEE conventions.",

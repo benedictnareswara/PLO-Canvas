@@ -48,6 +48,8 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
   const [enrollUnenrolled, setEnrollUnenrolled] = useState(false);
   const [clearExcused, setClearExcused] = useState(false);
   const [attentionOnly, setAttentionOnly] = useState(false);
+  // Row errors show once the lecturer asks to review, not before they've had a chance to map.
+  const [triedReview, setTriedReview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"check" | "write" | null>(null);
   const steps = [t("steps.upload"), t("steps.map"), t("steps.review"), t("steps.done")];
@@ -61,6 +63,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
     setEnrollUnenrolled(false);
     setClearExcused(false);
     setAttentionOnly(false);
+    setTriedReview(false);
     setError(null);
   }
 
@@ -191,7 +194,14 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
               <Button variant="secondary" onClick={() => setStep(0)}>
                 {t("back")}
               </Button>
-              <Button onClick={() => submit(true)} disabled={!mappingValid} loading={busy === "check"}>
+              <Button
+                onClick={() => {
+                  setTriedReview(true);
+                  if (mappingValid) submit(true);
+                }}
+                disabled={!included.length}
+                loading={busy === "check"}
+              >
                 {t("review")}
               </Button>
             </>
@@ -278,7 +288,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
             </thead>
             <tbody>
               {visibleRows.map((r) => {
-                const err = r.include ? rowError(r) : null;
+                const err = r.include && triedReview ? rowError(r) : null;
                 return (
                   <tr key={r.key} className={cn(!r.include && "opacity-60")}>
                     <Td>
@@ -407,28 +417,40 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
               </tr>
             </thead>
             <tbody>
-              {report.matches.map((m, i) => (
-                <tr key={i}>
-                  <Td>{m.name}</Td>
-                  <Td className="text-muted">{m.sisLoginId || "—"}</Td>
-                  <Td className="text-muted">{m.sisUserId || "—"}</Td>
-                  <Td>
-                    {m.userName ?? "—"}
-                    {m.matchedBy && <span className="ml-1 text-xs text-muted">({m.matchedBy === "email" ? t("byEmail") : t("byNim")})</span>}
-                  </Td>
-                  <Td>
-                    {!m.userId ? (
-                      <Badge tone="risk">{t("status.unmatched")}</Badge>
-                    ) : m.enrolled ? (
-                      <Badge tone="ok">{t("status.import")}</Badge>
-                    ) : enrollUnenrolled ? (
-                      <Badge tone="brand">{t("status.enroll")}</Badge>
-                    ) : (
-                      <Badge>{t("status.skip")}</Badge>
-                    )}
-                  </Td>
-                </tr>
-              ))}
+              {report.matches.map((m, i) => {
+                // Matches come back in file order, so row i is parsed student i.
+                const scores = parsed?.students[i]?.scores ?? {};
+                const aboveMax = included.filter((r) => {
+                  const s = scores[r.key];
+                  const max = parseScore(r.maxPoints);
+                  return s !== null && s !== undefined && max !== null && s > max;
+                });
+                return (
+                  <tr key={i}>
+                    <Td>{m.name}</Td>
+                    <Td className="text-muted">{m.sisLoginId || "—"}</Td>
+                    <Td className="text-muted">{m.sisUserId || "—"}</Td>
+                    <Td>
+                      {m.userName ?? "—"}
+                      {m.matchedBy && <span className="ml-1 text-xs text-muted">({m.matchedBy === "email" ? t("byEmail") : t("byNim")})</span>}
+                    </Td>
+                    <Td>
+                      {!m.userId ? (
+                        <Badge tone="risk">{t("status.unmatched")}</Badge>
+                      ) : m.enrolled ? (
+                        <Badge tone="ok">{t("status.import")}</Badge>
+                      ) : enrollUnenrolled ? (
+                        <Badge tone="brand">{t("status.enroll")}</Badge>
+                      ) : (
+                        <Badge>{t("status.skip")}</Badge>
+                      )}
+                      {m.userId && aboveMax.length > 0 && (
+                        <div className="mt-1 text-xs text-warn">{t("aboveMaxIn", { list: aboveMax.map((r) => r.title).join(", ") })}</div>
+                      )}
+                    </Td>
+                  </tr>
+                );
+              })}
             </tbody>
           </Table>
         </div>
@@ -604,7 +626,8 @@ function PloMultiSelect({
         {open && (
           <fieldset style={pos} className="fixed z-50 max-h-72 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-e3">
             <legend className="sr-only">{t("selectPlos")}</legend>
-            {plos.map((p) => (
+            {/* The course's own PLOs first: they are almost always the right choice. */}
+            {[...plos].sort((a, b) => Number(!highlight.includes(a.number)) - Number(!highlight.includes(b.number)) || a.number - b.number).map((p) => (
               <label key={p.id} className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-2" title={p.description}>
                 <input type="checkbox" className="mt-0.5 size-4 accent-brand" checked={selected.has(p.id)} onChange={() => toggle(p.id)} />
                 <span>

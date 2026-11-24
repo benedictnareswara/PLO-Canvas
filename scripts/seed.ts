@@ -306,7 +306,12 @@ async function main() {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("MONGODB_URI is not set. Copy .env.example to .env.local.");
   await mongoose.connect(uri, { serverSelectionTimeoutMS: 8000 });
-  console.log(`Connected to ${mongoose.connection.name}. Dropping existing data…`);
+  // The seed wipes the database first. Only do that to a demo database unless told to.
+  const name = mongoose.connection.name;
+  if (!/^plo_canvas|_dev$|_test$/.test(name) && !process.argv.includes("--yes")) {
+    throw new Error(`Refusing to wipe the database "${name}". Seed a database named plo_canvas…, …_dev or …_test, or add --yes (npm run seed -- --yes) if you really mean it.`);
+  }
+  console.log(`Connected to ${name}. Dropping existing data…`);
   await mongoose.connection.dropDatabase();
   await Promise.all(Object.values(mongoose.models).map((m) => m.syncIndexes()));
 

@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "OBE Gradebook",
+    "appName": "PLO-Canvas",
     "university": "Sampoerna University",
     "registry": "Biro Administrasi Akademik",
     "save": "Simpan",
@@ -324,8 +324,6 @@
     "clearSearch": "Hapus pencarian",
     "missingOnly": "Hanya nilai kosong",
     "showing": "{shown} dari {total}",
-    "exportCsv": "Nilai (CSV)",
-    "exportXlsx": "Buku kerja lengkap (Excel)",
     "keyboardHint": "Panah untuk berpindah · ketik untuk mengedit · <kbd>{save}</kbd> menyimpan · <kbd>{paste}</kbd> menempel dari spreadsheet · <kbd>{undo}</kbd> mengurungkan",
     "gradeBy": "Nilai per",
     "byAssessment": "Per penilaian",
@@ -514,7 +512,8 @@
       "clearExcused": "Hapus {count} nilai tersebut agar tugas yang didispensasi tidak dihitung (dicatat di riwayat)"
     },
     "shareTotal": "Total porsi nilai mata kuliah {total}%",
-    "sharesMissing": "Penilaian lain di kelas ini sudah memiliki porsi ({total}% dari nilai), sehingga kolom impor dengan porsi 0 tidak akan dihitung untuk CPL mana pun. Isi porsi nilai untuk kolom yang diimpor."
+    "sharesMissing": "Penilaian lain di kelas ini sudah memiliki porsi ({total}% dari nilai), sehingga kolom impor dengan porsi 0 tidak akan dihitung untuk CPL mana pun. Isi porsi nilai untuk kolom yang diimpor.",
+    "aboveMaxIn": "Melebihi maksimum di {list}"
   },
   "history": {
     "filterKind": "Jenis perubahan",
@@ -781,7 +780,7 @@
     },
     "overview": {
       "title": "Administrasi sistem",
-      "description": "Atur struktur institusi, kurikulum, dan pengguna buku nilai OBE.",
+      "description": "Atur struktur institusi, kurikulum, dan pengguna PLO-Canvas.",
       "curricula": "Kurikulum / CPL",
       "curriculaHint": "Kerangka capaian",
       "courses": "Mata kuliah / kelas",
@@ -943,7 +942,7 @@
     "print": "Cetak / Simpan sebagai PDF",
     "printTranscript": "Cetak transkrip",
     "university": "Sampoerna University",
-    "registry": "Biro Akademik · Buku Nilai OBE",
+    "registry": "Biro Akademik · PLO-Canvas",
     "generatedAt": "Dibuat {date}",
     "generatedBy": "oleh {name}",
     "footer": "Capaian adalah capaian CPL tingkat mata kuliah yang dibobot SKS, dihitung sesuai ketentuan DIKTI, LAM INFOKOM, dan IABEE.",

@@ -7,7 +7,6 @@ import { ChevronDown, ClipboardList, Search, Undo2, X } from "lucide-react";
 import { Button, ButtonLink, Card, EmptyState, Input, Kbd, ToggleChip, cn } from "@/components/ui";
 import { Menu, MenuItem, Notice } from "@/components/ui/client";
 import { blankCells } from "@/lib/gradebook/state";
-import { ExportMenu } from "@/components/ExportMenu";
 import { cellKey } from "@/lib/gradebook/paste";
 import { useHotkeyLabel } from "@/lib/hooks/useHotkeys";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
@@ -16,14 +15,11 @@ import type { OfferingDetail } from "@/lib/obe/queries";
 import { GradeGrid } from "../gradebook/GradeGrid";
 import { MobileGrader } from "../gradebook/MobileGrader";
 import { useGradebookState } from "../gradebook/useGradebookState";
-import { exportGradesCsv, exportWorkbook } from "../export";
-import { useExportLabels } from "../useExportLabels";
 
 export function GradebookTab({ detail, canEdit }: { detail: OfferingDetail; canEdit: boolean }) {
   const t = useTranslations("gradebook");
   const state = useGradebookState(detail, canEdit);
   const phone = useMediaQuery("(width < 48rem)");
-  const exportLabels = useExportLabels();
   const saveKey = useHotkeyLabel("mod+s");
   const pasteKey = useHotkeyLabel("mod+v");
   const undoKey = useHotkeyLabel("mod+z");
@@ -207,14 +203,8 @@ export function GradebookTab({ detail, canEdit }: { detail: OfferingDetail; canE
               <span className="text-xs text-muted tabular">{t("showing", { shown: students.length, total: detail.students.length })}</span>
             )}
             <div className="ml-auto flex items-center gap-2">
+              {/* Exports live in the page header's Export menu, for every tab. */}
               {blankMenu}
-              <ExportMenu
-                size="sm"
-                items={[
-                  { key: "csv", label: t("exportCsv"), format: "csv", run: () => exportGradesCsv(detail, exportLabels) },
-                  { key: "xlsx", label: t("exportXlsx"), format: "xlsx", run: () => exportWorkbook(detail, exportLabels) },
-                ]}
-              />
             </div>
           </div>
           {empty || <GradeGrid offeringId={detail.id} students={students} assessments={detail.assessments} plos={detail.plos} state={state} canEdit={canEdit} />}

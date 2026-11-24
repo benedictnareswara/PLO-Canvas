@@ -86,7 +86,7 @@ This starts MongoDB on port 27017 and waits until it's ready.
 npm run seed
 ```
 
-⚠️ This **deletes everything** in the database first, then loads the sample data.
+⚠️ This **deletes everything** in the database first, then loads the sample data. To protect real data it only runs on a database named `plo_canvas…`, `…_dev` or `…_test` unless you add `-- --yes`.
 
 **Step 5: Start the app**
 
@@ -127,6 +127,8 @@ To try a Canvas import, follow [docs/canvas-import.md](docs/canvas-import.md).
 | `npm run lint` | Check code style |
 | `npm run build` | Build for production |
 | `npm start` | Run the production build |
+| `npm run check` | Everything a change must pass before merging: types, lint, tests, build and `npm audit` |
+| `npm run smoke` | With the app running and freshly seeded data, sign in as each role and check what each can open |
 | `docker compose up -d --wait` | Start the database |
 | `docker compose stop` | Stop the database (keeps your data) |
 | `docker compose down -v` | Remove the database **and all its data** |
@@ -139,11 +141,11 @@ These go in `.env.local` in the project folder. Each person keeps their own copy
 
 | Variable | What it is | Default in `.env.example` |
 |---|---|---|
-| `MONGODB_URI` | Where the database is | `mongodb://localhost:27017/su_obe?replicaSet=rs0&directConnection=true` |
+| `MONGODB_URI` | Where the database is | `mongodb://localhost:27017/plo_canvas?replicaSet=rs0&directConnection=true` |
 | `JWT_SECRET` | Secret used to sign login sessions. **Must be changed** to a long random string | `change-me-to-a-long-random-string` |
 | `APP_URL` | The app's address | `http://localhost:3000` |
 
-The default `MONGODB_URI` works with the database from step 3. To keep separate data sets, change only the database name (`su_obe`).
+The default `MONGODB_URI` works with the database from step 3. To keep separate data sets, change only the database name (`plo_canvas`).
 
 ---
 
@@ -153,7 +155,7 @@ The default `MONGODB_URI` works with the database from step 3. To keep separate 
 |---|---|
 | `ECONNREFUSED` or "server selection timed out" | Docker Desktop isn't running, or the database isn't ready yet. Run `docker compose ps` and wait until it says `healthy`. |
 | Port 27017 already in use | Another MongoDB is running. Stop it, or change the port in `docker-compose.yml` (e.g. `"27018:27017"`) and in `MONGODB_URI`. |
-| Container name `su-obe-mongo` already in use | An older copy of this project created it. Run `docker start su-obe-mongo` to reuse it, or remove it with `docker rm su-obe-mongo`. |
+| Port 27017 is taken by `su-obe-mongo` | That container is from an older copy of this project. Stop it with `docker stop su-obe-mongo` (its data stays in its volume), then run step 3 again. |
 | `JWT_SECRET is missing` | `.env.local` doesn't exist in the project folder. Redo step 2. |
 | `npm run dev` stops after a Next.js upgrade notice | Run the command again. |
 | Want a clean start | `docker compose down -v`, then `docker compose up -d --wait` and `npm run seed`. |
