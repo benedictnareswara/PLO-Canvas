@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "seed": "tsx scripts/seed.ts",
-    "db:up": "docker compose up -d --wait"
+    "db:up": "docker compose up -d --wait",
+    "check": "tsc --noEmit && eslint && vitest run && next build && npm audit --omit=dev --audit-level=high",
+    "smoke": "tsx scripts/smoke.ts"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
@@ -24,8 +26,8 @@
     "exceljs": "^4.4.0",
     "jose": "^6.2.13",
     "lucide-react": "^1.61.0",
-    "mongoose": "^9.11.3",
-    "next": "16.4.2",
+    "mongoose": "^9.13.0",
+    "next": "16.4.6",
     "next-intl": "^4.14.9",
     "papaparse": "^5.7.0",
     "react": "19.3.0",
@@ -44,10 +46,13 @@
     "@types/react-dom": "^19",
     "dotenv": "^18.0.9",
     "eslint": "^9",
-    "eslint-config-next": "16.4.2",
+    "eslint-config-next": "16.4.6",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }
