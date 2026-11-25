@@ -115,7 +115,9 @@ export async function canAccessOffering(user: CurrentUser, offeringId: string, m
   if (!offering) return false;
   if (hasRole(user, "lecturer", "faculty_head") && offering.lecturers.some((l) => String(l) === user.id)) return true;
   if ((mode === "read" || mode === "mapping") && hasRole(user, "faculty_head")) {
-    return (await departmentOfOffering(offeringId)) === user.department;
+    // Both must be known: a head without a department must not match a class whose curriculum is missing (null === null).
+    const department = await departmentOfOffering(offeringId);
+    return department !== null && user.department !== null && department === user.department;
   }
   return false;
 }

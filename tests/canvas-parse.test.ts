@@ -70,6 +70,31 @@ describe("helpers", () => {
     expect(parseScoreCell("1,000", null)).toBe(1000);
     expect(parseScoreCell("A", 10)).toBeNull();
   });
+  it.each([
+    ["8,5", 8.5],
+    ["10,00", 10],
+    ["72,25", 72.25],
+    ["1,000", 1000],
+    ["1,000.50", 1000.5],
+    ["12,345,678", 12345678],
+  ])("reads decimal commas and thousands separators: %j", (raw, expected) => {
+    expect(parseScoreCell(raw, 10)).toBe(expected);
+  });
+  it("gives no score for comma text that is not one number", () => {
+    expect(parseScoreCell("8,5,5", 10)).toBeNull();
+    expect(parseScoreCell("-8,5", 10)).toBeNull();
+  });
+});
+
+describe("exports with decimal commas", () => {
+  it("reads Points Possible and scores the same way", () => {
+    const res = parseCanvasGradebook(`Student,ID,SIS User ID,SIS Login ID,Section,Quiz 1 (101)
+    Points Possible,,,,,"10,00"
+"Doe, Jane",1,2025001,student1@my.sampoernauniversity.ac.id,A,"8,5"
+`);
+    expect(res.assignments[0].maxPoints).toBe(10);
+    expect(res.students[0].scores).toEqual({ "Quiz 1 (101)": 8.5 });
+  });
   it("normalizes bare logins to the university domain", () => {
     expect(normalizeLogin("Student2")).toBe("student2@my.sampoernauniversity.ac.id");
     expect(normalizeLogin("x@Other.edu")).toBe("x@other.edu");

@@ -13,7 +13,7 @@ import {
   Types,
 } from "@/models";
 import { DEFAULT_THRESHOLD, assessedShare, isFullyAssessed, courseGrade, cumulativePloAttainment, letterGrade, resolveGradeScale, scorePercentage, type LetterScale } from "./engine";
-import { offeringPeriodLabel, studentSemester } from "./semesters";
+import { offeringPeriodLabel, semesterForStudent } from "./semesters";
 import type { AttainmentRow, AttainmentSum, PackedSums, PloInfo, PloValues, StudentSummary } from "./types";
 import { packSums } from "./aggregate";
 
@@ -185,7 +185,7 @@ export const getStudentProfile = cache(async (studentId: string): Promise<Studen
       title: course.title,
       sks: course.sks,
       period: offeringPeriodLabel(o.academicYear, o.term),
-      semester: student.cohortYear ? studentSemester(student.cohortYear, o.academicYear, o.term) : course.semester,
+      semester: semesterForStudent(student.cohortYear, o.academicYear, o.term, course.semester),
       threshold: o.threshold ?? DEFAULT_THRESHOLD,
       grade,
       letter: letterGrade(grade, scaleByCurriculum.get(String(course.curriculum))),

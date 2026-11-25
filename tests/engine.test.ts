@@ -14,7 +14,7 @@ import {
   DEFAULT_GRADE_SCALE,
   scorePercentage,
 } from "@/lib/obe/engine";
-import { inPeriod, semesterRange, studentSemester } from "@/lib/obe/semesters";
+import { inPeriod, semesterForStudent, semesterRange, studentSemester } from "@/lib/obe/semesters";
 
 describe("scorePercentage (formula 1)", () => {
   it("computes score / max × 100", () => {
@@ -184,6 +184,13 @@ describe("semesters", () => {
     expect(inPeriod(5, "y2")).toBe(false);
     expect(inPeriod(7, "all")).toBe(true);
     expect(inPeriod(3, "s3")).toBe(true);
+  });
+  it("files a result under the course's semester when the cohort is unknown or after the class", () => {
+    expect(semesterForStudent(2023, 2024, "even", 2)).toBe(4);
+    expect(semesterForStudent(null, 2024, "even", 2)).toBe(2);
+    // Class dated before the student's intake: semester 0 would drop out of "Cumulative".
+    expect(semesterForStudent(2025, 2024, "even", 3)).toBe(3);
+    expect(inPeriod(semesterForStudent(2025, 2024, "even", 3), "all")).toBe(true);
   });
 });
 
