@@ -12,6 +12,7 @@ import { offeringPeriodLabel } from "@/lib/obe/semesters";
 import type { CourseRow, CurriculumRow, DepartmentRow, FacultyRow, OfferingRow, PloRow, UserRow } from "@/lib/admin/data";
 import { ResourceSection, type FieldDef } from "./ResourceSection";
 import { RANGES } from "@/lib/ranges";
+import { DEFAULT_GRADE_SCALE, parseGradeScale } from "@/lib/obe/engine";
 
 const opt = <T extends { _id: string }>(rows: T[], label: (r: T) => string) => rows.map((r) => ({ value: r._id, label: label(r) }));
 const nameMap = <T extends { _id: string }>(rows: T[], label: (r: T) => string) => new Map(rows.map((r) => [r._id, label(r)]));
@@ -82,13 +83,14 @@ export function CurriculumAdmin({
         addLabel={t("addCurriculum")}
         itemName={(r) => r.name}
         rows={curricula}
-        defaults={{ defaultThreshold: 70, isActive: true }}
+        defaults={{ defaultThreshold: 70, gradeScale: DEFAULT_GRADE_SCALE, isActive: true }}
         columns={[
           { id: "name", header: t("name"), value: (r) => r.name, primary: true, cell: (r) => <span className="font-medium">{r.name}</span> },
           { id: "department", header: t("department"), value: (r) => deptName.get(r.department) ?? "", cell: (r) => deptName.get(r.department) },
           { id: "year", header: t("year"), value: (r) => r.year, numeric: true, cell: (r) => r.year },
           { id: "sks", header: t("totalSks"), value: (r) => r.totalSks, numeric: true, cell: (r) => r.totalSks },
           { id: "target", header: t("target"), value: (r) => r.defaultThreshold, numeric: true, cell: (r) => `${r.defaultThreshold}%` },
+          { id: "gradeScale", header: t("gradeScale"), value: (r) => r.gradeScale ?? DEFAULT_GRADE_SCALE, cell: (r) => <span className="whitespace-nowrap text-muted">{r.gradeScale ?? DEFAULT_GRADE_SCALE}</span> },
           { id: "status", header: t("status"), value: (r) => (r.isActive ? 1 : 0), cell: (r) => (r.isActive ? <Badge tone="ok">{t("active")}</Badge> : <Badge>{t("inactive")}</Badge>) },
         ]}
         fields={[
@@ -97,6 +99,7 @@ export function CurriculumAdmin({
           { name: "year", label: t("year"), type: "number", required: true, range: RANGES.year, integer: true },
           { name: "totalSks", label: t("totalSks"), type: "number", required: true, range: RANGES.totalSks, integer: true },
           { name: "defaultThreshold", label: t("defaultTarget"), type: "number", required: true, range: RANGES.percent },
+          { name: "gradeScale", label: t("gradeScale"), required: true, wide: true, hint: t("gradeScaleHint"), validate: (v) => (parseGradeScale(String(v ?? "")) ? null : t("gradeScaleError")) },
           { name: "isActive", label: t("active"), type: "checkbox" },
         ]}
       />

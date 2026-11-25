@@ -151,22 +151,47 @@ export function assessedShare(
 /** A course is complete for grading once (almost) its whole grade is assessed. */
 export const isFullyAssessed = (share: number) => share >= 99.95;
 
-/** Letter grade scale (minimum percentage for each letter). Adjust here if the registry changes it. */
-export const LETTER_SCALE: { letter: string; min: number }[] = [
-  { letter: "A", min: 85 },
-  { letter: "A-", min: 80 },
-  { letter: "B+", min: 75 },
-  { letter: "B", min: 70 },
-  { letter: "B-", min: 65 },
-  { letter: "C+", min: 60 },
-  { letter: "C", min: 55 },
-  { letter: "D", min: 45 },
-  { letter: "E", min: 0 },
-];
+export type LetterScale = { letter: string; min: number }[];
 
-export function letterGrade(pct: number | null): string {
+/**
+ * Sampoerna University's default letter scale (minimum percentage for each letter). Each curriculum
+ * stores its own copy in `gradeScale`, which the admin can edit; this is used when none is set.
+ */
+export const DEFAULT_GRADE_SCALE = "A 90, B 80, C 70, D 60, F 0";
+
+/**
+ * Parses a scale written as "A 90, B 80, C 70, D 60, F 0" (a letter and its minimum %, comma or
+ * newline separated; "A=90" and "A: 90" also work). Returns null when it is not a usable scale:
+ * every letter once, minimums 0–100 strictly decreasing, and the last one 0 so every grade gets a letter.
+ */
+export function parseGradeScale(text: string): LetterScale | null {
+  const parts = text.split(/[,\n;]+/).map((p) => p.trim()).filter(Boolean);
+  if (!parts.length || parts.length > 20) return null;
+  const scale: LetterScale = [];
+  for (const part of parts) {
+    const m = /^([A-Za-z][A-Za-z+-]{0,2})\s*[:=]?\s*(\d+(?:\.\d+)?)\s*%?$/.exec(part);
+    if (!m) return null;
+    scale.push({ letter: m[1].toUpperCase(), min: Number(m[2]) });
+  }
+  if (new Set(scale.map((s) => s.letter)).size !== scale.length) return null;
+  for (let i = 0; i < scale.length; i++) {
+    if (scale[i].min < 0 || scale[i].min > 100) return null;
+    if (i > 0 && scale[i].min >= scale[i - 1].min) return null;
+  }
+  if (scale[scale.length - 1].min !== 0) return null;
+  return scale;
+}
+
+export const LETTER_SCALE: LetterScale = parseGradeScale(DEFAULT_GRADE_SCALE)!;
+
+/** The curriculum's scale, or the default when it is unset or unreadable. */
+export function resolveGradeScale(text: string | null | undefined): LetterScale {
+  return (text && parseGradeScale(text)) || LETTER_SCALE;
+}
+
+export function letterGrade(pct: number | null, scale: LetterScale = LETTER_SCALE): string {
   if (pct === null || Number.isNaN(pct)) return "–";
-  return LETTER_SCALE.find((l) => pct >= l.min)?.letter ?? "E";
+  return scale.find((l) => pct >= l.min)?.letter ?? scale[scale.length - 1]?.letter ?? "–";
 }
 
 export interface CourseAttainmentEntry<K extends string | number = number> {

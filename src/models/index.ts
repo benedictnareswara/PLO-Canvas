@@ -1,6 +1,7 @@
 import mongoose, { Schema, model, models, type Model, Types } from "mongoose";
 import { LOCALES, type Locale } from "@/i18n/config";
 import { NIM_PATTERN, RANGES } from "@/lib/ranges";
+import { DEFAULT_GRADE_SCALE } from "@/lib/obe/engine";
 
 const { ObjectId } = Schema.Types;
 // Range checks only (no structural change): the same limits as the forms and API validators.
@@ -36,6 +37,8 @@ const curriculumSchema = new Schema<CurriculumDoc>(
     totalSks: { type: Number, required: true, min: totalSks.min, max: totalSks.max },
     department: { type: ObjectId, ref: "Department", required: true },
     defaultThreshold: { type: Number, default: 70, min: percent.min, max: percent.max },
+    // Letter grades and their minimum %, e.g. "A 90, B 80, C 70, D 60, F 0" (see parseGradeScale).
+    gradeScale: { type: String, default: DEFAULT_GRADE_SCALE, trim: true },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
@@ -245,6 +248,7 @@ export interface CurriculumDoc extends Timestamps {
   totalSks: number;
   department: Id;
   defaultThreshold: number;
+  gradeScale?: string | null;
   isActive: boolean;
 }
 export interface PloDoc extends Timestamps {

@@ -35,14 +35,14 @@ describe("validators: ranges and proposal rules", () => {
   });
 
   it("requires NIM, entry year and curriculum for a student (UC-01)", () => {
-    const base = { email: "s@sampoerna.ac.id", name: "S", roles: ["student"], password: "Password123!" };
+    const base = { email: "s@my.sampoernauniversity.ac.id", name: "S", roles: ["student"], password: "Password123!" };
     expect(userCreateSchema.safeParse(base).success).toBe(false);
     expect(userCreateSchema.safeParse({ ...base, studentId: "2026001", cohortYear: 2026, curriculum: id(3) }).success).toBe(true);
     expect(userCreateSchema.safeParse({ ...base, roles: ["lecturer"] }).success).toBe(true);
   });
 
   it("allows digits only in a NIM, so it can't be negative", () => {
-    const student = { email: "s@sampoerna.ac.id", name: "S", roles: ["student"], password: "Password123!", cohortYear: 2026, curriculum: id(3) };
+    const student = { email: "s@my.sampoernauniversity.ac.id", name: "S", roles: ["student"], password: "Password123!", cohortYear: 2026, curriculum: id(3) };
     expect(userCreateSchema.safeParse({ ...student, studentId: "-2026001" }).success).toBe(false);
     expect(userCreateSchema.safeParse({ ...student, studentId: "2026-001" }).success).toBe(false);
     expect(userCreateSchema.safeParse({ ...student, studentId: "2026001" }).success).toBe(true);

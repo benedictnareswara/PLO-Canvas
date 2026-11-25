@@ -168,7 +168,7 @@ export function useGradebookState(detail: OfferingDetail, canEdit: boolean) {
   useUnsavedChangesGuard(canEdit && dirty.length > 0, dirty.length);
   useHotkeys("mod+s", () => void save(), { enabled: canEdit, allowInInputs: true });
 
-  const preview = useCallback((studentId: string, overrides?: Record<string, string>) => previewCourseGrade(studentId, assessments, overrides ? { ...values, ...overrides } : values), [assessments, values]);
+  const preview = useCallback((studentId: string, overrides?: Record<string, string>) => previewCourseGrade(studentId, assessments, overrides ? { ...values, ...overrides } : values, detail.gradeScale), [assessments, values, detail.gradeScale]);
 
   return {
     values,

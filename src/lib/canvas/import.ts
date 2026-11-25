@@ -1,6 +1,6 @@
 import "server-only";
 import type { ClientSession } from "mongoose";
-import { Assessment, Enrollment, Grade, Plo, User, CourseOffering, Course, Types } from "@/models";
+import { Assessment, Enrollment, Grade, User, CourseOffering, Types } from "@/models";
 import { recomputeOffering } from "@/lib/obe/recompute";
 import { HttpError } from "@/lib/auth/rbac";
 import type { CanvasImportPayload } from "@/lib/validators";
@@ -8,6 +8,7 @@ import { diffFields, diffGrades, type AssessmentSnapshot, type AuditInput, type 
 import { newBatchId, recordAudit } from "@/lib/audit/record";
 import { runInTransaction } from "@/lib/transaction";
 import { normalizeLogin } from "./parse";
+import { assertPlosAssignedToCourse } from "@/lib/obe/plo-scope";
 import { MAX_SCORE_FACTOR } from "@/lib/gradebook/parse-score";
 
 export interface StudentMatch {
@@ -86,12 +87,10 @@ export async function runCanvasImport(
 ): Promise<ImportReport> {
   const offering = await CourseOffering.findById(offeringId).lean();
   if (!offering) throw new HttpError(404, "Class not found");
-  const course = await Course.findById(offering.course).lean();
 
-  // PLOs must belong to the offering's curriculum.
+  // PLOs must be ones the admin assigned to this course.
   const ploIds = [...new Set(payload.assessments.flatMap((a) => a.ploWeights.map((w) => w.plo)))];
-  const validPlos = await Plo.countDocuments({ _id: { $in: ploIds }, curriculum: course?.curriculum });
-  if (validPlos !== ploIds.length) throw new HttpError(400, "One or more PLOs do not belong to this course's curriculum");
+  await assertPlosAssignedToCourse(offering.course, ploIds);
   for (const a of payload.assessments) {
     if (!a.ploWeights.length) throw new HttpError(400, `"${a.title}" is not mapped to any PLO`);
     const total = a.ploWeights.reduce((s, w) => s + w.weight, 0);

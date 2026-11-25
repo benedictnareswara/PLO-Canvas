@@ -175,7 +175,7 @@ export function AssessmentDialog({
           <legend className="mb-1.5 text-xs font-medium text-muted">{t("mapping")}</legend>
           <p className="mb-2 text-xs text-subtle">{t("mappingHint")}</p>
           <PloWeightEditor
-            plos={detail.plos}
+            plos={detail.plos.filter((p) => detail.coursePloNumbers.includes(p.number) || weights.some((w) => w.plo === p.id))}
             value={weights}
             onChange={(w) => {
               setWeights(w);

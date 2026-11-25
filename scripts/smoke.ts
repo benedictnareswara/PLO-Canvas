@@ -37,19 +37,19 @@ async function expect(cookie: string, who: string, path: string, status: number)
 
 async function main() {
   await mongoose.connect(process.env.MONGODB_URI!, { serverSelectionTimeoutMS: 8000 });
-  const lecturer1 = await User.findOne({ email: "lecturer1@sampoerna.ac.id" }).lean();
-  const student21 = await User.findOne({ email: "student21@sampoerna.ac.id" }).lean();
-  const student1 = await User.findOne({ email: "student1@sampoerna.ac.id" }).lean();
+  const lecturer1 = await User.findOne({ email: "lecturer1@my.sampoernauniversity.ac.id" }).lean();
+  const student21 = await User.findOne({ email: "student21@my.sampoernauniversity.ac.id" }).lean();
+  const student1 = await User.findOne({ email: "student1@my.sampoernauniversity.ac.id" }).lean();
   if (!lecturer1 || !student21 || !student1) throw new Error("Seed data not found. Run npm run seed first.");
   const own = await CourseOffering.findOne({ lecturers: lecturer1._id }).lean();
   const other = await CourseOffering.findOne({ lecturers: { $ne: lecturer1._id } }).lean();
   if (!own || !other || !(await Course.exists({ _id: own.course }))) throw new Error("Classes not found");
   await mongoose.disconnect();
 
-  const admin = await login("admin@sampoerna.ac.id");
-  const head = await login("head.cs@sampoerna.ac.id");
-  const lect = await login("lecturer1@sampoerna.ac.id");
-  const stud = await login("student21@sampoerna.ac.id");
+  const admin = await login("admin@my.sampoernauniversity.ac.id");
+  const head = await login("head.cs@my.sampoernauniversity.ac.id");
+  const lect = await login("lecturer1@my.sampoernauniversity.ac.id");
+  const stud = await login("student21@my.sampoernauniversity.ac.id");
 
   for (const p of ["/admin", "/admin/users", "/admin/curriculum", "/admin/courses", "/admin/offerings"]) await expect(admin, "admin", p, 200);
   await expect(admin, "admin", "/api/admin/users", 200);

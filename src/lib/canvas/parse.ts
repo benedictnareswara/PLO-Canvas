@@ -154,7 +154,7 @@ export function parseCanvasGradebook(csvText: string): ParsedCanvasGradebook {
 }
 
 /** Normalizes a Canvas login/email for matching against user emails. */
-export function normalizeLogin(login: string, defaultDomain = "sampoerna.ac.id"): string {
+export function normalizeLogin(login: string, defaultDomain = "my.sampoernauniversity.ac.id"): string {
   const v = login.trim().toLowerCase();
   if (!v) return "";
   return v.includes("@") ? v : `${v}@${defaultDomain}`;

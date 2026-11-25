@@ -12,7 +12,7 @@ import {
   User,
   Types,
 } from "@/models";
-import { DEFAULT_THRESHOLD, assessedShare, isFullyAssessed, courseGrade, cumulativePloAttainment, letterGrade, scorePercentage } from "./engine";
+import { DEFAULT_THRESHOLD, assessedShare, isFullyAssessed, courseGrade, cumulativePloAttainment, letterGrade, resolveGradeScale, scorePercentage, type LetterScale } from "./engine";
 import { offeringPeriodLabel, studentSemester } from "./semesters";
 import type { AttainmentRow, AttainmentSum, PackedSums, PloInfo, PloValues, StudentSummary } from "./types";
 import { packSums } from "./aggregate";
@@ -152,6 +152,12 @@ export const getStudentProfile = cache(async (studentId: string): Promise<Studen
   const offerings = await CourseOffering.find({ _id: { $in: enrollments.map((e) => e.offering) } }).lean();
   const courses = await Course.find({ _id: { $in: offerings.map((o) => o.course) } }).lean();
   const courseById = new Map(courses.map((c) => [String(c._id), c]));
+  // Each course is graded on its own curriculum's letter scale.
+  const scaleByCurriculum = new Map(
+    (await Curriculum.find({ _id: { $in: [...new Set(courses.map((c) => String(c.curriculum)))] } }).select("gradeScale").lean()).map(
+      (c) => [String(c._id), resolveGradeScale(c.gradeScale)],
+    ),
+  );
   const [assessments, grades, rows] = await Promise.all([
     Assessment.find({ offering: { $in: offerings.map((o) => o._id) } }).sort({ createdAt: 1 }).lean(),
     Grade.find({ student: student._id }).lean(),
@@ -182,7 +188,7 @@ export const getStudentProfile = cache(async (studentId: string): Promise<Studen
       semester: student.cohortYear ? studentSemester(student.cohortYear, o.academicYear, o.term) : course.semester,
       threshold: o.threshold ?? DEFAULT_THRESHOLD,
       grade,
-      letter: letterGrade(grade),
+      letter: letterGrade(grade, scaleByCurriculum.get(String(course.curriculum))),
       assessed: assessedShare(inputs, scores),
       assessments: own.map((a) => {
         const score = scoreOf.get(String(a._id));
@@ -243,6 +249,8 @@ export interface OfferingDetail {
   grades: Record<string, Record<string, number>>;
   attainment: Record<string, PloValues>;
   courseGrades: Record<string, { pct: number | null; letter: string }>;
+  /** The curriculum's letter scale, so the gradebook's live preview letters match the saved ones. */
+  gradeScale: LetterScale;
 }
 
 /**
@@ -264,13 +272,14 @@ export const getOfferingDetail = cache(async (offeringId: string): Promise<Offer
   if (!course) return null;
   const [plos, curriculum, students] = await Promise.all([
     getPlos(course.curriculum),
-    Curriculum.findById(course.curriculum).select("name").lean(),
+    Curriculum.findById(course.curriculum).select("name gradeScale").lean(),
     User.find({ _id: { $in: enrollments.map((e) => e.student) } })
       .select("name email studentId cohortYear")
       .sort({ name: 1 })
       .lean(),
   ]);
   const ploNumberById = new Map(plos.map((p) => [p.id, p.number]));
+  const gradeScale = resolveGradeScale(curriculum?.gradeScale);
 
   const gradeMatrix: Record<string, Record<string, number>> = {};
   for (const g of grades) {
@@ -295,7 +304,7 @@ export const getOfferingDetail = cache(async (offeringId: string): Promise<Offer
     const scores = gradeMatrix[String(s._id)] ?? {};
     const pct = courseGrade(inputs, scores);
     // A letter only once the whole grade is assessed; until then the percentage is a grade so far.
-    courseGrades[String(s._id)] = { pct, letter: isFullyAssessed(assessedShare(inputs, scores)) ? letterGrade(pct) : "–" };
+    courseGrades[String(s._id)] = { pct, letter: isFullyAssessed(assessedShare(inputs, scores)) ? letterGrade(pct, gradeScale) : "–" };
   }
 
   return {
@@ -328,6 +337,7 @@ export const getOfferingDetail = cache(async (offeringId: string): Promise<Offer
     grades: gradeMatrix,
     attainment: attainmentByStudent,
     courseGrades,
+    gradeScale,
   };
 });
 

@@ -1,4 +1,4 @@
-import { assessedShare, courseGrade, isFullyAssessed, letterGrade } from "@/lib/obe/engine";
+import { assessedShare, courseGrade, isFullyAssessed, letterGrade, type LetterScale } from "@/lib/obe/engine";
 import { cellKey } from "./paste";
 import { formatScoreInput, parseScore, validateScore, type ScoreError } from "./parse-score";
 
@@ -118,6 +118,7 @@ export function previewCourseGrade(
   studentId: string,
   assessments: GradebookAssessment[],
   values: Record<string, string>,
+  scale?: LetterScale,
 ): { pct: number | null; letter: string } {
   const scores: Record<string, number | undefined> = {};
   for (const a of assessments) {
@@ -127,5 +128,5 @@ export function previewCourseGrade(
   const inputs = assessments.map((a) => ({ id: a.id, maxPoints: a.maxPoints, gradeWeight: a.gradeWeight, ploWeights: [] }));
   const pct = courseGrade(inputs, scores);
   // A letter only once the whole grade is assessed; until then the percentage is a grade so far.
-  return { pct, letter: isFullyAssessed(assessedShare(inputs, scores)) ? letterGrade(pct) : "–" };
+  return { pct, letter: isFullyAssessed(assessedShare(inputs, scores)) ? letterGrade(pct, scale) : "–" };
 }

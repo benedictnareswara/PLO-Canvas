@@ -9,6 +9,9 @@ import {
   isAtRisk,
   isFullyAssessed,
   letterGrade,
+  parseGradeScale,
+  resolveGradeScale,
+  DEFAULT_GRADE_SCALE,
   scorePercentage,
 } from "@/lib/obe/engine";
 import { inPeriod, semesterRange, studentSemester } from "@/lib/obe/semesters";
@@ -143,8 +146,29 @@ describe("at-risk and grading (formula 5)", () => {
       { id: "y", maxPoints: 100, gradeWeight: 60, ploWeights: [] },
     ];
     expect(courseGrade(a, { x: 9, y: 80 })).toBeCloseTo(84);
-    expect(letterGrade(84)).toBe("A-");
+    expect(letterGrade(84)).toBe("B");
     expect(letterGrade(null)).toBe("–");
+  });
+  it("uses the SU scale by default: A 90, B 80, C 70, D 60, F below", () => {
+    expect([100, 90, 89.9, 80, 79, 70, 69, 60, 59.9, 0].map((p) => letterGrade(p))).toEqual(["A", "A", "B", "B", "C", "C", "D", "D", "F", "F"]);
+  });
+  it("parses and applies a custom grade scale", () => {
+    const scale = parseGradeScale("A=85\nB: 70, C 55%, E 0")!;
+    expect(scale).toEqual([
+      { letter: "A", min: 85 },
+      { letter: "B", min: 70 },
+      { letter: "C", min: 55 },
+      { letter: "E", min: 0 },
+    ]);
+    expect(letterGrade(60, scale)).toBe("C");
+    expect(resolveGradeScale(undefined)).toEqual(parseGradeScale(DEFAULT_GRADE_SCALE));
+  });
+  it("rejects grade scales that would leave grades without a letter", () => {
+    expect(parseGradeScale("A 90, B 80")).toBeNull(); // does not reach 0
+    expect(parseGradeScale("A 80, B 90, F 0")).toBeNull(); // not highest first
+    expect(parseGradeScale("A 90, A 80, F 0")).toBeNull(); // repeated letter
+    expect(parseGradeScale("A 120, F 0")).toBeNull(); // over 100
+    expect(parseGradeScale("")).toBeNull();
   });
 });
 

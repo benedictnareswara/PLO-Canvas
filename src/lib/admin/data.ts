@@ -1,5 +1,6 @@
 import "server-only";
 import { Course, CourseOffering, Curriculum, Department, Enrollment, Faculty, Plo, User } from "@/models";
+import { DEFAULT_GRADE_SCALE } from "@/lib/obe/engine";
 
 /** Converts lean Mongo documents (ObjectIds, Dates) into plain JSON for client components. */
 export function plain<T>(value: unknown): T {
@@ -9,7 +10,7 @@ export function plain<T>(value: unknown): T {
 type Id = { _id: string };
 export type FacultyRow = Id & { code: string; name: string };
 export type DepartmentRow = Id & { code: string; name: string; faculty: string };
-export type CurriculumRow = Id & { name: string; year: number; totalSks: number; department: string; defaultThreshold: number; isActive: boolean };
+export type CurriculumRow = Id & { name: string; year: number; totalSks: number; department: string; defaultThreshold: number; gradeScale?: string | null; isActive: boolean };
 export type PloRow = Id & { curriculum: string; number: number; code: string; shortLabel: string; description: string };
 export type CourseRow = Id & { curriculum: string; code: string; title: string; sks: number; semester: number; plos: string[] };
 export type OfferingRow = Id & { course: string; academicYear: number; term: "odd" | "even"; section: string; lecturers: string[]; threshold: number };
@@ -36,7 +37,8 @@ export async function loadInstitution() {
   return {
     faculties: plain<FacultyRow[]>(faculties),
     departments: plain<DepartmentRow[]>(departments),
-    curricula: plain<CurriculumRow[]>(curricula),
+    // Curricula saved before grade scales existed show (and save) the default scale.
+    curricula: plain<CurriculumRow[]>(curricula).map((c) => ({ ...c, gradeScale: c.gradeScale || DEFAULT_GRADE_SCALE })),
     plos: plain<PloRow[]>(plos),
   };
 }
