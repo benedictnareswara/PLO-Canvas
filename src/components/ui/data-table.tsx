@@ -345,7 +345,7 @@ export function DataTable<T>({
                         scope="col"
                         aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : canSort ? "none" : undefined}
                         className={cn(
-                          "border-b border-border bg-surface-2 px-3 py-2 text-left text-xs font-medium whitespace-nowrap text-muted first:pl-5 last:pr-5",
+                          "border-b border-border-strong bg-brand-soft px-3 py-2.5 text-left text-xs font-bold whitespace-nowrap text-brand first:pl-5 last:pr-5",
                           maxHeight && "sticky top-0 z-10",
                           stickyFirstColumn && i === 0 && "sticky left-0 z-20",
                           meta?.numeric && "text-right",
@@ -357,10 +357,10 @@ export function DataTable<T>({
                             type="button"
                             onClick={header.column.getToggleSortingHandler()}
                             className={cn(
-                              "group -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 hover:text-foreground",
+                              "group -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 hover:text-brand-hover",
                               "focus-visible:outline-2 focus-visible:outline-brand",
                               meta?.numeric && "flex-row-reverse",
-                              sorted && "text-foreground",
+                              sorted && "underline decoration-2 underline-offset-4",
                             )}
                           >
                             {content}

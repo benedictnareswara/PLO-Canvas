@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import Image from "next/image";
 import { Check } from "lucide-react";
-import { BrandMark } from "@/components/BrandMark";
+import { BrandLogo } from "@/components/BrandMark";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { LoginForm } from "./login-form";
 
@@ -15,30 +15,29 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LoginPage() {
   const t = await getTranslations();
   const points = [t("login.point1"), t("login.point2"), t("login.point3")];
-  const subtitle = `${t("common.university")} · ${t("common.registry")}`;
+  const subtitle = t("common.registry");
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      {/* Brand field in Sampoerna navy: the starburst is cropped off the corner as texture, so the
+      {/* Brand field in AUI navy: the starburst is cropped off the corner as a faint white texture, so the
           panel carries the identity without competing with the sign-in form. */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-brand-panel px-12 py-10 text-brand-panel-fg lg:flex">
+      <aside className="relative hidden flex-col justify-between overflow-hidden border-r-[6px] border-accent bg-brand-panel px-12 py-10 text-brand-panel-fg lg:flex">
         <Image
-          src="/brand/su-mark-on-brand.png"
+          src="/brand/aui-mark-dark.png"
           alt=""
-          width={640}
-          height={786}
+          width={240}
+          height={376}
           priority
-          className="pointer-events-none absolute -right-40 -bottom-48 w-[36rem] max-w-none opacity-20 select-none"
+          className="pointer-events-none absolute -right-32 -bottom-40 h-[38rem] w-auto max-w-none opacity-15 brightness-0 invert select-none"
         />
-        <div className="relative flex items-center gap-3">
-          <Image src="/brand/su-mark-on-brand.png" alt="" width={640} height={786} className="h-10 w-auto" />
-          <div>
-            <div className="text-base leading-tight font-semibold">{t("common.appName")}</div>
-            <div className="text-xs opacity-80">{subtitle}</div>
+        <div className="relative">
+          <BrandLogo tone="onBrand" className="h-24" label="The American University of Indonesia" />
+          <div className="mt-5 text-lg font-bold">
+            {t("common.appName")} <span className="font-normal opacity-80">· {t("common.registry")}</span>
           </div>
         </div>
         <div className="relative max-w-md">
-          <h2 className="text-[2rem] leading-tight font-semibold">{t("login.heroTitle")}</h2>
+          <h2 className="text-[2rem] leading-tight font-bold">{t("login.heroTitle")}</h2>
           <p className="mt-4 text-[0.9375rem] opacity-85">{t("login.heroBody")}</p>
           <ul className="mt-8 space-y-3 text-sm">
             {points.map((p) => (
@@ -61,13 +60,13 @@ export default async function LoginPage() {
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-sm">
             <div className="mb-10 flex items-center gap-3 lg:hidden">
-              <BrandMark className="h-10" />
-              <div>
-                <div className="text-base leading-tight font-semibold">{t("common.appName")}</div>
+              <BrandLogo className="h-12" label="The American University of Indonesia" />
+              <div className="border-l border-border-strong pl-3">
+                <div className="text-base leading-tight font-bold text-brand">{t("common.appName")}</div>
                 <div className="text-xs text-muted">{subtitle}</div>
               </div>
             </div>
-            <h1 className="text-2xl font-semibold">{t("login.title")}</h1>
+            <h1 className="text-2xl font-bold">{t("login.title")}</h1>
             <p className="mt-1.5 mb-8 text-sm text-muted">{t("login.subtitle")}</p>
             <Suspense>
               <LoginForm />

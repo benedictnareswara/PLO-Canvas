@@ -54,9 +54,9 @@ export function PreferencesDialog({ open, onClose }: { open: boolean; onClose: (
             onChange={setThemeMode}
             className="w-full [&>label]:flex-1"
             options={[
-              { value: "system", label: t("themeSystem"), icon: <Monitor aria-hidden /> },
               { value: "light", label: t("themeLight"), icon: <Sun aria-hidden /> },
               { value: "dark", label: t("themeDark"), icon: <Moon aria-hidden /> },
+              { value: "system", label: t("themeSystem"), icon: <Monitor aria-hidden /> },
             ]}
           />
           {mode === "system" && <p className="mt-2 text-xs text-muted">{t("themeSystemCurrent", { mode: t(resolved) })}</p>}

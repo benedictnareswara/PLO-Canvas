@@ -85,7 +85,7 @@ export function ButtonLink({
 /* --------------------------------- Card --------------------------------- */
 
 export function Card({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("rounded-xl border border-border bg-surface", className)} {...props} />;
+  return <div className={cn("rounded-xl border border-border bg-surface shadow-e1", className)} {...props} />;
 }
 
 export function CardHeader({
@@ -136,7 +136,7 @@ export function Badge({ tone = "neutral", className, ...props }: ComponentProps<
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium leading-4 [&_svg]:size-3",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold leading-4 [&_svg]:size-3",
         badgeTones[tone],
         className,
       )}
@@ -335,10 +335,10 @@ export function PageHeader({
   eyebrow?: ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border pb-5">
       <div className="min-w-0 flex-1 basis-80">
         {eyebrow && <div className="mb-1 text-xs font-medium text-muted">{eyebrow}</div>}
-        <h1 className="text-2xl font-semibold text-pretty sm:text-[2rem] sm:leading-tight">{title}</h1>
+        <h1 className="text-2xl font-bold text-pretty sm:text-[2rem] sm:leading-tight">{title}</h1>
         {description && <div className="mt-2 max-w-3xl text-[0.9375rem] text-muted">{description}</div>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

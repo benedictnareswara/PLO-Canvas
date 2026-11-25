@@ -3,12 +3,11 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { AlertTriangle, ArrowRight, ClipboardList, Library, Target } from "lucide-react";
 import { requirePageUser } from "@/lib/auth/rbac";
-import { listOfferings, type OfferingListItem } from "@/lib/obe/queries";
+import { listOfferings } from "@/lib/obe/queries";
 import { atRiskPlos } from "@/lib/obe/aggregate";
-import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
+import { Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
 import { ClassesTable } from "@/components/lecturer/ClassesTable";
-import { MiniPloBars } from "@/components/lecturer/MiniPloBars";
-import type { PloInfo } from "@/lib/obe/types";
+import { ClassCard } from "@/components/lecturer/ClassCard";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("nav");
@@ -123,52 +122,5 @@ export default async function LecturerHome() {
         </div>
       )}
     </>
-  );
-}
-
-function ClassCard({ offering: o, plos, t }: { offering: OfferingListItem; plos: PloInfo[]; t: Awaited<ReturnType<typeof getTranslations<"classes">>> }) {
-  const risky = atRiskPlos(o.plo, o.threshold).length;
-  const mapped = (o.coursePloNumbers.length ? o.coursePloNumbers : plos.filter((p) => o.plo[p.number] !== null).map((p) => p.number)).map((n) => ({
-    code: plos.find((p) => p.number === n)?.code ?? `PLO ${n}`,
-    value: o.plo[n] ?? null,
-  }));
-  return (
-    <Link
-      href={`/lecturer/offerings/${o.id}`}
-      className="flex h-full flex-col rounded-xl border border-border bg-surface p-4 transition-[border-color,background-color] duration-(--dur-2) hover:border-border-strong hover:bg-[color-mix(in_oklab,var(--surface),var(--surface-2)_50%)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs font-medium text-muted">{o.code}</div>
-          <div className="truncate font-semibold">{o.title}</div>
-        </div>
-        {risky ? (
-          <Badge tone="risk">{t("atRisk", { count: risky })}</Badge>
-        ) : o.assessmentCount ? (
-          <Badge tone="ok">{t("onTarget")}</Badge>
-        ) : (
-          <Badge>{t("pending")}</Badge>
-        )}
-      </div>
-      <div className="mt-1 text-xs text-muted tabular">
-        {t("cardMeta", { students: o.studentCount, assessments: o.assessmentCount, target: o.threshold })}
-      </div>
-      <div className="mt-auto pt-4">
-        {o.assessmentCount ? (
-          <>
-            <MiniPloBars values={mapped} threshold={o.threshold} label={t("miniChart")} noData={t("noEvidence")} />
-            <div className="mt-1 flex gap-1.5 text-[0.625rem] text-muted" aria-hidden>
-              {mapped.map((m) => (
-                <span key={m.code} className="w-5 text-center">
-                  {m.code.replace(/\D/g, "")}
-                </span>
-              ))}
-            </div>
-          </>
-        ) : (
-          <p className="text-xs text-muted">{t("noAssessments")}</p>
-        )}
-      </div>
-    </Link>
   );
 }
