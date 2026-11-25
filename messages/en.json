@@ -134,6 +134,8 @@
   "login": {
     "title": "Sign in",
     "subtitle": "Use your university email address.",
+    "statTitle": "PLO attainment",
+    "statBody": "Student, class and cohort",
     "email": "Email",
     "emailPlaceholder": "name@my.sampoernauniversity.ac.id",
     "password": "Password",

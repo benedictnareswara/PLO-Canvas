@@ -10,12 +10,15 @@ const SURFACES = ["background", "surface", "surface-2"];
 
 /** Text pairs need 4.5:1 (WCAG 1.4.3); UI and chart strokes need 3:1 (WCAG 1.4.11). */
 const TEXT: [string, string][] = [
-  ...["foreground", "muted", "subtle", "brand", "ok", "risk", "warn", "info"].flatMap((fg) =>
+  ...["foreground", "muted", "subtle", "brand", "highlight", "ok", "risk", "warn", "info"].flatMap((fg) =>
     SURFACES.map((bg): [string, string] => [fg, bg]),
   ),
   ...["brand", "ok", "risk", "warn", "info"].map((t): [string, string] => [t, `${t}-soft`]),
   ["brand-fg", "brand"],
   ["brand-fg", "brand-hover"],
+  ["brand-fg", "brand-grad-from"],
+  ["brand-fg", "brand-grad-to"],
+  ["solid-fg", "highlight"],
   ["brand-panel-fg", "brand-panel"],
   ["solid-fg", "ok"],
   ["solid-fg", "risk"],

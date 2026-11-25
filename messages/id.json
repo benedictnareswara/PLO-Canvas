@@ -134,6 +134,8 @@
   "login": {
     "title": "Masuk",
     "subtitle": "Gunakan alamat email universitas Anda.",
+    "statTitle": "Capaian CPL",
+    "statBody": "Mahasiswa, kelas dan angkatan",
     "email": "Email",
     "emailPlaceholder": "nama@my.sampoernauniversity.ac.id",
     "password": "Kata sandi",

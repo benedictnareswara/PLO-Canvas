@@ -40,6 +40,14 @@
   --header: light-dark(#004d91, #0b1b3f);
   --header-fg: #ffffff;
   --accent: light-dark(#02a4cd, #45cfee);
+  /* Slight navy gradient for buttons and table headers; text on it must stay readable (tested). */
+  --brand-grad-from: light-dark(#2a2d7e, #b3b9ff);
+  --brand-grad-to: light-dark(#3f4bb3, #8f98f4);
+  /* AUI crimson, used sparingly for labels and one accent tile. */
+  --highlight: light-dark(#b41c42, #ff8aa5);
+  /* Login page background (soft periwinkle, as in the landing reference). */
+  --landing-from: light-dark(#e6e9fc, #151a3d);
+  --landing-to: light-dark(#c3c8ee, #0c0f20);
   /* Course-card banner colours (white text sits on them), all from the AUI palette. */
   --banner-1: #2a2d7e;
   --banner-2: #004d91;
@@ -115,6 +123,7 @@
   --color-header: var(--header);
   --color-header-fg: var(--header-fg);
   --color-accent: var(--accent);
+  --color-highlight: var(--highlight);
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
   --color-risk: var(--risk);
@@ -129,13 +138,39 @@
   --shadow-e3: var(--shadow-3);
   --ease-out-quint: var(--ease-out);
   --ease-standard: var(--ease-std);
-  --font-sans: var(--font-lato);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  /* Squarer corners than the previous design, like Canvas and the Academic Portal. */
-  --radius-md: 0.25rem;
-  --radius-lg: 0.3125rem;
-  --radius-xl: 0.375rem;
-  --radius-2xl: 0.5rem;
+  /* Rounder, softer corners (cards 1rem, buttons are pills). */
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+}
+
+/* Gentle motion for the landing page; both are switched off by `motion-safe:` for reduced-motion users. */
+@theme {
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-fade-up: fade-up 0.6s var(--ease-out) both;
+}
+@keyframes float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -8px;
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 
 /* Height of the sticky app header: the phone header bar, none on desktop (sidebar layout). */
@@ -164,8 +199,9 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   line-height: 1.55;
-  /* Lato (the Canvas typeface) with open letter spacing for clarity. */
-  letter-spacing: 0.012em;
+  /* Inter with slightly tight tracking for a crisp, Apple-like look. */
+  letter-spacing: -0.011em;
+  font-optical-sizing: auto;
 }
 
 h1,
@@ -176,14 +212,14 @@ th {
 }
 
 /* Headings are navy and bold, like the Canvas dashboard titles. */
-h1,
-h2,
-h3 {
-  letter-spacing: 0.005em;
-}
 h1 {
+  letter-spacing: -0.025em;
   color: var(--brand);
   font-weight: 700;
+}
+h2,
+h3 {
+  letter-spacing: -0.018em;
 }
 
 

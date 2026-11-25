@@ -26,9 +26,9 @@ export function ClassCard({ offering: o, plos, t }: { offering: OfferingListItem
   return (
     <Link
       href={`/lecturer/offerings/${o.id}`}
-      className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-surface shadow-e1 transition-shadow duration-(--dur-2) hover:shadow-e2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-linear-to-b from-surface to-[color-mix(in_oklab,var(--surface),var(--brand-soft)_30%)] shadow-e1 transition-[box-shadow,translate] duration-(--dur-2) hover:shadow-e3 motion-safe:hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
     >
-      <div className="relative h-24 shrink-0 overflow-hidden" style={{ background: bannerFor(o.code) }}>
+      <div className="relative h-24 shrink-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${bannerFor(o.code)}, color-mix(in oklab, ${bannerFor(o.code)} 68%, var(--accent)))` }}>
         <BrandMark tone="onBrand" className="pointer-events-none absolute -right-4 -bottom-8 h-36 opacity-20 brightness-0 invert" />
         <div className="absolute top-2.5 right-2.5">
           {risky ? (

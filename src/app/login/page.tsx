@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import Image from "next/image";
-import { Check } from "lucide-react";
+import { BarChart3, Check, Target } from "lucide-react";
 import { BrandLogo } from "@/components/BrandMark";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { LoginForm } from "./login-form";
@@ -15,65 +15,68 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LoginPage() {
   const t = await getTranslations();
   const points = [t("login.point1"), t("login.point2"), t("login.point3")];
-  const subtitle = t("common.registry");
 
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      {/* Brand field in AUI navy: the starburst is cropped off the corner as a faint white texture, so the
-          panel carries the identity without competing with the sign-in form. */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden border-r-[6px] border-accent bg-brand-panel px-12 py-10 text-brand-panel-fg lg:flex">
-        <Image
-          src="/brand/aui-mark-dark.png"
-          alt=""
-          width={240}
-          height={376}
-          priority
-          className="pointer-events-none absolute -right-32 -bottom-40 h-[38rem] w-auto max-w-none opacity-15 brightness-0 invert select-none"
-        />
-        <div className="relative">
-          <BrandLogo tone="onBrand" className="h-24" label="The American University of Indonesia" />
-          <div className="mt-5 text-lg font-bold">
-            {t("common.appName")} <span className="font-normal opacity-80">· {t("common.registry")}</span>
-          </div>
-        </div>
-        <div className="relative max-w-md">
-          <h2 className="text-[2rem] leading-tight font-bold">{t("login.heroTitle")}</h2>
-          <p className="mt-4 text-[0.9375rem] opacity-85">{t("login.heroBody")}</p>
-          <ul className="mt-8 space-y-3 text-sm">
+    <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-linear-to-br from-(--landing-from) to-(--landing-to)">
+      {/* Soft colour blobs behind the content, in the logo's cyan and navy. */}
+      <div aria-hidden className="pointer-events-none absolute -top-40 -left-32 -z-10 size-[28rem] rounded-full bg-accent/20 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -right-40 bottom-0 -z-10 size-[34rem] rounded-full bg-brand/15 blur-3xl" />
+
+      <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 pt-[max(1.5rem,env(safe-area-inset-top))] lg:px-12">
+        <BrandLogo className="h-14 sm:h-16" label="The American University of Indonesia" />
+        <LanguageSwitcher />
+      </header>
+
+      <main className="mx-auto grid w-full max-w-7xl flex-1 items-center gap-10 px-6 py-10 lg:grid-cols-[26rem_minmax(0,1fr)] lg:gap-16 lg:px-12">
+        <section
+          aria-labelledby="login-title"
+          className="rounded-[2rem] border border-surface/60 bg-surface/80 p-8 shadow-e3 backdrop-blur-md motion-safe:animate-fade-up sm:p-10"
+        >
+          <p className="text-sm font-bold text-highlight">
+            {t("common.appName")} · {t("common.registry")}
+          </p>
+          <h1 id="login-title" className="mt-2 text-3xl font-bold">
+            {t("login.title")}
+          </h1>
+          <p className="mt-1.5 mb-7 text-sm text-muted">{t("login.subtitle")}</p>
+          <Suspense>
+            <LoginForm />
+          </Suspense>
+        </section>
+
+        <section className="hidden lg:block">
+          <h2 className="max-w-xl text-4xl leading-[1.1] font-bold text-brand">{t("login.heroTitle")}</h2>
+          <p className="mt-4 max-w-lg text-base text-muted">{t("login.heroBody")}</p>
+          <ul className="mt-6 flex max-w-xl flex-wrap gap-2">
             {points.map((p) => (
-              <li key={p} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-panel-fg/15">
-                  <Check className="size-3" aria-hidden />
-                </span>
+              <li key={p} className="inline-flex items-center gap-2 rounded-full bg-surface/80 px-3 py-1.5 text-sm shadow-e1">
+                <Check className="size-3.5 text-ok" aria-hidden />
                 {p}
               </li>
             ))}
           </ul>
-        </div>
-        <p className="relative text-xs opacity-75">{t("login.footer")}</p>
-      </aside>
 
-      <main className="flex flex-col px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-8">
-        <div className="flex justify-end">
-          <LanguageSwitcher />
-        </div>
-        <div className="flex flex-1 items-center justify-center py-10">
-          <div className="w-full max-w-sm">
-            <div className="mb-10 flex items-center gap-3 lg:hidden">
-              <BrandLogo className="h-12" label="The American University of Indonesia" />
-              <div className="border-l border-border-strong pl-3">
-                <div className="text-base leading-tight font-bold text-brand">{t("common.appName")}</div>
-                <div className="text-xs text-muted">{subtitle}</div>
+          <div className="relative mt-10 ml-auto w-full max-w-lg">
+            <div className="overflow-hidden rounded-[2rem] shadow-e3 ring-1 ring-border">
+              <Image src="/brand/campus-students.jpg" alt="" width={1400} height={949} priority sizes="32rem" className="h-auto w-full" />
+            </div>
+            <div className="absolute bottom-10 -left-14 flex items-center gap-4 rounded-2xl border-2 border-dashed border-brand bg-surface px-5 py-4 shadow-e2 motion-safe:animate-float">
+              <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-(--brand-grad-from) to-(--brand-grad-to) text-brand-fg">
+                <Target className="size-7" aria-hidden />
+              </span>
+              <div>
+                <div className="text-xl leading-tight font-bold">{t("login.statTitle")}</div>
+                <div className="text-sm text-muted">{t("login.statBody")}</div>
               </div>
             </div>
-            <h1 className="text-2xl font-bold">{t("login.title")}</h1>
-            <p className="mt-1.5 mb-8 text-sm text-muted">{t("login.subtitle")}</p>
-            <Suspense>
-              <LoginForm />
-            </Suspense>
+            <div className="absolute top-14 -right-5 flex size-16 items-center justify-center rounded-2xl bg-linear-to-br from-highlight to-[color-mix(in_oklab,var(--highlight),var(--warn)_45%)] text-solid-fg shadow-e2 [animation-delay:-3s] motion-safe:animate-float">
+              <BarChart3 className="size-8" aria-hidden />
+            </div>
           </div>
-        </div>
+        </section>
       </main>
+
+      <footer className="px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center text-xs text-muted">{t("login.footer")}</footer>
     </div>
   );
 }

@@ -134,7 +134,7 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
 
       {/* Desktop header: a blue utility strip over a thick white banner with the logo and the main navigation. */}
       <header className="hidden lg:block">
-        <div className="bg-header text-header-fg">
+        <div className="bg-linear-to-r from-header to-[color-mix(in_oklab,var(--header),var(--brand-panel)_60%)] text-header-fg">
           <div className="mx-auto flex h-11 max-w-[85rem] items-center justify-end gap-3 px-10">
             <button
               type="button"
@@ -148,7 +148,7 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
             <UserMenu variant="strip" user={user} onPreferences={openPrefs} onSignOut={logout} signingOut={signingOut} />
           </div>
         </div>
-        <div className="border-b-[3px] border-accent bg-surface shadow-e1">
+        <div className="border-b-[3px] border-accent bg-linear-to-b from-surface to-surface-2 shadow-e1">
           <div className="mx-auto flex h-24 max-w-[85rem] items-stretch gap-8 px-10">
             <Link href={sections[0]?.items[0]?.href ?? "/"} className="flex shrink-0 items-center gap-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand" aria-label={tc("appName")}>
               <BrandLogo className="h-[4.5rem]" />
