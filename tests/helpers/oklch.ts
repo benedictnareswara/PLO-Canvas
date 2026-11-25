@@ -5,6 +5,23 @@ export interface Oklch {
   c: number;
   h: number; // degrees
   alpha: number;
+  /** Set for a colour written as hex: linear-light sRGB channels, used as they are. */
+  rgb?: [number, number, number];
+}
+
+/** A `#rrggbb` colour, kept as linear-light sRGB. */
+export function parseHex(src: string): Oklch {
+  const m = src.trim().match(/^#([0-9a-fA-F]{6})$/);
+  if (!m) throw new Error(`Not a #rrggbb colour: ${src}`);
+  const lin = (i: number) => {
+    const v = parseInt(m[1].slice(i, i + 2), 16) / 255;
+    return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return { l: 0, c: 0, h: 0, alpha: 1, rgb: [lin(0), lin(2), lin(4)] };
+}
+
+export function parseColor(src: string): Oklch {
+  return src.trim().startsWith("#") ? parseHex(src) : parseOklch(src);
 }
 
 export function parseOklch(src: string): Oklch {
@@ -15,7 +32,8 @@ export function parseOklch(src: string): Oklch {
 }
 
 /** Linear-light sRGB channels, clipped to gamut. */
-export function oklchToLinearSrgb({ l, c, h }: Oklch): [number, number, number] {
+export function oklchToLinearSrgb({ l, c, h, rgb }: Oklch): [number, number, number] {
+  if (rgb) return rgb;
   const a = c * Math.cos((h * Math.PI) / 180);
   const b = c * Math.sin((h * Math.PI) / 180);
   const l_ = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
@@ -39,10 +57,11 @@ export function contrastRatio(a: Oklch, b: Oklch): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** Reads `--name: light-dark(oklch(…), oklch(…));` declarations from a stylesheet. */
+/** Reads `--name: light-dark(<colour>, <colour>);` declarations (oklch() or #rrggbb) from a stylesheet. */
 export function readLightDarkTokens(css: string): Map<string, { light: Oklch; dark: Oklch }> {
   const out = new Map<string, { light: Oklch; dark: Oklch }>();
-  const re = /--([\w-]+):\s*light-dark\(\s*(oklch\([^)]*\))\s*,\s*(oklch\([^)]*\))\s*\)\s*;/g;
-  for (const m of css.matchAll(re)) out.set(m[1], { light: parseOklch(m[2]), dark: parseOklch(m[3]) });
+  const colour = String.raw`(oklch\([^)]*\)|#[0-9a-fA-F]{6})`;
+  const re = new RegExp(String.raw`--([\w-]+):\s*light-dark\(\s*${colour}\s*,\s*${colour}\s*\)\s*;`, "g");
+  for (const m of css.matchAll(re)) out.set(m[1], { light: parseColor(m[2]), dark: parseColor(m[3]) });
   return out;
 }

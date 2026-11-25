@@ -7,36 +7,32 @@ export type ThemeMode = "system" | "light" | "dark";
 const KEY = THEME_STORAGE_KEY;
 const EVENT = "obe:theme-change";
 
+/** Light is the default; "System" and "Dark" are choices stored in localStorage. */
 function readStored(): ThemeMode {
   try {
     const v = localStorage.getItem(KEY);
-    return v === "light" || v === "dark" ? v : "system";
+    return v === "dark" || v === "system" ? v : "light";
   } catch {
-    return "system";
+    return "light";
   }
 }
 
 function apply(mode: ThemeMode) {
   const root = document.documentElement;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]');
-  if (mode === "system") {
-    delete root.dataset.theme;
-    if (meta) meta.content = "light dark";
-  } else {
-    root.dataset.theme = mode;
-    if (meta) meta.content = mode;
-  }
-  // Browser chrome: follow the override, or each meta's own media query when following the system.
+  root.dataset.theme = mode;
+  if (meta) meta.content = mode === "system" ? "light dark" : mode;
+  // Browser chrome follows the resolved scheme.
+  const scheme = mode === "system" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : mode;
   document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
-    const scheme = mode === "system" ? (m.media.includes("dark") ? "dark" : "light") : mode;
     m.content = THEME_COLOR[scheme];
   });
 }
 
-/** Three-state theme: "system" removes the stored override (per the dark-mode-toggle guidance). */
+/** Three-state theme: light (default), dark, or follow the system. */
 export function setThemeMode(mode: ThemeMode) {
   try {
-    if (mode === "system") localStorage.removeItem(KEY);
+    if (mode === "light") localStorage.removeItem(KEY);
     else localStorage.setItem(KEY, mode);
   } catch {
     /* storage blocked: still apply for this page */
@@ -71,7 +67,7 @@ function snapshot(): string {
 
 /** Current mode, the OS scheme, and the resolved (rendered) scheme. */
 export function useTheme(): { mode: ThemeMode; system: "light" | "dark"; resolved: "light" | "dark" } {
-  const snap = useSyncExternalStore(subscribe, snapshot, () => "system|light");
+  const snap = useSyncExternalStore(subscribe, snapshot, () => "light|light");
   const [mode, system] = snap.split("|") as [ThemeMode, "light" | "dark"];
   return { mode, system, resolved: mode === "system" ? system : mode };
 }

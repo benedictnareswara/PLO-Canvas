@@ -1,7 +1,7 @@
 {
   "common": {
     "appName": "PLO-Canvas",
-    "university": "Sampoerna University",
+    "university": "American University of Indonesia",
     "registry": "Academic Registry",
     "save": "Save",
     "saving": "Saving…",
@@ -36,7 +36,7 @@
     "copied": "Copied",
     "copy": "Copy",
     "ok": "OK",
-    "description": "Outcome-Based Education gradebook and PLO analytics for the Sampoerna University Academic Registry"
+    "description": "Outcome-Based Education gradebook and PLO analytics for the American University of Indonesia Academic Registry"
   },
   "status": {
     "atRisk": "At risk",
@@ -134,6 +134,8 @@
   "login": {
     "title": "Sign in",
     "subtitle": "Use your university email address.",
+    "statTitle": "PLO attainment",
+    "statBody": "Student, class and cohort",
     "email": "Email",
     "emailPlaceholder": "name@my.sampoernauniversity.ac.id",
     "password": "Password",
@@ -211,6 +213,7 @@
     "onTarget": "On target",
     "pending": "Pending",
     "cardMeta": "{students, plural, one {# student} other {# students}} · {assessments, plural, one {# assessment} other {# assessments}} · target {target}%",
+    "cardTarget": "target {target}%",
     "miniChart": "Class mean by PLO",
     "attention": {
       "title": "Needs attention",
@@ -944,7 +947,7 @@
     "back": "Back",
     "print": "Print / Save as PDF",
     "printTranscript": "Print transcript",
-    "university": "Sampoerna University",
+    "university": "American University of Indonesia",
     "registry": "Academic Registry · PLO-Canvas",
     "generatedAt": "Generated {date}",
     "generatedBy": "by {name}",

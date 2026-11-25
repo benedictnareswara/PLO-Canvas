@@ -331,7 +331,7 @@ export function DataTable<T>({
           <table role="table" className={cn("ui-dt w-full border-separate border-spacing-0 text-sm", stackOnNarrow && "ui-dt-stack")}>
             <thead role="rowgroup">
               {table.getHeaderGroups().map((hg) => (
-                <tr role="row" key={hg.id}>
+                <tr role="row" key={hg.id} className="bg-linear-to-r from-(--brand-grad-from) to-(--brand-grad-to)">
                   {hg.headers.map((header, i) => {
                     const meta = header.column.columnDef.meta;
                     const sorted = header.column.getIsSorted();
@@ -345,9 +345,9 @@ export function DataTable<T>({
                         scope="col"
                         aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : canSort ? "none" : undefined}
                         className={cn(
-                          "border-b border-border bg-surface-2 px-3 py-2 text-left text-xs font-medium whitespace-nowrap text-muted first:pl-5 last:pr-5",
-                          maxHeight && "sticky top-0 z-10",
-                          stickyFirstColumn && i === 0 && "sticky left-0 z-20",
+                          "px-3 py-3 text-left text-xs font-semibold whitespace-nowrap text-brand-fg first:pl-5 last:pr-5",
+                          maxHeight && "sticky top-0 z-10 bg-(--brand-grad-from)",
+                          stickyFirstColumn && i === 0 && "sticky left-0 z-20 bg-(--brand-grad-from)",
                           meta?.numeric && "text-right",
                           meta?.className,
                         )}
@@ -357,10 +357,10 @@ export function DataTable<T>({
                             type="button"
                             onClick={header.column.getToggleSortingHandler()}
                             className={cn(
-                              "group -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 hover:text-foreground",
-                              "focus-visible:outline-2 focus-visible:outline-brand",
+                              "group -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 hover:underline",
+                              "focus-visible:outline-2 focus-visible:outline-brand-fg",
                               meta?.numeric && "flex-row-reverse",
-                              sorted && "text-foreground",
+                              sorted && "underline decoration-2 underline-offset-4",
                             )}
                           >
                             {content}

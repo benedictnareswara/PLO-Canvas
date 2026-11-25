@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { Button, Kbd, cn } from "@/components/ui";
-import { BrandMark } from "@/components/BrandMark";
+import { BrandLogo, BrandMark } from "@/components/BrandMark";
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/ui/client";
 import { PreferencesDialog } from "@/components/PreferencesDialog";
 import { useHotkeyLabel, useHotkeys } from "@/lib/hooks/useHotkeys";
@@ -68,6 +68,7 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteLoaded, setPaletteLoaded] = useState(false);
   const [signingOut, startSignOut] = useTransition();
+  const searchKey = useHotkeyLabel("mod+k");
 
   function openPalette() {
     setPaletteLoaded(true);
@@ -123,7 +124,7 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
   const openPrefs = () => setPrefsOpen(true);
 
   return (
-    <div className="min-h-dvh lg:flex">
+    <div className="min-h-dvh">
       <a
         href="#main"
         className="sr-only-focusable fixed top-2 left-2 z-50 rounded-md bg-surface px-3 py-2 text-sm font-medium shadow-e2 focus-visible:outline-2 focus-visible:outline-brand"
@@ -131,16 +132,42 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
         {t("skipToContent")}
       </a>
 
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 border-r border-border bg-background lg:block">
-        <SideNav user={user} sections={sections} pathname={pathname} onPreferences={openPrefs} onSearch={openPalette} onSignOut={logout} signingOut={signingOut} />
-      </aside>
+      {/* Desktop header: a blue utility strip over a thick white banner with the logo and the main navigation. */}
+      <header className="hidden lg:block">
+        <div className="bg-linear-to-r from-header to-[color-mix(in_oklab,var(--header),var(--brand-panel)_60%)] text-header-fg">
+          <div className="mx-auto flex h-11 max-w-[85rem] items-center justify-end gap-3 px-10">
+            <button
+              type="button"
+              onClick={openPalette}
+              className="flex h-7 items-center gap-2 rounded-md bg-header-fg/10 px-2.5 text-xs hover:bg-header-fg/20 focus-visible:outline-2 focus-visible:outline-header-fg"
+            >
+              <Search className="size-3.5" aria-hidden />
+              <span>{t("searchPlaceholder")}</span>
+              <Kbd className="border-header-fg/30 bg-transparent text-header-fg">{searchKey}</Kbd>
+            </button>
+            <UserMenu variant="strip" user={user} onPreferences={openPrefs} onSignOut={logout} signingOut={signingOut} />
+          </div>
+        </div>
+        <div className="border-b-[3px] border-accent bg-linear-to-b from-surface to-surface-2 shadow-e1">
+          <div className="mx-auto flex h-24 max-w-[85rem] items-stretch gap-8 px-10">
+            <Link href={sections[0]?.items[0]?.href ?? "/"} className="flex shrink-0 items-center gap-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand" aria-label={tc("appName")}>
+              <BrandLogo className="h-[4.5rem]" />
+              <span className="border-l border-border-strong pl-5 leading-tight">
+                <span className="block text-lg font-bold text-brand">{tc("appName")}</span>
+                <span className="block text-xs text-muted">{tc("registry")}</span>
+              </span>
+            </Link>
+            <TopNav sections={sections} pathname={pathname} label={t("mainNav")} />
+          </div>
+        </div>
+      </header>
 
-      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-surface pt-[env(safe-area-inset-top)] pr-[max(1rem,env(safe-area-inset-right))] pl-[max(0.5rem,env(safe-area-inset-left))] lg:hidden">
-        <Button variant="ghost" size="icon" onClick={() => drawerRef.current?.showModal()} aria-label={t("openMenu")} className="size-11">
+      <header className="sticky top-0 z-20 flex items-center gap-2 border-b-[3px] border-accent bg-header text-header-fg pt-[env(safe-area-inset-top)] pr-[max(1rem,env(safe-area-inset-right))] pl-[max(0.5rem,env(safe-area-inset-left))] lg:hidden">
+        <Button variant="ghost" size="icon" onClick={() => drawerRef.current?.showModal()} aria-label={t("openMenu")} className="size-11 text-header-fg hover:bg-header-fg/10">
           <MenuIcon className="size-5!" />
         </Button>
-        <span className="flex flex-1 items-center gap-2 py-3 text-sm font-semibold"><BrandMark className="h-6" />{tc("appName")}</span>
-        <Button variant="ghost" size="icon" onClick={openPalette} aria-label={t("searchShort")} className="size-11">
+        <span className="flex flex-1 items-center gap-2.5 py-2.5 text-sm font-bold"><BrandMark tone="onBrand" className="h-7" />{tc("appName")}</span>
+        <Button variant="ghost" size="icon" onClick={openPalette} aria-label={t("searchShort")} className="size-11 text-header-fg hover:bg-header-fg/10">
           <Search className="size-5!" />
         </Button>
       </header>
@@ -241,10 +268,10 @@ function SideNav({
   return (
     <nav aria-label={t("shell.mainNav")} className="flex h-full flex-col">
       <div className="flex items-center gap-3 px-4 pt-5 pb-4">
-        <BrandMark className="h-9" />
-        <div className="leading-tight">
-          <div className="text-sm font-semibold tracking-tight">{t("common.appName")}</div>
-          <div className="text-[0.6875rem] text-muted">{t("common.university")}</div>
+        <BrandLogo className="h-14" />
+        <div className="border-l border-border-strong pl-3 leading-tight">
+          <div className="text-sm font-bold text-brand">{t("common.appName")}</div>
+          <div className="text-[0.6875rem] text-muted">{t("common.registry")}</div>
         </div>
       </div>
 
@@ -280,7 +307,7 @@ function SideNav({
                   className={cn(
                     "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm pointer-coarse:py-2.5",
                     "transition-colors duration-(--dur-1) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
-                    active ? "bg-surface font-medium text-brand shadow-e1 ring-1 ring-border" : "text-muted hover:bg-surface-2 hover:text-foreground",
+                    active ? "bg-brand-soft font-bold text-brand" : "text-foreground hover:bg-surface-2 hover:text-brand",
                   )}
                 >
                   <Icon className="size-4 shrink-0" aria-hidden />
@@ -300,44 +327,91 @@ function SideNav({
   );
 }
 
+function TopNav({ sections, pathname, label }: { sections: NavSection[]; pathname: string; label: string }) {
+  const allHrefs = sections.flatMap((s) => s.items.map((i) => i.href));
+  const activeHref = allHrefs
+    .filter((h) => pathname === h || pathname.startsWith(`${h}/`))
+    .sort((a, b) => b.length - a.length)[0];
+  return (
+    <nav aria-label={label} className="ml-auto flex min-w-0 items-stretch overflow-x-auto">
+      {sections.map((section) => (
+        <ul key={section.title} aria-label={section.title} className="flex items-stretch border-l border-border">
+          {section.items.map((item) => {
+            const active = item.href === activeHref;
+            return (
+              <li key={item.href} className="flex">
+                <Link
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "relative flex items-center gap-1.5 px-4 text-center text-[0.8125rem] leading-tight font-bold tracking-wide uppercase",
+                    "transition-colors duration-(--dur-1) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
+                    active
+                      ? "bg-brand-soft text-brand after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:bg-brand"
+                      : "text-foreground hover:bg-surface-2 hover:text-brand",
+                  )}
+                >
+                  <span className="max-w-32">{item.label}</span>
+                  {item.count !== undefined && <span className="rounded-full bg-brand-soft px-1.5 text-xs text-brand tabular">{item.count}</span>}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      ))}
+    </nav>
+  );
+}
+
 function UserMenu({
   user,
   onPreferences,
   onSignOut,
   signingOut,
+  variant = "side",
 }: {
   user: ShellUser;
   onPreferences: () => void;
   onSignOut: () => void;
   signingOut: boolean;
+  variant?: "side" | "strip";
 }) {
   const t = useTranslations();
+  const strip = variant === "strip";
 
   const roleList = user.roles.map((r) => (t.has(`roles.${r}`) ? t(`roles.${r}`) : r)).join(" · ");
 
   return (
     <Menu
       label={t("shell.accountMenu")}
-      side="top"
-      align="start"
+      side={strip ? "bottom" : "top"}
+      align={strip ? "end" : "start"}
       className="w-56"
       trigger={
         <button
           type="button"
           aria-busy={signingOut || undefined}
-          className="flex w-full items-center gap-2.5 rounded-md p-2 text-left hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
+          className={cn(
+            "flex items-center gap-2.5 rounded-md text-left focus-visible:outline-2 focus-visible:-outline-offset-2",
+            strip
+              ? "h-8 px-2 hover:bg-header-fg/10 focus-visible:outline-header-fg"
+              : "w-full p-2 hover:bg-surface-2 focus-visible:outline-brand",
+          )}
         >
           <span
             aria-hidden
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand uppercase"
+            className={cn(
+              "flex shrink-0 items-center justify-center rounded-full text-xs font-bold uppercase",
+              strip ? "size-6 bg-header-fg/20 text-header-fg" : "size-8 bg-brand-soft text-brand",
+            )}
           >
             {initials(user.name)}
           </span>
-          <span className="min-w-0 flex-1 leading-tight">
+          <span className={cn("leading-tight", strip ? "max-w-48" : "min-w-0 flex-1")}>
             <span className="block truncate text-sm font-medium">{user.name}</span>
-            <span className="block truncate text-xs text-muted">{roleList}</span>
+            {!strip && <span className="block truncate text-xs text-muted">{roleList}</span>}
           </span>
-          <ChevronsUpDown className="size-4 shrink-0 text-subtle" aria-hidden />
+          <ChevronsUpDown className={cn("size-4 shrink-0", strip ? "opacity-80" : "text-subtle")} aria-hidden />
         </button>
       }
     >

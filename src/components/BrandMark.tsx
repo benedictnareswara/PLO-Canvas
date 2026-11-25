@@ -2,16 +2,35 @@ import Image from "next/image";
 import { cn } from "@/components/ui";
 
 /**
- * Sampoerna University starburst mark. Two raster variants because the navy rays disappear on
- * dark surfaces: the dark-scheme file lifts them to periwinkle. `dark:` follows the app's
- * resolved theme (data-theme override or OS), so the swap matches the rest of the UI.
+ * American University of Indonesia logo. Two colour sets because the navy and crimson disappear on
+ * dark surfaces: the dark set lifts them to periwinkle and pink. `dark:` follows the app's resolved
+ * theme, so the swap matches the rest of the UI. `onBrand` always uses the light-on-navy set (login
+ * panel, blue header strip, course-card banners).
  */
-export function BrandMark({ className, label }: { className?: string; label?: string }) {
+type Tone = "auto" | "onBrand";
+
+function Pair({ light, dark, ratio, className, label, tone, sizes }: { light: string; dark: string; ratio: string; className?: string; label?: string; tone: Tone; sizes: string }) {
   const alt = label ?? "";
   return (
-    <span className={cn("relative inline-block aspect-[192/236] shrink-0", className)}>
-      <Image src="/brand/su-mark.png" alt={alt} fill sizes="64px" className="object-contain dark:hidden" priority />
-      <Image src="/brand/su-mark-dark.png" alt={alt} fill sizes="64px" className="hidden object-contain dark:block" priority />
+    <span className={cn("relative inline-block shrink-0", ratio, className)}>
+      {tone === "auto" ? (
+        <>
+          <Image src={light} alt={alt} fill sizes={sizes} className="object-contain dark:hidden" priority />
+          <Image src={dark} alt={alt} fill sizes={sizes} className="hidden object-contain dark:block" priority />
+        </>
+      ) : (
+        <Image src={dark} alt={alt} fill sizes={sizes} className="object-contain" priority />
+      )}
     </span>
   );
+}
+
+/** The starburst on its own, for tight spots. */
+export function BrandMark({ className, label, tone = "auto" }: { className?: string; label?: string; tone?: Tone }) {
+  return <Pair light="/brand/aui-mark.png" dark="/brand/aui-mark-dark.png" ratio="aspect-[240/376]" className={className} label={label} tone={tone} sizes="64px" />;
+}
+
+/** Starburst plus "The American University of Indonesia" wordmark. */
+export function BrandLogo({ className, label, tone = "auto" }: { className?: string; label?: string; tone?: Tone }) {
+  return <Pair light="/brand/aui-logo.png" dark="/brand/aui-logo-dark.png" ratio="aspect-[640/282]" className={className} label={label} tone={tone} sizes="320px" />;
 }

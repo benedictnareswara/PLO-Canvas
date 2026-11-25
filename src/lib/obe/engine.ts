@@ -154,7 +154,7 @@ export const isFullyAssessed = (share: number) => share >= 99.95;
 export type LetterScale = { letter: string; min: number }[];
 
 /**
- * Sampoerna University's default letter scale (minimum percentage for each letter). Each curriculum
+ * The American University of Indonesia's default letter scale (minimum percentage for each letter). Each curriculum
  * stores its own copy in `gradeScale`, which the admin can edit; this is used when none is set.
  */
 export const DEFAULT_GRADE_SCALE = "A 90, B 80, C 70, D 60, F 0";

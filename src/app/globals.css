@@ -1,83 +1,90 @@
 @import "tailwindcss";
 
 /*
- * Design tokens.
- * - Colours are OKLCH and resolve per colour scheme with light-dark(). Neutrals are tinted toward
- *   the navy brand hue (~258) so greys never look "default".
- * - In dark mode raised surfaces get lighter (no pure black) and the accent is desaturated.
- * - The <meta name="color-scheme"> in the root layout can pin a scheme; :has() maps it back to CSS.
+ * Design tokens, American University of Indonesia (AUI).
+ * - Palette sampled from the AUI logo and the university's own systems: Canvas navy (#2a2d7e),
+ *   Academic Portal blue (#004d91), logo cyan (#02a4cd) and logo crimson (#b41c42).
+ * - Status colours follow Canvas: red "Missing", green "Submitted", orange "Late".
+ * - Light is the default. Dark is an option in Preferences (data-theme="dark"), and "System" follows the OS.
+ * - Every colour resolves per scheme with light-dark(), so components only use the token names.
  */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
-  &:has(> head > meta[name="color-scheme"][content="dark"]) {
-    color-scheme: dark;
-  }
-  &:has(> head > meta[name="color-scheme"][content="light"]) {
-    color-scheme: light;
-  }
-  /* Same override, keyed off the attribute set by the pre-paint script (robust to <head> ordering). */
   &[data-theme="dark"] {
     color-scheme: dark;
   }
-  &[data-theme="light"] {
-    color-scheme: light;
+  &[data-theme="system"] {
+    color-scheme: light dark;
   }
 
-  --background: light-dark(oklch(97.9% 0.004 258), oklch(17.2% 0.011 258));
-  --surface: light-dark(oklch(100% 0 0), oklch(20.8% 0.013 258));
-  --surface-2: light-dark(oklch(96.6% 0.006 258), oklch(24.5% 0.015 258));
-  --foreground: light-dark(oklch(22% 0.02 262), oklch(94.5% 0.007 258));
-  --muted: light-dark(oklch(49% 0.022 260), oklch(71% 0.018 258));
-  --subtle: light-dark(oklch(53.5% 0.018 260), oklch(66% 0.016 258));
-  --border: light-dark(oklch(92.8% 0.006 258), oklch(27.5% 0.013 258));
-  --border-strong: light-dark(oklch(85% 0.012 258), oklch(37% 0.018 258));
-  /* Form-control edges: the border is the only boundary of an input on a surface, so ≥3:1 (WCAG 1.4.11). */
-  --border-input: light-dark(oklch(63.5% 0.014 258), oklch(54.5% 0.016 258));
+  --background: light-dark(#f0f1f5, #0e1120);
+  --surface: light-dark(#ffffff, #171b30);
+  --surface-2: light-dark(#f4f6fb, #1f2440);
+  --foreground: light-dark(#25293c, #eceefa);
+  --muted: light-dark(#4f5668, #aab0c8);
+  --subtle: light-dark(#5d6477, #9aa1bd);
+  --border: light-dark(#dcdfe8, #2b3050);
+  --border-strong: light-dark(#c4c9d8, #3b4170);
+  /* Form-control edges: the border is the only boundary of an input on a surface, so >=3:1 (WCAG 1.4.11). */
+  --border-input: light-dark(#7d8397, #7078a0);
 
-  --brand: light-dark(oklch(35% 0.17 268), oklch(77% 0.11 272));
-  --brand-hover: light-dark(oklch(29% 0.17 268), oklch(82% 0.1 272));
-  --brand-fg: light-dark(oklch(99% 0 0), oklch(19% 0.05 270));
-  --brand-soft: light-dark(oklch(95.2% 0.03 270), oklch(29% 0.07 272));
-  /* Large brand field (login panel): stays deep Sampoerna navy in both schemes rather than turning
-     into the light dark-mode accent, which would glare as a half-screen fill. */
-  --brand-panel: light-dark(oklch(35% 0.17 268), oklch(27% 0.12 270));
-  --brand-panel-fg: light-dark(oklch(99% 0 0), oklch(97% 0.01 270));
+  --brand: light-dark(#2a2d7e, #aab1ff);
+  --brand-hover: light-dark(#1d2060, #c4c9ff);
+  --brand-fg: light-dark(#ffffff, #14173a);
+  --brand-soft: light-dark(#e6e8f4, #2a2f5e);
+  /* Large brand fields (login panel, course-card banners) stay deep navy in both schemes. */
+  --brand-panel: light-dark(#2a2d7e, #1a1d52);
+  --brand-panel-fg: light-dark(#ffffff, #f4f5ff);
+  /* Top utility strip (Academic Portal blue) and the cyan accent line from the logo. */
+  --header: light-dark(#004d91, #0b1b3f);
+  --header-fg: #ffffff;
+  --accent: light-dark(#02a4cd, #45cfee);
+  /* Slight navy gradient for buttons and table headers; text on it must stay readable (tested). */
+  --brand-grad-from: light-dark(#2a2d7e, #b3b9ff);
+  --brand-grad-to: light-dark(#3f4bb3, #8f98f4);
+  /* AUI crimson, used sparingly for labels and one accent tile. */
+  --highlight: light-dark(#b41c42, #ff8aa5);
+  /* Login page background (soft periwinkle, as in the landing reference). */
+  --landing-from: light-dark(#e6e9fc, #151a3d);
+  --landing-to: light-dark(#c3c8ee, #0c0f20);
+  /* Course-card banner colours (white text sits on them), all from the AUI palette. */
+  --banner-1: #2a2d7e;
+  --banner-2: #004d91;
+  --banner-3: #00718c;
+  --banner-4: #5b3a8c;
+  --banner-5: #a3203f;
+  --banner-6: #2c6b4f;
+  --banner-7: #8a5a00;
+  --banner-8: #3a4a94;
 
-  --ok: light-dark(oklch(47% 0.12 150), oklch(76% 0.13 152));
-  --ok-soft: light-dark(oklch(95.8% 0.035 150), oklch(28% 0.045 152));
-  --risk: light-dark(oklch(50% 0.18 27), oklch(73% 0.15 25));
-  --risk-soft: light-dark(oklch(95.5% 0.025 25), oklch(29% 0.06 25));
-  --warn: light-dark(oklch(52% 0.12 70), oklch(81% 0.13 80));
-  --warn-soft: light-dark(oklch(96% 0.045 85), oklch(30% 0.05 75));
-  --info: light-dark(oklch(48% 0.11 240), oklch(77% 0.1 235));
-  --info-soft: light-dark(oklch(95.6% 0.025 235), oklch(28.5% 0.045 240));
+  --ok: light-dark(#027a36, #6fdc9a);
+  --ok-soft: light-dark(#e6f5ec, #123a28);
+  --risk: light-dark(#b81c20, #ff8a8e);
+  --risk-soft: light-dark(#fae4e6, #3b1620);
+  --warn: light-dark(#a63f00, #ffb673);
+  --warn-soft: light-dark(#fef0e5, #3b2410);
+  --info: light-dark(#0b5fa8, #7fc0ff);
+  --info-soft: light-dark(#e5f0fa, #13304a);
   /* Text on a solid ok/risk/warn fill: those fills turn light in dark mode, so the text turns dark. */
-  --solid-fg: light-dark(oklch(99% 0 0), oklch(18% 0.02 260));
+  --solid-fg: light-dark(#ffffff, #11142a);
 
-  /* Charts: Okabe-Ito derived (blue, orange, bluish green, reddish purple), re-tuned per scheme for ≥3:1 strokes. */
-  --chart-1: light-dark(oklch(52% 0.15 250), oklch(72% 0.13 245));
-  --chart-2: light-dark(oklch(64% 0.17 50), oklch(76% 0.15 60));
-  --chart-3: light-dark(oklch(56% 0.12 165), oklch(76% 0.13 165));
-  --chart-4: light-dark(oklch(52% 0.16 345), oklch(74% 0.14 345));
-  --chart-grid: light-dark(oklch(89% 0.008 258), oklch(33% 0.014 258));
-  --chart-axis: light-dark(oklch(38% 0.02 260), oklch(82% 0.012 258));
-  --chart-tick: light-dark(oklch(53% 0.016 260), oklch(68% 0.014 258));
-  --chart-target: light-dark(oklch(40% 0.01 260), oklch(78% 0.01 258));
+  /* Charts: AUI navy, crimson, cyan and amber, re-tuned per scheme for >=3:1 strokes. */
+  --chart-1: light-dark(#2a2d7e, #9ea6ff);
+  --chart-2: light-dark(#b41c42, #ff8aa5);
+  --chart-3: light-dark(#007f9c, #43cdea);
+  --chart-4: light-dark(#b86e00, #ffc15e);
+  --chart-grid: light-dark(#dde0ea, #2b3050);
+  --chart-axis: light-dark(#2b3047, #cdd2ea);
+  --chart-tick: light-dark(#5d6477, #9aa1bd);
+  --chart-target: light-dark(#3a3f55, #c4c9e6);
 
-  /* One light source, layered + tinted shadows (3-step elevation). */
-  --shadow-1:
-    0 1px 0 light-dark(oklch(25% 0.03 260 / 0.03), oklch(0% 0 0 / 0.25)),
-    0 1px 2px light-dark(oklch(25% 0.03 260 / 0.05), oklch(0% 0 0 / 0.3));
-  --shadow-2:
-    0 1px 2px light-dark(oklch(25% 0.03 260 / 0.06), oklch(0% 0 0 / 0.3)),
-    0 4px 12px -2px light-dark(oklch(25% 0.03 260 / 0.08), oklch(0% 0 0 / 0.35));
-  --shadow-3:
-    0 2px 4px light-dark(oklch(25% 0.03 260 / 0.06), oklch(0% 0 0 / 0.3)),
-    0 16px 40px -8px
-      light-dark(oklch(25% 0.03 260 / 0.18), oklch(0% 0 0 / 0.55));
+  /* Neutral shadows like Canvas cards (3-step elevation). */
+  --shadow-1: 0 1px 2px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.4));
+  --shadow-2: 0 2px 6px light-dark(rgb(0 0 0 / 0.16), rgb(0 0 0 / 0.45));
+  --shadow-3: 0 10px 28px -4px light-dark(rgb(0 0 0 / 0.24), rgb(0 0 0 / 0.6));
 
-  /* Motion (NN/g, Vercel guidelines, Material 3). Exits use ~70% of the enter duration. */
+  /* Motion. Exits use ~70% of the enter duration. */
   --dur-1: 100ms;
   --dur-2: 160ms;
   --dur-3: 240ms;
@@ -85,16 +92,13 @@
   --ease-std: cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* `dark:` follows the resolved scheme: an explicit data-theme wins, otherwise the OS preference. */
+/* `dark:` follows the resolved scheme: an explicit dark theme, or "System" with a dark OS. */
 @custom-variant dark {
   &:where([data-theme="dark"], [data-theme="dark"] *) {
     @slot;
   }
   @media (prefers-color-scheme: dark) {
-    &:where(
-      :root:not([data-theme="light"]),
-      :root:not([data-theme="light"]) *
-    ) {
+    &:where([data-theme="system"], [data-theme="system"] *) {
       @slot;
     }
   }
@@ -116,6 +120,10 @@
   --color-brand-soft: var(--brand-soft);
   --color-brand-panel: var(--brand-panel);
   --color-brand-panel-fg: var(--brand-panel-fg);
+  --color-header: var(--header);
+  --color-header-fg: var(--header-fg);
+  --color-accent: var(--accent);
+  --color-highlight: var(--highlight);
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
   --color-risk: var(--risk);
@@ -130,8 +138,39 @@
   --shadow-e3: var(--shadow-3);
   --ease-out-quint: var(--ease-out);
   --ease-standard: var(--ease-std);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
+  /* Rounder, softer corners (cards 1rem, buttons are pills). */
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+}
+
+/* Gentle motion for the landing page; both are switched off by `motion-safe:` for reduced-motion users. */
+@theme {
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-fade-up: fade-up 0.6s var(--ease-out) both;
+}
+@keyframes float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -8px;
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 
 /* Height of the sticky app header: the phone header bar, none on desktop (sidebar layout). */
@@ -159,8 +198,10 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
-  line-height: 1.5;
-  font-feature-settings: "cv11", "ss01";
+  line-height: 1.55;
+  /* Inter with slightly tight tracking for a crisp, Apple-like look. */
+  letter-spacing: -0.011em;
+  font-optical-sizing: auto;
 }
 
 h1,
@@ -170,14 +211,17 @@ th {
   text-wrap: balance;
 }
 
-/* Geist runs slightly loose at display sizes; tighten headings only, never body text. */
+/* Headings are navy and bold, like the Canvas dashboard titles. */
 h1 {
-  letter-spacing: -0.022em;
+  letter-spacing: -0.025em;
+  color: var(--brand);
+  font-weight: 700;
 }
 h2,
 h3 {
-  letter-spacing: -0.011em;
+  letter-spacing: -0.018em;
 }
+
 
 /* Native <select> with a token-coloured chevron (the OS arrow differs per platform and ignores
    dark mode). Two gradient triangles, so no image and nothing to recolour per theme. */
@@ -252,7 +296,7 @@ dialog.ui-dialog {
   }
 
   &::backdrop {
-    background: oklch(18% 0.02 260 / 0.45);
+    background: rgb(10 12 30 / 0.5);
     opacity: 1;
     transition:
       opacity var(--dur-3) var(--ease-out),
@@ -380,7 +424,7 @@ details.ui-collapse[open]::details-content {
     transition-duration: calc(var(--dur-3) * 0.7);
   }
   &::backdrop {
-    background: oklch(18% 0.02 260 / 0.45);
+    background: rgb(10 12 30 / 0.5);
     transition:
       opacity var(--dur-3) var(--ease-out),
       display var(--dur-3),

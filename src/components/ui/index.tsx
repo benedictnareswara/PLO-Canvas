@@ -12,11 +12,12 @@ export function cn(...inputs: ClassValue[]) {
 
 /* -------------------------------- Button -------------------------------- */
 
+/* One button design everywhere: a pill with a soft shadow. Variants only change the fill. */
 const buttonVariants = {
-  primary: "bg-brand text-brand-fg hover:bg-brand-hover",
-  secondary: "bg-surface text-foreground border border-border-strong hover:bg-surface-2",
-  ghost: "text-foreground hover:bg-surface-2",
-  danger: "bg-risk text-solid-fg hover:bg-[color-mix(in_oklab,var(--risk),var(--foreground)_12%)]",
+  primary: "bg-linear-to-b from-(--brand-grad-from) to-(--brand-grad-to) text-brand-fg shadow-e1 hover:brightness-110",
+  secondary: "bg-surface text-brand border border-border-strong shadow-e1 hover:bg-brand-soft",
+  ghost: "text-foreground hover:bg-brand-soft",
+  danger: "bg-linear-to-b from-risk to-[color-mix(in_oklab,var(--risk),black_16%)] text-solid-fg shadow-e1 hover:brightness-110",
   "danger-ghost": "text-risk hover:bg-risk-soft",
 };
 
@@ -33,9 +34,9 @@ export type ButtonSize = keyof typeof buttonSizes;
 
 export function buttonClass(variant: ButtonVariant = "primary", size: ButtonSize = "md", className?: string) {
   return cn(
-    "relative inline-flex shrink-0 select-none items-center justify-center rounded-lg font-medium whitespace-nowrap",
-    "transition-[background-color,border-color,color,box-shadow,scale] duration-(--dur-1) ease-(--ease-out)",
-    "active:scale-[0.98] motion-reduce:active:scale-100",
+    "relative inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold whitespace-nowrap",
+    "transition-[background-color,border-color,color,box-shadow,scale,translate,filter] duration-(--dur-2) ease-(--ease-out)",
+    "motion-safe:hover:-translate-y-px active:scale-[0.97] motion-reduce:active:scale-100",
     "disabled:pointer-events-none disabled:opacity-50 aria-busy:cursor-progress",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
     "[&_svg]:size-4 [&_svg]:shrink-0",
@@ -85,7 +86,7 @@ export function ButtonLink({
 /* --------------------------------- Card --------------------------------- */
 
 export function Card({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("rounded-xl border border-border bg-surface", className)} {...props} />;
+  return <div className={cn("overflow-clip rounded-xl border border-border bg-linear-to-b from-surface to-[color-mix(in_oklab,var(--surface),var(--brand-soft)_30%)] shadow-e1", className)} {...props} />;
 }
 
 export function CardHeader({
@@ -136,7 +137,7 @@ export function Badge({ tone = "neutral", className, ...props }: ComponentProps<
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium leading-4 [&_svg]:size-3",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold leading-4 [&_svg]:size-3",
         badgeTones[tone],
         className,
       )}
@@ -335,10 +336,10 @@ export function PageHeader({
   eyebrow?: ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border pb-5">
       <div className="min-w-0 flex-1 basis-80">
         {eyebrow && <div className="mb-1 text-xs font-medium text-muted">{eyebrow}</div>}
-        <h1 className="text-2xl font-semibold text-pretty sm:text-[2rem] sm:leading-tight">{title}</h1>
+        <h1 className="text-2xl font-bold text-pretty sm:text-[2rem] sm:leading-tight">{title}</h1>
         {description && <div className="mt-2 max-w-3xl text-[0.9375rem] text-muted">{description}</div>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

@@ -1,7 +1,7 @@
 {
   "common": {
     "appName": "PLO-Canvas",
-    "university": "Sampoerna University",
+    "university": "American University of Indonesia",
     "registry": "Biro Administrasi Akademik",
     "save": "Simpan",
     "saving": "Menyimpan…",
@@ -36,7 +36,7 @@
     "copied": "Tersalin",
     "copy": "Salin",
     "ok": "OK",
-    "description": "Buku nilai Pendidikan Berbasis Capaian (OBE) dan analitik CPL untuk Biro Akademik Sampoerna University"
+    "description": "Buku nilai Pendidikan Berbasis Capaian (OBE) dan analitik CPL untuk Biro Akademik American University of Indonesia"
   },
   "status": {
     "atRisk": "Berisiko",
@@ -134,6 +134,8 @@
   "login": {
     "title": "Masuk",
     "subtitle": "Gunakan alamat email universitas Anda.",
+    "statTitle": "Capaian CPL",
+    "statBody": "Mahasiswa, kelas dan angkatan",
     "email": "Email",
     "emailPlaceholder": "nama@my.sampoernauniversity.ac.id",
     "password": "Kata sandi",
@@ -211,6 +213,7 @@
     "onTarget": "Sesuai target",
     "pending": "Menunggu",
     "cardMeta": "{students} mahasiswa · {assessments} penilaian · target {target}%",
+    "cardTarget": "target {target}%",
     "miniChart": "Rata-rata kelas per CPL",
     "attention": {
       "title": "Perlu perhatian",
@@ -944,7 +947,7 @@
     "back": "Kembali",
     "print": "Cetak / Simpan sebagai PDF",
     "printTranscript": "Cetak transkrip",
-    "university": "Sampoerna University",
+    "university": "American University of Indonesia",
     "registry": "Biro Akademik · PLO-Canvas",
     "generatedAt": "Dibuat {date}",
     "generatedBy": "oleh {name}",
