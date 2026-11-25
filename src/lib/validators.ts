@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ROLES, TERMS } from "@/models";
 import { NIM_PATTERN, RANGES } from "@/lib/ranges";
 import { LOCALES } from "@/i18n/config";
+import { DEFAULT_GRADE_SCALE, parseGradeScale } from "@/lib/obe/engine";
 
 const { percent, maxPoints, year, sks, totalSks, semester, ploNumber } = RANGES;
 /** A percentage from 0 to 100. */
@@ -93,6 +94,14 @@ export const curriculumSchema = z.object({
   totalSks: z.number().int().min(totalSks.min).max(totalSks.max),
   department: objectId,
   defaultThreshold: pct().default(70),
+  gradeScale: z
+    .string()
+    .trim()
+    .max(300)
+    .refine((s) => parseGradeScale(s) !== null, {
+      message: 'Write each letter with its minimum %, highest first and ending at 0, like "A 90, B 80, C 70, D 60, F 0"',
+    })
+    .default(DEFAULT_GRADE_SCALE),
   isActive: z.boolean().default(true),
 });
 

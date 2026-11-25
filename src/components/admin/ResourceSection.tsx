@@ -31,6 +31,8 @@ export type FieldDef = {
   integer?: boolean;
   /** Text fields holding a number code (e.g. NIM): only digits can be typed, so no minus sign. */
   digits?: boolean;
+  /** Extra check for a filled-in field: returns the error message, or null when the value is fine. */
+  validate?: (value: unknown) => string | null;
 };
 
 export interface Column<T> {
@@ -112,6 +114,10 @@ export function ResourceForm({
     }
     else if (!empty && f.digits && !/^\d+$/.test(String(v).trim())) errors[f.name] = t("errors.digits", { field: f.label });
     else if (!empty && f.type === "password" && String(v).length < 8) errors[f.name] = t("errors.password");
+    else if (!empty && f.validate) {
+      const message = f.validate(v);
+      if (message) errors[f.name] = message;
+    }
   }
   const show = (name: string) => (attempted || touched.has(name) ? errors[name] : undefined);
   const dirty = JSON.stringify(values) !== JSON.stringify(initial);

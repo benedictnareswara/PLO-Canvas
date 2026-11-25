@@ -5,7 +5,7 @@ import { recomputeOffering } from "@/lib/obe/recompute";
 import { diffFields, type AssessmentSnapshot } from "@/lib/audit/diff";
 import { recordAudit } from "@/lib/audit/record";
 import { runInTransaction } from "@/lib/transaction";
-import { assertPlosInCurriculum } from "@/lib/obe/plo-scope";
+import { assertPlosAssignedToClass } from "@/lib/obe/plo-scope";
 import { Assessment, Grade } from "@/models";
 
 type Ctx = { params: Promise<{ id: string; aid: string }> };
@@ -32,7 +32,7 @@ export const PATCH = apiHandler<Ctx>(async (req, { params }) => {
   if (!fullAccess) await assertOfferingAccess(user, id, "mapping");
   const json = await req.json();
   const body = fullAccess ? assessmentSchema.parse(json) : ploMappingSchema.parse(json);
-  await assertPlosInCurriculum(id, body.ploWeights.map((w) => w.plo));
+  await assertPlosAssignedToClass(id, body.ploWeights.map((w) => w.plo));
   await runInTransaction(async (session) => {
     const opts = session ? { session } : {};
     const existing = await Assessment.findOne({ _id: aid, offering: id }, null, opts).lean();

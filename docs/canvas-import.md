@@ -7,22 +7,22 @@ A ready-made export is in **[`samples/canvas-gradebook-sample.csv`](../samples/c
 ```csv
 Student,ID,SIS User ID,SIS Login ID,Section,Project Proposal (50101),Literature Review (50102),Progress Presentation (50103),Supervisor Logbook (50104),Current Score,Unposted Current Score,Final Score,Unposted Final Score
     Points Possible,,,,,20.00,100.00,50.00,10.00,(read only),(read only),(read only),(read only)
-"Wijaya, Andi",48101,2023001,student1@sampoerna.ac.id,COMP4334 Final Year Project 1 - A,18.5,88,44,9,88.6,88.6,88.6,88.6
+"Wijaya, Andi",48101,2023001,student1@my.sampoernauniversity.ac.id,COMP4334 Final Year Project 1 - A,18.5,88,44,9,88.6,88.6,88.6,88.6
 "Lestari, Bunga",48102,2023002,student2,COMP4334 Final Year Project 1 - A,15,71,36,7,72.4,72.4,72.4,72.4
 "Pratama, Citra",48103,2023003,,COMP4334 Final Year Project 1 - A,12,58,EX,6,59.2,59.2,59.2,59.2
-"Nugroho, Fajar",48199,2023099,fajar.nugroho@sampoerna.ac.id,COMP4334 Final Year Project 1 - A,16,75,40,8,77.3,77.3,77.3,77.3
+"Nugroho, Fajar",48199,2023099,fajar.nugroho@my.sampoernauniversity.ac.id,COMP4334 Final Year Project 1 - A,16,75,40,8,77.3,77.3,77.3,77.3
 "Student, Test",48000,,,COMP4334 Final Year Project 1 - A,0,0,0,0,0,0,0,0
 ```
 
 The sample covers every matching path:
 - student1 matches by full email.
-- student2 matches by a bare login, which expands to `@sampoerna.ac.id`.
+- student2 matches by a bare login, which expands to `@my.sampoernauniversity.ac.id`.
 - student3 has no login, so it falls back to the **SIS User ID** (NIM), and has an **EX** (excused) cell.
 - One student doesn't exist in the registry.
 - The Canvas **Test Student** row and the computed score columns are skipped.
 
 ## Walkthrough
-1. Sign in as `lecturer1@sampoerna.ac.id`. Open **My Classes → COMP4334 · Final Year Project 1 (2026/2027 Odd)** and click **Import Canvas CSV**.
+1. Sign in as `lecturer1@my.sampoernauniversity.ac.id`. Open **My Classes → COMP4334 · Final Year Project 1 (2026/2027 Odd)** and click **Import Canvas CSV**.
 2. **Upload** the sample file. The wizard reports 4 assignment columns and 4 student rows. The "Points Possible" row supplies max points.
 3. **Map to PLOs**: tick the columns to import. For each one, use the PLO dropdown and enter weights that total 100%. For example:
    - Project Proposal → PLO 5 = 60, PLO 10 = 40

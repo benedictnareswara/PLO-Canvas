@@ -5,7 +5,7 @@ import { normalizeLogin, parseCanvasGradebook, parseScoreCell } from "@/lib/canv
 
 const CSV = `Student,ID,SIS User ID,SIS Login ID,Section,Proposal (50101),Literature Review (50102),Current Score,Unposted Current Score,Final Score,Final Grade
     Points Possible,,,,,20.00,100.00,(read only),(read only),(read only),(read only)
-"Wijaya, Andi",901,2023001,student1@sampoerna.ac.id,COMP4334-A,18,EX,90,90,90,A
+"Wijaya, Andi",901,2023001,student1@my.sampoernauniversity.ac.id,COMP4334-A,18,EX,90,90,90,A
 "Student, Test",999,,,COMP4334-A,10,50,0,0,0,E
 "Lestari, Bunga",902,2023002,student2,COMP4334-A,-,72.5,72,72,72,B
 `;
@@ -30,7 +30,7 @@ describe("parseCanvasGradebook", () => {
 
   it("reads identity columns and treats blank/-/EX as no grade", () => {
     const [andi, bunga] = parsed.students;
-    expect(andi).toMatchObject({ canvasUserId: "901", sisUserId: "2023001", sisLoginId: "student1@sampoerna.ac.id" });
+    expect(andi).toMatchObject({ canvasUserId: "901", sisUserId: "2023001", sisLoginId: "student1@my.sampoernauniversity.ac.id" });
     expect(andi.scores).toEqual({ "Proposal (50101)": 18, "Literature Review (50102)": null });
     expect(bunga.scores).toEqual({ "Proposal (50101)": null, "Literature Review (50102)": 72.5 });
   });
@@ -44,7 +44,7 @@ describe("parseCanvasGradebook", () => {
   it("skips negative scores and warns about them", () => {
     const res = parseCanvasGradebook(`Student,ID,SIS User ID,SIS Login ID,Section,Quiz (1)
     Points Possible,,,,,10.00
-"A, B",1,2023001,a@sampoerna.ac.id,S,-4
+"A, B",1,2023001,a@my.sampoernauniversity.ac.id,S,-4
 `);
     expect(res.students[0].scores).toEqual({ "Quiz (1)": null });
     expect(res.warnings).toContainEqual({ code: "negativeScores", params: { count: 1 } });
@@ -71,7 +71,7 @@ describe("helpers", () => {
     expect(parseScoreCell("A", 10)).toBeNull();
   });
   it("normalizes bare logins to the university domain", () => {
-    expect(normalizeLogin("Student2")).toBe("student2@sampoerna.ac.id");
+    expect(normalizeLogin("Student2")).toBe("student2@my.sampoernauniversity.ac.id");
     expect(normalizeLogin("x@Other.edu")).toBe("x@other.edu");
   });
 });

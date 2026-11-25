@@ -27,7 +27,7 @@ export function AssessmentsTab({ detail, canEdit, canEditMapping = canEdit }: { 
   const ploByNumber = new Map(detail.plos.map((p) => [p.number, p]));
   const mappingOnly = !canEdit && canEditMapping;
   const showActions = canEdit || canEditMapping;
-  // A mapped PLO the course doesn't list is allowed, but it is flagged so a review catches it.
+  // Older mappings to a PLO the admin didn't assign to the course are flagged; they must be fixed before the next save.
   const outsideCourse = (n: number) => detail.coursePloNumbers.length > 0 && !detail.coursePloNumbers.includes(n);
   const offCourse = detail.assessments.filter((a) => a.ploWeights.some((w) => outsideCourse(w.number)));
 

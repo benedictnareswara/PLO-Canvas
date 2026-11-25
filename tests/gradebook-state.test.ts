@@ -43,7 +43,7 @@ describe("gradebook state", () => {
   });
 
   it("previews the course grade from typed values", () => {
-    expect(previewCourseGrade("s2", assessments, baseline)).toEqual({ pct: 0.4 * 70 + 0.6 * 50, letter: "C" });
+    expect(previewCourseGrade("s2", assessments, baseline)).toEqual({ pct: 0.4 * 70 + 0.6 * 50, letter: "F" }); // 58% is an F on the SU scale
     // invalid cells are ignored rather than crashing the preview
     expect(previewCourseGrade("s2", assessments, { ...baseline, "s2:a2": "abc" }).pct).toBe(70);
   });

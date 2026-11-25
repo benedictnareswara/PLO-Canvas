@@ -112,9 +112,9 @@ Every account uses the password **`Password123!`**
 
 | Role | Email | Try this |
 |---|---|---|
-| Admin | `admin@sampoerna.ac.id` | Manage curricula, PLOs, courses, classes and users |
-| Faculty Head | `head.cs@sampoerna.ac.id` | Cohort charts, at-risk students, course attainment |
-| Lecturer | `lecturer1@sampoerna.ac.id` | Gradebook, Canvas import, class charts, advisees |
+| Admin | `admin@my.sampoernauniversity.ac.id` | Manage curricula, PLOs, courses, classes and users |
+| Faculty Head | `head.cs@my.sampoernauniversity.ac.id` | Cohort charts, at-risk students, course attainment |
+| Lecturer | `lecturer1@my.sampoernauniversity.ac.id` | Gradebook, Canvas import, class charts, advisees |
 | Lecturer | `lecturer2@…`, `lecturer3@…` | Their own classes and advisees |
 | Student | `student1@…` to `student25@…` | Personal spider chart and scores (compare `student6`, a senior, with `student21`, a freshman) |
 

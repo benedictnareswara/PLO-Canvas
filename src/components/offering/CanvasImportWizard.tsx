@@ -329,7 +329,7 @@ export function CanvasImportWizard({ open, onClose, detail }: { open: boolean; o
                     <Td>
                       {r.include && (
                         <>
-                          <PloMultiSelect plos={detail.plos} value={r.weights} highlight={detail.coursePloNumbers} onChange={(weights) => update(r.key, { weights })} />
+                          <PloMultiSelect plos={detail.plos.filter((p) => detail.coursePloNumbers.includes(p.number) || r.weights.some((w) => w.plo === p.id))} value={r.weights} highlight={detail.coursePloNumbers} onChange={(weights) => update(r.key, { weights })} />
                           {err && err !== "maxPoints" && err !== "gradeWeight" && (
                             <div className="mt-1 text-xs font-medium text-risk">
                               {t(`rowErrors.${err}`, { total: Math.round(r.weights.reduce((s, w) => s + w.weight, 0) * 100) / 100 })}

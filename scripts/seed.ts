@@ -332,18 +332,18 @@ async function main() {
   const passwordHash = await hashPassword(SEED_PASSWORD);
   const dept = department._id;
   const staff = {
-    admin: await User.create({ email: "admin@sampoerna.ac.id", name: "Registry Superadmin", roles: ["superadmin"], passwordHash, staffId: "ADM-001" }),
-    "head.cs": await User.create({ email: "head.cs@sampoerna.ac.id", name: "Dr. Hendra Gunawan", roles: ["faculty_head", "lecturer"], department: dept, passwordHash, staffId: "FET-CS-001" }),
-    lecturer1: await User.create({ email: "lecturer1@sampoerna.ac.id", name: "Dr. Rina Kusuma", roles: ["lecturer"], department: dept, passwordHash, staffId: "FET-CS-011" }),
-    lecturer2: await User.create({ email: "lecturer2@sampoerna.ac.id", name: "Budi Santoso, M.Kom.", roles: ["lecturer"], department: dept, passwordHash, staffId: "FET-CS-012" }),
-    lecturer3: await User.create({ email: "lecturer3@sampoerna.ac.id", name: "Dr. Sari Wulandari", roles: ["lecturer"], department: dept, passwordHash, staffId: "FET-CS-013" }),
+    admin: await User.create({ email: "admin@my.sampoernauniversity.ac.id", name: "Registry Superadmin", roles: ["superadmin"], passwordHash, staffId: "ADM-001" }),
+    "head.cs": await User.create({ email: "head.cs@my.sampoernauniversity.ac.id", name: "Dr. Hendra Gunawan", roles: ["faculty_head", "lecturer"], department: dept, passwordHash, staffId: "FET-CS-001" }),
+    lecturer1: await User.create({ email: "lecturer1@my.sampoernauniversity.ac.id", name: "Dr. Rina Kusuma", roles: ["lecturer"], department: dept, passwordHash, staffId: "FET-CS-011" }),
+    lecturer2: await User.create({ email: "lecturer2@my.sampoernauniversity.ac.id", name: "Budi Santoso, M.Kom.", roles: ["lecturer"], department: dept, passwordHash, staffId: "FET-CS-012" }),
+    lecturer3: await User.create({ email: "lecturer3@my.sampoernauniversity.ac.id", name: "Dr. Sari Wulandari", roles: ["lecturer"], department: dept, passwordHash, staffId: "FET-CS-013" }),
   } as Record<string, InstanceType<typeof User>>;
 
   const roster = [...STUDENTS, ...EXTRA_STUDENTS, ...(LARGE ? largeStudents() : [])];
   const advisors = [staff.lecturer1._id, staff.lecturer2._id, staff.lecturer3._id, staff["head.cs"]._id];
   const students = await User.insertMany(
     roster.map((s, i) => ({
-      email: `${s.key}@sampoerna.ac.id`,
+      email: `${s.key}@my.sampoernauniversity.ac.id`,
       name: s.name,
       roles: ["student"],
       department: dept,
