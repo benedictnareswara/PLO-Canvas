@@ -41,6 +41,7 @@ const ICONS = {
   grid: Grid3x3,
 };
 
+/** One group of links in the menu: a title, then the pages under it (with an optional number badge). */
 export interface NavSection {
   title: string;
   items: { href: string; label: string; icon: keyof typeof ICONS; count?: number }[];
@@ -53,11 +54,17 @@ interface ShellUser {
   roles: string[];
 }
 
+/** Makes the two letters shown in the round avatar, e.g. "Dr. Rina Kusuma" becomes "RK". Titles like "Dr." are skipped. */
 function initials(name: string) {
   const words = name.split(/\s+/).filter((w) => w && !w.endsWith(".") && !w.endsWith(","));
   return (words[0]?.[0] ?? "") + (words.length > 1 ? words[words.length - 1][0] : "");
 }
 
+/**
+ * The frame around every signed-in page. On desktop: a blue strip on top (search and user menu),
+ * then the logo banner with the main links. On phones: a small header with a slide-in menu drawer.
+ * Each page only passes its content as `children` and this frame wraps it.
+ */
 export function AppShell({ user, sections, children }: { user: ShellUser; sections: NavSection[]; children: ReactNode }) {
   const t = useTranslations("shell");
   const tc = useTranslations("common");
@@ -215,6 +222,7 @@ export function AppShell({ user, sections, children }: { user: ShellUser; sectio
   );
 }
 
+/** The menu inside the phone drawer: the same links as the top bar, listed in groups. */
 function SideNav({
   user,
   sections,
@@ -327,6 +335,7 @@ function SideNav({
   );
 }
 
+/** The row of main links in the desktop banner. The link for the current page is highlighted. */
 function TopNav({ sections, pathname, label }: { sections: NavSection[]; pathname: string; label: string }) {
   const allHrefs = sections.flatMap((s) => s.items.map((i) => i.href));
   const activeHref = allHrefs
@@ -363,6 +372,7 @@ function TopNav({ sections, pathname, label }: { sections: NavSection[]; pathnam
   );
 }
 
+/** The small account menu with the user's name and role, and the Preferences and Sign out actions. */
 function UserMenu({
   user,
   onPreferences,

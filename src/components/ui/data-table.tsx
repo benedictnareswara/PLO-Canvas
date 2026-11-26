@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * The shared table used across the app (classes, students, grades). It adds sorting, a search box,
+ * paging, and a compact/comfortable density switch. The header row has the blue gradient.
+ * On narrow phone screens each row turns into a stacked card so it stays readable.
+ * TanStack Table does the sorting and paging maths; this file does the look.
+ */
 import { useMemo, useSyncExternalStore, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { useTranslations } from "next-intl";
 import {
@@ -54,6 +60,7 @@ function subscribeDensity(cb: () => void) {
   return () => densityListeners.delete(cb);
 }
 
+// What a page passes in: the rows (`data`) and the column definitions (`columns`).
 export interface DataTableProps<T> {
   data: T[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
