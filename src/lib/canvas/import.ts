@@ -8,6 +8,7 @@ import { diffFields, diffGrades, type AssessmentSnapshot, type AuditInput, type 
 import { newBatchId, recordAudit } from "@/lib/audit/record";
 import { runInTransaction } from "@/lib/transaction";
 import { normalizeLogin } from "./parse";
+import { mergeRowsByUser } from "./merge";
 import { assertPlosAssignedToCourse } from "@/lib/obe/plo-scope";
 import { MAX_SCORE_FACTOR } from "@/lib/gradebook/parse-score";
 
@@ -69,15 +70,18 @@ export async function matchStudents(offeringId: string, rows: CanvasImportPayloa
   });
 }
 
+/** Titles match ignoring upper/lower case, like the import wizard's preview ("Midterm exam" = "Midterm Exam"). */
+const TITLE_COLLATION = { locale: "en", strength: 2 } as const;
+
 async function findExistingAssessment(offeringId: string, a: CanvasImportPayload["assessments"][number], session?: ClientSession) {
   const opts = session ? { session } : {};
   if (a.canvasId) {
     const byCanvasId = await Assessment.findOne({ offering: offeringId, canvasId: a.canvasId }, null, opts);
     if (byCanvasId) return byCanvasId;
     // A column the lecturer already created by hand (no Canvas ID yet) is adopted, not duplicated.
-    return Assessment.findOne({ offering: offeringId, title: a.title, canvasId: { $not: { $type: "string" } } }, null, opts);
+    return Assessment.findOne({ offering: offeringId, title: a.title, canvasId: { $not: { $type: "string" } } }, null, opts).collation(TITLE_COLLATION);
   }
-  return Assessment.findOne({ offering: offeringId, title: a.title }, null, opts);
+  return Assessment.findOne({ offering: offeringId, title: a.title }, null, opts).collation(TITLE_COLLATION);
 }
 
 export async function runCanvasImport(
@@ -111,11 +115,19 @@ export async function runCanvasImport(
   }
 
   const matches = await matchStudents(offeringId, payload.students);
+  // A student in two sections is on two rows: write and enroll them once, and stop if the rows disagree.
+  const { merged, conflicts } = mergeRowsByUser(payload.students, matches.map((m) => m.userId));
+  if (conflicts.length) {
+    const examples = conflicts.slice(0, 3).map((c) => `${c.name} – ${c.key}: ${c.values.join(" vs ")}`);
+    throw new HttpError(400, `${conflicts.length} cell(s) have different scores for the same student on different rows, e.g. ${examples.join("; ")}`);
+  }
+  const enrolledByUser = new Map(matches.filter((m) => m.userId).map((m) => [m.userId!, m.enrolled]));
   const summary = {
-    matched: matches.filter((m) => m.userId && m.enrolled).length,
-    unenrolled: matches.filter((m) => m.userId && !m.enrolled).length,
+    matched: merged.filter((r) => enrolledByUser.get(r.userId)).length,
+    unenrolled: merged.filter((r) => !enrolledByUser.get(r.userId)).length,
     unmatched: matches.filter((m) => !m.userId).length,
   };
+  const importableRows = merged.filter((r) => enrolledByUser.get(r.userId) || payload.enrollUnenrolled);
   const snap = (x: { title: string; maxPoints: number; gradeWeight?: number; ploWeights: { plo: unknown; weight: number }[] }): AssessmentSnapshot => ({
     title: x.title,
     maxPoints: x.maxPoints,
@@ -138,22 +150,20 @@ export async function runCanvasImport(
   }
 
   // Dry-run checks: excused cells that would leave an old grade in place, and scores above max.
-  const importable = (i: number) => Boolean(matches[i].userId && (matches[i].enrolled || payload.enrollUnenrolled));
   const existingIds = [...existingByKey.values()].filter(Boolean).map((e) => e!._id);
   const storedGrades = existingIds.length
     ? await Grade.find({ offering: offering._id, assessment: { $in: existingIds } }, "assessment student").lean()
     : [];
   const graded = new Set(storedGrades.map((g) => `${g.student}:${g.assessment}`));
   const checks: ImportReport["checks"] = { excusedWithGrade: 0, aboveMax: 0 };
-  payload.students.forEach((row, i) => {
-    if (!importable(i)) return;
+  for (const row of importableRows) {
     for (const a of payload.assessments) {
       const score = row.scores[a.key];
       if (score !== null && score !== undefined && score > a.maxPoints) checks.aboveMax++;
       const existing = existingByKey.get(a.key);
-      if (existing && row.excused.includes(a.key) && graded.has(`${matches[i].userId}:${existing._id}`)) checks.excusedWithGrade++;
+      if (existing && row.excused.includes(a.key) && graded.has(`${row.userId}:${existing._id}`)) checks.excusedWithGrade++;
     }
-  });
+  }
   if (payload.dryRun) return { matches, summary, assessments: assessmentsPreview, checks };
 
   const write = async (session?: ClientSession) => {
@@ -188,29 +198,27 @@ export async function runCanvasImport(
       }
     }
 
-    const toEnroll = payload.enrollUnenrolled ? matches.filter((m) => m.userId && !m.enrolled) : [];
+    const toEnroll = payload.enrollUnenrolled ? merged.filter((r) => !enrolledByUser.get(r.userId)) : [];
     if (toEnroll.length) {
-      await Enrollment.insertMany(toEnroll.map((m) => ({ offering: offering._id, student: m.userId })), opts);
+      await Enrollment.insertMany(toEnroll.map((r) => ({ offering: offering._id, student: r.userId })), opts);
       written.enrolled = toEnroll.length;
     }
 
     const writes: GradeWrite[] = [];
-    payload.students.forEach((row, i) => {
-      const m = matches[i];
-      if (!importable(i)) return;
+    for (const row of importableRows) {
       for (const a of payload.assessments) {
         const assessment = String(assessmentIdByKey.get(a.key)!);
         const score = row.scores[a.key];
         if (score !== null && score !== undefined) {
-          writes.push({ assessment, student: m.userId!, score });
+          writes.push({ assessment, student: row.userId, score });
         } else if (payload.clearExcused && row.excused.includes(a.key)) {
           // Confirmed in the dry run: an excused assessment no longer counts for this student.
-          writes.push({ assessment, student: m.userId!, score: null });
+          writes.push({ assessment, student: row.userId, score: null });
         } else {
           written.blankCells++; // blank, "-" and (unless confirmed) EX cells never overwrite a grade
         }
       }
-    });
+    }
 
     // Write and audit only cells whose value actually changes.
     const stored = await Grade.find({ offering: offering._id }, "assessment student score", opts).lean();

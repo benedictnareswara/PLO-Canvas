@@ -8,6 +8,17 @@ export function studentSemester(cohortYear: number, academicYear: number, term: 
   return (academicYear - cohortYear) * 2 + (term === "even" ? 2 : 1);
 }
 
+/**
+ * The semester a student's result in a class is filed under. Without a cohort year, or for a class
+ * dated before the student's intake (a data entry mistake, giving semester 0 or less), the course's
+ * planned semester is used, so the result still counts in the cumulative and period filters.
+ */
+export function semesterForStudent(cohortYear: number | null | undefined, academicYear: number, term: Term, courseSemester: number): number {
+  if (!cohortYear) return courseSemester;
+  const semester = studentSemester(cohortYear, academicYear, term);
+  return semester >= 1 ? semester : courseSemester;
+}
+
 /** Position of a term in time: within an academic year the odd term (Aug–Dec) comes before the even one (Feb–Jun). */
 export function periodIndex(academicYear: number, term: string): number {
   return academicYear * 2 + (term === "even" ? 1 : 0);

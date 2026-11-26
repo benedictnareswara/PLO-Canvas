@@ -67,13 +67,24 @@ export const isExcusedCell = (raw: string | undefined) => /^ex(cused)?$/i.test((
 /** A cell holding a negative number. Scores can't be negative, so these are skipped and reported. */
 const isNegativeCell = (raw: string | undefined) => /^-\s*\d/.test((raw ?? "").trim());
 
+/**
+ * Number text from an export in either locale: commas that group thousands ("1,000", "1,000.50")
+ * are dropped, and any other single comma is the decimal point ("8,5", "10,00"), the same reading
+ * the gradebook's `parseScore` gives. Anything else is returned unchanged for `Number()` to judge.
+ */
+function normalizeDecimal(v: string): string {
+  if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(v)) return v.replace(/,/g, "");
+  if (/^\d+,\d+$/.test(v)) return v.replace(",", ".");
+  return v;
+}
+
 /** Parses one gradebook cell. Blank, "-", "EX" (excused), negative numbers and unknown text → null (no grade). */
 export function parseScoreCell(raw: string | undefined, maxPoints: number | null): number | null {
   const v = (raw ?? "").trim();
   if (!v || v === "-" || isExcusedCell(v)) return null;
   if (/^(complete|pass)$/i.test(v)) return maxPoints ?? null;
   if (/^(incomplete|fail)$/i.test(v)) return 0;
-  const n = Number(v.replace(/,/g, ""));
+  const n = Number(normalizeDecimal(v));
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 

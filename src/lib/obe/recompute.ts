@@ -1,7 +1,7 @@
 import type { ClientSession } from "mongoose";
 import { Assessment, Course, CourseAttainment, CourseOffering, Enrollment, Grade, Plo, User, Types } from "@/models";
 import { coursePloAttainment, type AssessmentInput } from "./engine";
-import { studentSemester } from "./semesters";
+import { semesterForStudent } from "./semesters";
 
 /**
  * Rebuilds the materialized course-level PLO attainment (PLO_c,k) of every
@@ -46,7 +46,7 @@ export async function recomputeOffering(offeringId: string | Types.ObjectId, ses
     const sid = String(e.student);
     const attainment = coursePloAttainment(inputs, scoresByStudent.get(sid) ?? new Map());
     const cohort = cohortOf.get(sid);
-    const semester = cohort ? studentSemester(cohort, offering.academicYear, offering.term) : course.semester;
+    const semester = semesterForStudent(cohort, offering.academicYear, offering.term, course.semester);
     for (const [plo, value] of attainment) {
       const number = ploNumber.get(plo);
       if (number === undefined) continue;
