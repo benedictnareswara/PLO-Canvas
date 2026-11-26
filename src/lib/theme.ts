@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Light / dark theme switching. The chosen mode is saved in the browser (localStorage) and written
+ * onto the <html> tag as data-theme, which the CSS in globals.css reacts to.
+ * Modes: "light" (the default), "dark", and "system" (follow the computer's setting).
+ */
 import { useSyncExternalStore } from "react";
 import { THEME_COLOR, THEME_STORAGE_KEY } from "./theme-colors";
 
@@ -17,6 +22,8 @@ function readStored(): ThemeMode {
   }
 }
 
+// Puts the mode on the page: sets data-theme, and tells the browser which colours to use for its own
+// controls and top bar.
 function apply(mode: ThemeMode) {
   const root = document.documentElement;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]');
@@ -41,6 +48,8 @@ export function setThemeMode(mode: ThemeMode) {
   window.dispatchEvent(new Event(EVENT));
 }
 
+// Lets React hear about theme changes: from our own switch, from another open tab, or when the
+// computer itself switches between light and dark.
 function subscribe(cb: () => void) {
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
   const onStorage = (e: StorageEvent) => {

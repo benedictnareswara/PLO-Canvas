@@ -1,6 +1,13 @@
+/**
+ * Login sessions. After you sign in, the server gives your browser a signed "ticket" (a JWT) that
+ * says who you are and what roles you have. The browser sends it back on every request.
+ * It is signed with JWT_SECRET, so nobody can forge or change a ticket without the secret.
+ * The `jose` library does the signing and checking.
+ */
 import { SignJWT, jwtVerify } from "jose";
 import type { Role } from "@/models";
 
+// The name of the cookie that holds the ticket in the browser.
 export const SESSION_COOKIE = "obe_session";
 export const SESSION_TTL_SECONDS = 60 * 60 * 8; // one working day
 
@@ -13,6 +20,7 @@ export interface SessionPayload {
   iat?: number;
 }
 
+// Reads JWT_SECRET from the settings and refuses to run if it is missing, too short, or still the example.
 function secretKey(): Uint8Array {
   const secret = process.env.JWT_SECRET;
   if (!secret || secret.length < 16) {
@@ -24,6 +32,7 @@ function secretKey(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
+/** Makes a new signed ticket for a user. It expires after SESSION_TTL_SECONDS (8 hours). */
 export async function signSession(payload: SessionPayload): Promise<string> {
   return new SignJWT({ email: payload.email, name: payload.name, roles: payload.roles })
     .setProtectedHeader({ alg: "HS256" })
@@ -33,6 +42,7 @@ export async function signSession(payload: SessionPayload): Promise<string> {
     .sign(secretKey());
 }
 
+/** Checks a ticket. Gives back who the user is, or null if it is missing, fake, changed or expired. */
 export async function verifySession(token: string | undefined): Promise<SessionPayload | null> {
   if (!token) return null;
   try {
@@ -50,6 +60,8 @@ export async function verifySession(token: string | undefined): Promise<SessionP
   }
 }
 
+// How the cookie is stored: httpOnly = page scripts cannot read it; sameSite lax = not sent along
+// with requests started by other websites; maxAge = how long the browser keeps it.
 export const sessionCookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,

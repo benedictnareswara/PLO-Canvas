@@ -1,3 +1,8 @@
+/**
+ * The sign-in page (the landing page of the site). Left: the login card. Right: a photo and short
+ * points about what the app does. The photo side is hidden on phones so the form stays easy to use.
+ * The page is only the layout; the form itself, with email and password, is in login-form.tsx.
+ */
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
@@ -7,11 +12,13 @@ import { BrandLogo } from "@/components/BrandMark";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { LoginForm } from "./login-form";
 
+/** Sets the browser tab title, in the language the visitor chose. */
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("login");
   return { title: t("title") };
 }
 
+/** Builds the whole login screen. Text comes from the translation files (English and Indonesian). */
 export default async function LoginPage() {
   const t = await getTranslations();
   const points = [t("login.point1"), t("login.point2"), t("login.point3")];

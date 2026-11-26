@@ -1,3 +1,7 @@
+/**
+ * Connects the app to MongoDB (the database). Mongoose is the library that talks to it.
+ * The address of the database comes from the MONGODB_URI setting in the .env file.
+ */
 import mongoose from "mongoose";
 
 type Cached = { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null };
@@ -7,6 +11,10 @@ const globalForMongo = globalThis as unknown as { __mongoose?: Cached };
 const cached: Cached = globalForMongo.__mongoose ?? { conn: null, promise: null };
 globalForMongo.__mongoose = cached;
 
+/**
+ * Gives back the open database connection, opening it the first time it is needed.
+ * Later calls reuse the same connection, so the app does not open a new one for every request.
+ */
 export async function connectDB(): Promise<typeof mongoose> {
   if (cached.conn) return cached.conn;
   const uri = process.env.MONGODB_URI;

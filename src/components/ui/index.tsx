@@ -1,3 +1,9 @@
+/**
+ * The app's small toolkit of building blocks: buttons, cards, badges and form inputs.
+ * Pages use these instead of making their own, so every screen looks the same.
+ * Styling uses Tailwind CSS: short class names such as `rounded-full` (fully round corners) or
+ * `px-3` (space left and right) are written straight on the element.
+ */
 import Link from "next/link";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -6,13 +12,26 @@ import type { ComponentProps, ReactNode } from "react";
 import { parseScore } from "@/lib/gradebook/parse-score";
 import { stripNegative } from "@/lib/ranges";
 
+/**
+ * Joins class names into one string. If two classes fight (for example `px-2` and `px-4`),
+ * the later one wins. This is what lets a page tweak a component, like `<Button className="px-6">`.
+ * (`clsx` joins the names, `tailwind-merge` settles the fights.)
+ */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 /* -------------------------------- Button -------------------------------- */
 
-/* One button design everywhere: a pill with a soft shadow. Variants only change the fill. */
+/*
+ * One button design everywhere: a pill with a soft shadow. The "variant" only changes the colour,
+ * so you pick it by how important the action is:
+ *   primary      - the main action on a screen (Save, Import). Blue gradient. Use one per area.
+ *   secondary    - a normal action (Cancel, Export). White with a border.
+ *   ghost        - a quiet action. Just text, a light background shows on hover.
+ *   danger       - an action that deletes or cannot be undone (Delete). Red gradient.
+ *   danger-ghost - a quiet delete, such as a small "Remove" link in a list. Red text only.
+ */
 const buttonVariants = {
   primary: "bg-linear-to-b from-(--brand-grad-from) to-(--brand-grad-to) text-brand-fg shadow-e1 hover:brightness-110",
   secondary: "bg-surface text-brand border border-border-strong shadow-e1 hover:bg-brand-soft",
@@ -21,6 +40,8 @@ const buttonVariants = {
   "danger-ghost": "text-risk hover:bg-risk-soft",
 };
 
+// Button sizes: sm and md for tables and forms, lg for big call-to-action buttons,
+// icon and icon-sm for square buttons that hold only an icon.
 const buttonSizes = {
   sm: "h-8 px-2.5 text-xs gap-1.5",
   md: "h-9 px-3.5 text-sm gap-2",
@@ -32,6 +53,11 @@ const buttonSizes = {
 export type ButtonVariant = keyof typeof buttonVariants;
 export type ButtonSize = keyof typeof buttonSizes;
 
+/**
+ * Gives back the full class list of a button, so something that is not a <button> (like a link)
+ * can look exactly the same. The base part covers the pill shape, hover and click effects, the
+ * disabled look, and the focus ring that keyboard users see.
+ */
 export function buttonClass(variant: ButtonVariant = "primary", size: ButtonSize = "md", className?: string) {
   return cn(
     "relative inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold whitespace-nowrap",
@@ -74,6 +100,7 @@ export function Button({
   );
 }
 
+/** A link that looks like a button. Use it to go to another page; use <Button> to do something. */
 export function ButtonLink({
   variant = "secondary",
   size = "md",
@@ -85,10 +112,12 @@ export function ButtonLink({
 
 /* --------------------------------- Card --------------------------------- */
 
+/** A white rounded box with a thin border. Content on a page is grouped into cards. */
 export function Card({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("overflow-clip rounded-xl border border-border bg-linear-to-b from-surface to-[color-mix(in_oklab,var(--surface),var(--brand-soft)_30%)] shadow-e1", className)} {...props} />;
 }
 
+/** The top strip of a card: a title, an optional small description, and optional buttons on the right. */
 export function CardHeader({
   title,
   description,
@@ -116,12 +145,16 @@ export function CardHeader({
   );
 }
 
+/** The padded area of a card where the real content goes. */
 export function CardBody({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("p-5", className)} {...props} />;
 }
 
 /* --------------------------------- Badge -------------------------------- */
 
+// A badge's colour tells the reader the mood at a glance:
+// ok = green (good), risk = red (bad), warn = orange (be careful), info = blue (just so you know),
+// brand = navy (our colour), neutral = grey (nothing special).
 const badgeTones = {
   neutral: "bg-surface-2 text-muted",
   ok: "bg-ok-soft text-ok",
@@ -133,6 +166,7 @@ const badgeTones = {
 
 export type BadgeTone = keyof typeof badgeTones;
 
+/** A small pill-shaped label, like "On target" or "1 PLO at risk". */
 export function Badge({ tone = "neutral", className, ...props }: ComponentProps<"span"> & { tone?: BadgeTone }) {
   return (
     <span
@@ -148,6 +182,8 @@ export function Badge({ tone = "neutral", className, ...props }: ComponentProps<
 
 /* --------------------------------- Forms -------------------------------- */
 
+// The shared look of every text box: border, hover, focus ring, and a red border when invalid.
+// Other inputs (selects, text areas) reuse it so all form fields match.
 export const inputClass = cn(
   "h-9 w-full min-w-0 rounded-lg border border-border-input bg-surface px-3 text-sm outline-none",
   "placeholder:text-subtle",
@@ -159,6 +195,7 @@ export const inputClass = cn(
   "user-invalid:border-risk",
 );
 
+/** A normal one-line text box. Pass `invalid` to turn the border red. */
 export function Input({ className, invalid, ...props }: ComponentProps<"input"> & { invalid?: boolean }) {
   return <input className={cn(inputClass, className)} aria-invalid={invalid || undefined} {...props} />;
 }

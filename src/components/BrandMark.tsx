@@ -9,6 +9,8 @@ import { cn } from "@/components/ui";
  */
 type Tone = "auto" | "onBrand";
 
+// Shows one logo. In "auto" mode it draws two images, a light one and a dark one, and CSS hides
+// the wrong one depending on the theme. That way the logo is always readable.
 function Pair({ light, dark, ratio, className, label, tone, sizes }: { light: string; dark: string; ratio: string; className?: string; label?: string; tone: Tone; sizes: string }) {
   const alt = label ?? "";
   return (
