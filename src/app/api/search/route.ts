@@ -3,7 +3,7 @@ import { z } from "zod";
 import { apiHandler, requireApiUser } from "@/lib/auth/rbac";
 import { escapeRegex, searchScope } from "@/lib/search/scope";
 import type { SearchResults } from "@/lib/search/types";
-import { offeringPeriodLabel } from "@/lib/obe/semesters";
+import { NEWEST_PERIOD_FIRST, offeringPeriodLabel } from "@/lib/obe/semesters";
 import { Course, CourseOffering, Curriculum, Types, User } from "@/models";
 
 const querySchema = z.object({ q: z.string().trim().min(2).max(64) });
@@ -45,7 +45,7 @@ export const GET = apiHandler(async (req) => {
   const offerings = scope.offerings && matchingCourses.length
     ? await CourseOffering.find({ $and: [oids(scope.offerings), { course: { $in: matchingCourses.map((c) => c._id) } }] })
         .select("course academicYear term")
-        .sort({ academicYear: -1, term: -1 })
+        .sort(NEWEST_PERIOD_FIRST)
         .limit(LIMIT)
         .lean()
     : [];
