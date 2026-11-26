@@ -1,6 +1,7 @@
 import "server-only";
 import { Course, CourseOffering, Curriculum, Department, Enrollment, Faculty, Plo, User } from "@/models";
 import { DEFAULT_GRADE_SCALE } from "@/lib/obe/engine";
+import { NEWEST_PERIOD_FIRST } from "@/lib/obe/semesters";
 
 /** Converts lean Mongo documents (ObjectIds, Dates) into plain JSON for client components. */
 export function plain<T>(value: unknown): T {
@@ -49,7 +50,7 @@ export async function loadCourses() {
 
 export async function loadOfferings() {
   const [offerings, enrollments] = await Promise.all([
-    CourseOffering.find().sort({ academicYear: -1, term: -1 }).lean(),
+    CourseOffering.find().sort(NEWEST_PERIOD_FIRST).lean(),
     Enrollment.find().select("offering student").lean(),
   ]);
   const roster: Record<string, string[]> = {};
