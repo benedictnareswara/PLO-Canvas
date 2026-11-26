@@ -14,7 +14,7 @@ import {
   DEFAULT_GRADE_SCALE,
   scorePercentage,
 } from "@/lib/obe/engine";
-import { inPeriod, semesterForStudent, semesterRange, studentSemester } from "@/lib/obe/semesters";
+import { inPeriod, NEWEST_PERIOD_FIRST, newestPeriodFirst, semesterForStudent, semesterRange, studentSemester } from "@/lib/obe/semesters";
 
 describe("scorePercentage (formula 1)", () => {
   it("computes score / max × 100", () => {
@@ -191,6 +191,31 @@ describe("semesters", () => {
     // Class dated before the student's intake: semester 0 would drop out of "Cumulative".
     expect(semesterForStudent(2025, 2024, "even", 3)).toBe(3);
     expect(inPeriod(semesterForStudent(2025, 2024, "even", 3), "all")).toBe(true);
+  });
+});
+
+describe("term order (newest first)", () => {
+  // The lecturer dropdown showed Odd before Even inside each year, which is not chronological.
+  const shown = [
+    { academicYear: 2026, term: "odd" },
+    { academicYear: 2025, term: "odd" },
+    { academicYear: 2025, term: "even" },
+    { academicYear: 2024, term: "odd" },
+    { academicYear: 2024, term: "even" },
+    { academicYear: 2023, term: "even" },
+  ];
+  const label = (p: { academicYear: number; term: string }) => `${p.academicYear} ${p.term}`;
+  const expected = ["2026 odd", "2025 even", "2025 odd", "2024 even", "2024 odd", "2023 even"];
+
+  it("puts the even term (Feb–Jun) before the odd term (Aug–Dec) of the same academic year", () => {
+    expect([...shown].sort(newestPeriodFirst).map(label)).toEqual(expected);
+  });
+
+  it("gives the same order as the database sort NEWEST_PERIOD_FIRST", () => {
+    // How MongoDB applies { academicYear: -1, term: 1 }: year descending, then term as text ascending.
+    const [yearDir, termDir] = [NEWEST_PERIOD_FIRST.academicYear, NEWEST_PERIOD_FIRST.term];
+    const asDatabase = [...shown].sort((a, b) => yearDir * (a.academicYear - b.academicYear) || termDir * a.term.localeCompare(b.term));
+    expect(asDatabase.map(label)).toEqual(expected);
   });
 });
 

@@ -19,6 +19,23 @@ export function semesterForStudent(cohortYear: number | null | undefined, academ
   return semester >= 1 ? semester : courseSemester;
 }
 
+/** Position of a term in time: within an academic year the odd term (Aug–Dec) comes before the even one (Feb–Jun). */
+export function periodIndex(academicYear: number, term: string): number {
+  return academicYear * 2 + (term === "even" ? 1 : 0);
+}
+
+/** Sort comparator for classes, newest term first: 2025/2026 Even, then 2025/2026 Odd, then 2024/2025 Even. */
+export function newestPeriodFirst(a: { academicYear: number; term: string }, b: { academicYear: number; term: string }): number {
+  return periodIndex(b.academicYear, b.term) - periodIndex(a.academicYear, a.term);
+}
+
+/**
+ * The same order for a MongoDB `.sort()`. Terms are stored as text, and "even" sorts before "odd",
+ * so ascending text order puts the later (even) term first within a year. Sorting `term: -1`
+ * instead lists Odd before Even, which is not chronological.
+ */
+export const NEWEST_PERIOD_FIRST = { academicYear: -1, term: 1 } as const;
+
 export function academicYearLabel(academicYear: number): string {
   return `${academicYear}/${academicYear + 1}`;
 }

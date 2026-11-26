@@ -13,7 +13,7 @@ import {
   Types,
 } from "@/models";
 import { DEFAULT_THRESHOLD, assessedShare, isFullyAssessed, courseGrade, cumulativePloAttainment, letterGrade, resolveGradeScale, scorePercentage, type LetterScale } from "./engine";
-import { offeringPeriodLabel, semesterForStudent } from "./semesters";
+import { NEWEST_PERIOD_FIRST, newestPeriodFirst, offeringPeriodLabel, semesterForStudent } from "./semesters";
 import type { AttainmentRow, AttainmentSum, PackedSums, PloInfo, PloValues, StudentSummary } from "./types";
 import { packSums } from "./aggregate";
 
@@ -388,7 +388,7 @@ export async function listOfferings(filter: { lecturer?: string; departmentId?: 
 
   const query: Record<string, unknown> = { course: { $in: courses.map((c) => c._id) } };
   if (filter.lecturer) query.lecturers = oid(filter.lecturer);
-  const offerings = await CourseOffering.find(query).sort({ academicYear: -1, term: -1 }).lean();
+  const offerings = await CourseOffering.find(query).sort(NEWEST_PERIOD_FIRST).lean();
   const ids = offerings.map((o) => o._id);
 
   const [enrollCounts, assessmentCounts, means, lecturers] = await Promise.all([
@@ -431,7 +431,7 @@ export async function listOfferings(filter: { lecturer?: string; departmentId?: 
             .sort((a, b) => a - b),
         };
       })
-      .sort((a, b) => b.academicYear - a.academicYear || b.term.localeCompare(a.term) || a.code.localeCompare(b.code)),
+      .sort((a, b) => newestPeriodFirst(a, b) || a.code.localeCompare(b.code)),
   };
 }
 
